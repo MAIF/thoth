@@ -70,9 +70,12 @@ lazy val publishCommonsSettings = Seq(
       Some(s"scm:git:git@github.com:$githubRepo.git")
     )
   ),
+  licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
   developers := List(
     Developer("alexandre.delegue", "Alexandre Delègue", "", url(s"https://github.com/larousso")),
-    Developer("benjamin.cavy", "Benjamin Cavy", "", url(s"https://github.com/ptitFicus"))
+    Developer("benjamin.cavy", "Benjamin Cavy", "", url(s"https://github.com/ptitFicus")),
+    Developer("gregory.bevan", "Grégory Bévan", "", url(s"https://github.com/GregoryBevan")),
+    Developer("georges.ginon", "Georges Ginon", "", url(s"https://github.com/ftoumHub"))
   ),
   releaseCrossBuild := true,
   publishMavenStyle := true,
