@@ -1,0 +1,35 @@
+sudo: false
+language: scala
+services:
+- docker
+scala: 2.12.12
+jdk: openjdk8
+
+script: echo "No default script"
+
+jobs:
+  include:
+    - stage: test_compile
+      name: "Run unit test"
+      script:
+        - sbt -J-XX:ReservedCodeCacheSize=128m -Dsbt.color=always -Dsbt.supershell=false test
+    - stage: publish
+      name: "Publish to bintray"
+      script:
+        - sbt -J-Xmx2G -J-Xss20M -J-XX:ReservedCodeCacheSize=128m -Dsbt.color=always -Dsbt.supershell=false "publish"
+
+stages:
+  # runs on develop, master commits and PRs
+  - name: test_compile
+    if: NOT tag =~ ^v
+  - name: publish
+    if: tag =~ ^v
+
+before_cache:
+- find $HOME/.ivy2 -name "ivydata-*.properties" -print -delete
+- find $HOME/.sbt  -name "*.lock"               -print -delete
+cache:
+  directories:
+  - "$HOME/.ivy2/cache"
+  - "$HOME/.sbt/boot"
+  - "$HOME/.sbt"
