@@ -18,9 +18,9 @@ This libs are based on :
 ## Modules 
 
  * `commons-event`: the pojos that represent the stored events. Can be used to parse events 
- * `eventsourcing-core`: The APIs for event sourcing 
- * `eventsourcing-jooq`: A jooq simple implementation of the `eventsourcing-core` APIs   
- * `eventsourcing-jooq-async`: A jooq implementation of the `eventsourcing-core` APIs using the `jooq-async-api`interface
+ * `scribe-core`: The APIs for event sourcing 
+ * `scribe-jooq`: A jooq simple implementation of the `scribe-core` APIs   
+ * `scribe-jooq-async`: A jooq implementation of the `scribe-core` APIs using the `jooq-async-api`interface
  
 ## The things to know 
 
@@ -44,8 +44,8 @@ Tuple0 sideEffect() {
 
 ## Documentations 
 
-* [Event sourcing](./eventsourcing-core/readme.md) : the documentation of the core components
-* [Event sourcing with reactive postgresql](./eventsourcing-jooq-async/readme.md) : wire all together with the reactive postgresql client
+* [Event sourcing](./scribe-core/readme.md) : the documentation of the core components
+* [Event sourcing with reactive postgresql](./scribe-jooq-async/readme.md) : wire all together with the reactive postgresql client
 
 ## Development 
 
