@@ -2,7 +2,7 @@ import Dependencies._
 
 organization := "fr.maif"
 
-name := "eventsourcing-core"
+name := "scribe-core"
 
 scalaVersion := "2.12.12"
 

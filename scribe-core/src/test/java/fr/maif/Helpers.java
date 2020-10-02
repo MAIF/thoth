@@ -251,7 +251,8 @@ public class Helpers {
             return Match(API.Tuple(type, version))
                     .option(
                             Case(VikingEvent.VikingCreatedV1.pattern2(), (t, v) -> Json.fromJson(json, VikingEvent.VikingCreated.class)),
-                            Case(VikingEvent.VikingUpdatedV1.pattern2(), (t, v) -> Json.fromJson(json, VikingEvent.VikingUpdated.class))
+                            Case(VikingEvent.VikingUpdatedV1.pattern2(), (t, v) -> Json.fromJson(json, VikingEvent.VikingUpdated.class)),
+                            Case(VikingEvent.VikingDeletedV1.pattern2(), (t, v) -> Json.fromJson(json, VikingEvent.VikingDeleted.class))
                     )
                     .toEither("Not implemented");
         }

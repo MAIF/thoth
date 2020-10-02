@@ -1,6 +1,6 @@
 import ReleaseTransformations._
 
-name := "eventsourcing"
+name := "scribe"
 organization := "fr.maif"
 
 scalaVersion := "2.12.12"
@@ -15,9 +15,9 @@ resolvers ++= res
 lazy val root = (project in file("."))
   .aggregate(
     `commons-events`,
-    `eventsourcing-core`,
-    `eventsourcing-jooq`,
-    `eventsourcing-jooq-async`
+    `scribe-core`,
+    `scribe-jooq`,
+    `scribe-jooq-async`
   )
   .enablePlugins(NoPublish, GitVersioning, GitBranchPrompt)
   .disablePlugins(BintrayPlugin)
@@ -25,16 +25,16 @@ lazy val root = (project in file("."))
 lazy val `commons-events` = project
   .settings(publishCommonsSettings: _*)
 
-lazy val `eventsourcing-jooq-async` = project
-  .dependsOn(`eventsourcing-core`)
+lazy val `scribe-jooq-async` = project
+  .dependsOn(`scribe-core`)
   .settings(publishCommonsSettings: _*)
 
-lazy val `eventsourcing-core` = project
+lazy val `scribe-core` = project
   .dependsOn(`commons-events`)
   .settings(publishCommonsSettings: _*)
 
-lazy val `eventsourcing-jooq` = project
-  .dependsOn(`eventsourcing-core`)
+lazy val `scribe-jooq` = project
+  .dependsOn(`scribe-core`)
   .settings(publishCommonsSettings: _*)
 
 javacOptions in Compile ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
@@ -56,7 +56,7 @@ releaseProcess := Seq[ReleaseStep](
   pushChanges
 )
 
-lazy val githubRepo = "maif/java-eventsourcing"
+lazy val githubRepo = "maif/scribe"
 
 lazy val publishCommonsSettings = Seq(
   homepage := Some(url(s"https://github.com/$githubRepo")),

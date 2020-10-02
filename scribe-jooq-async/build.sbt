@@ -3,7 +3,7 @@ import Dependencies._
 
 organization := "fr.maif"
 
-name := "eventsourcing-jooq-async"
+name := "scribe-jooq-async"
 
 scalaVersion := "2.12.12"
 
