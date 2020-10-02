@@ -1,7 +1,9 @@
-# Event sourcing [![travis-badge][]][travis]
+# Event sourcing [![travis-badge][]][travis] [![jar-badge][]][jar]
 
 [travis]:               https://travis-ci.com/MAIF/scribe
-[travis-badge]:         https://travis-ci.com/MAIF/java-eventsourcing.svg?token=yQytm3eoBniFj9mCoKpy&branch=master
+[travis-badge]:         https://travis-ci.com/MAIF/scribe.svg?token=yQytm3eoBniFj9mCoKpy&branch=master
+[jar]:                  https://bintray.com/maif-functional-java/maven/scribe-core/_latestVersion
+[jar-badge]:            https://api.bintray.com/packages/maif-functional-java/maven/scribe-core/images/download.svg
 
 This repository provide tools to do event sourcing in your application. 
  
