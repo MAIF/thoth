@@ -1,7 +1,7 @@
 package fr.maif.eventsourcing;
 
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
 import io.vavr.Tuple;
@@ -58,7 +58,7 @@ public class EventProcessorTest {
         Viking expected = new Viking("1", "ragnar", 1L);
         assertThat(eventAndState.getCurrentState()).isEqualTo(Option.some(expected));
 
-        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), ActorMaterializer.create(actorSystem)).toCompletableFuture().join();
+        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> expectedEnvelope = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
                 .withId(eventsFromJournal.get(0).id)
@@ -98,7 +98,7 @@ public class EventProcessorTest {
         Viking expected = new Viking("1", "ragnar", 1L);
         assertThat(eventAndState.getCurrentState()).isEqualTo(Option.some(expected));
 
-        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), ActorMaterializer.create(actorSystem)).toCompletableFuture().join();
+        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
 
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> expectedEnvelope = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
@@ -140,7 +140,7 @@ public class EventProcessorTest {
         Viking expected = new Viking("1", "Ragnar Lodbrock", 2L);
         assertThat(eventAndState.getCurrentState()).isEqualTo(Option.some(expected));
 
-        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), ActorMaterializer.create(actorSystem)).toCompletableFuture().join();
+        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> eventEnvelope1 = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
                 .withId(eventsFromJournal.get(0).id)
@@ -190,7 +190,7 @@ public class EventProcessorTest {
 
         assertThat(eventAndState.getCurrentState()).isEqualTo(Option.none());
 
-        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), ActorMaterializer.create(actorSystem)).toCompletableFuture().join();
+        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> eventEnvelope1 = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
                 .withId(eventsFromJournal.get(0).id)

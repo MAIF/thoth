@@ -6,7 +6,7 @@ import akka.japi.Pair;
 import akka.kafka.ProducerMessage;
 import akka.kafka.ProducerSettings;
 import akka.kafka.javadsl.Producer;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.*;
 import io.vavr.Tuple;
@@ -31,7 +31,7 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
 
     private final static Logger LOGGER = LoggerFactory.getLogger(KafkaEventPublisher.class);
 
-    private final ActorMaterializer materializer;
+    private final Materializer materializer;
     private final String topic;
     private final org.apache.kafka.clients.producer.Producer<String, EventEnvelope<E, Meta, Context>> kafkaProducer;
     private final SourceQueueWithComplete<EventEnvelope<E, Meta, Context>> queue;
@@ -49,7 +49,7 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
     }
 
     public KafkaEventPublisher(ActorSystem system, ProducerSettings<String, EventEnvelope<E, Meta, Context>> producerSettings, String topic, Integer queueBufferSize, Duration restartInterval, Duration maxRestartInterval) {
-        this.materializer = ActorMaterializer.create(system);
+        this.materializer = Materializer.createMaterializer(system);
         this.topic = topic;
         Integer queueBufferSize1 = queueBufferSize == null ? 10000 : queueBufferSize;
         this.restartInterval = restartInterval == null ? Duration.of(10, ChronoUnit.SECONDS) : restartInterval;

@@ -98,7 +98,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
 
     public PostgresEventStore(ActorSystem system, EventPublisher<E, Meta, Context> eventPublisher, DataSource dataSource, ExecutorService executor, TableNames tableNames, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta>  metaFormat, JacksonSimpleFormat<Context>  contextFormat) {
         this.system = system;
-        this.materializer = ActorMaterializer.create(system);
+        this.materializer = Materializer.createMaterializer(system);
         this.dataSource = dataSource;
         this.executor = executor;
         this.tableNames = tableNames;

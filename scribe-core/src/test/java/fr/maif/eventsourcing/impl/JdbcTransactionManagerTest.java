@@ -2,6 +2,7 @@ package fr.maif.eventsourcing.impl;
 
 import akka.actor.ActorSystem;
 import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
 import fr.maif.jdbc.Convertions;
@@ -41,7 +42,7 @@ public class JdbcTransactionManagerTest implements DbUtils {
                                 .update("update bands1 set name = ? where band_id = ?").params("The mars volta", 2)
                                 .closeConnection(false)
                                 .count()
-                                .runWith(Sink.head(), ActorMaterializer.create(system))
+                                .runWith(Sink.head(), Materializer.createMaterializer(system))
                                 .toCompletableFuture()
                 )
         ).get();
@@ -50,7 +51,7 @@ public class JdbcTransactionManagerTest implements DbUtils {
         List<Map<String, String>> results = Sql.of(dataSource.getConnection(), system)
                 .select("select * from bands1").as(Convertions.map)
                 .get()
-                .runWith(Sink.seq(), ActorMaterializer.create(system))
+                .runWith(Sink.seq(), Materializer.createMaterializer(system))
                 .toCompletableFuture().get();
 
         assertThat(results).contains(
@@ -74,7 +75,7 @@ public class JdbcTransactionManagerTest implements DbUtils {
                                     .update("update bands2 set name = ? where band_id = ?").params("The mars volta", 2)
                                     .closeConnection(false)
                                     .count()
-                                    .runWith(Sink.head(), ActorMaterializer.create(system))
+                                    .runWith(Sink.head(), Materializer.createMaterializer(system))
                                     .toCompletableFuture()
                     )
                             .flatMap(__ -> Future.failed(new RuntimeException("Oups")))
@@ -85,7 +86,7 @@ public class JdbcTransactionManagerTest implements DbUtils {
         List<Map<String, String>> results = Sql.of(dataSource.getConnection(), system)
                 .select("select * from bands2").as(Convertions.map)
                 .get()
-                .runWith(Sink.seq(), ActorMaterializer.create(system))
+                .runWith(Sink.seq(), Materializer.createMaterializer(system))
                 .toCompletableFuture().get();
 
         assertThat(results).contains(

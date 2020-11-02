@@ -36,7 +36,7 @@ public class InMemoryEventStore<T, E extends Event, Meta, Context> implements Ev
 
     private InMemoryEventStore(ActorSystem system) {
         this.system = system;
-        this.materializer = ActorMaterializer.create(system);
+        this.materializer = Materializer.createMaterializer(system);
 
         Pair<SourceQueueWithComplete<EventEnvelope>, Source<EventEnvelope, NotUsed>> run = Source
                 .<EventEnvelope>queue(500, OverflowStrategy.backpressure())

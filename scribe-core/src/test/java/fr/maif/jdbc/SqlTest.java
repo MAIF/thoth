@@ -1,7 +1,7 @@
 package fr.maif.jdbc;
 
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
 import io.vavr.collection.HashMap;
@@ -34,7 +34,7 @@ public class SqlTest implements DbUtils {
         List<Map<String, String>> results = Sql.of(connection, system)
                 .select("select * from bands21").as(Convertions.map)
                 .get()
-                .runWith(Sink.seq(), ActorMaterializer.create(system))
+                .runWith(Sink.seq(), Materializer.createMaterializer(system))
                 .toCompletableFuture().get();
 
         assertThat(results).contains(
@@ -54,7 +54,7 @@ public class SqlTest implements DbUtils {
                 .update("update bands22 set name = ? where band_id = ?").params("The mars volta", 2)
                 .closeConnection(false)
                 .count()
-                .runWith(Sink.head(), ActorMaterializer.create(system))
+                .runWith(Sink.head(), Materializer.createMaterializer(system))
                 .toCompletableFuture().get();
 
         assertThat(updates).isEqualTo(1);
@@ -63,7 +63,7 @@ public class SqlTest implements DbUtils {
         List<Map<String, String>> results = Sql.of(connection, system)
                 .select("select * from bands22").as(Convertions.map)
                 .get()
-                .runWith(Sink.seq(), ActorMaterializer.create(system))
+                .runWith(Sink.seq(), Materializer.createMaterializer(system))
                 .toCompletableFuture().get();
 
         assertThat(results).contains(

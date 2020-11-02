@@ -2,12 +2,10 @@ package fr.maif.eventsourcing;
 
 import akka.actor.ActorSystem;
 import akka.kafka.ProducerSettings;
-import fr.maif.akka.AkkaExecutionContext;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.eventsourcing.impl.DefaultAggregateStore;
 import fr.maif.eventsourcing.impl.KafkaEventPublisher;
-import fr.maif.eventsourcing.TableNames;
 import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
 import io.vavr.collection.List;
