@@ -11,8 +11,12 @@ jobs:
   include:
     - stage: test_compile
       name: "Run unit test"
+      before_script:
+        - docker-compose -f docker-compose.test.yml up -d
       script:
         - sbt -J-XX:ReservedCodeCacheSize=128m -Dsbt.color=always -Dsbt.supershell=false test
+      after_script:
+        - docker-compose -f docker-compose.test.yml stop
     - stage: publish
       name: "Publish to bintray"
       script:
