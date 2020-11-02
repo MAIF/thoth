@@ -244,7 +244,6 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
 
     @Override
     public Future<EventEnvelope<E, Meta, Context>> markAsPublished(EventEnvelope<E, Meta, Context> eventEnvelope) {
-        LocalDateTime now = LocalDateTime.now();
         return pgAsyncPool.execute(dsl -> dsl
                 .update(table(this.tableNames.tableName))
                 .set(PUBLISHED, true)
@@ -254,7 +253,6 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
 
     @Override
     public Future<List<EventEnvelope<E, Meta, Context>>> markAsPublished(List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
-        LocalDateTime now = LocalDateTime.now();
         return pgAsyncPool.execute(dsl -> dsl
                 .update(table(this.tableNames.tableName))
                 .set(PUBLISHED, true)
