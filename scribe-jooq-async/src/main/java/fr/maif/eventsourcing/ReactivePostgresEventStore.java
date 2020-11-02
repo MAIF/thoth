@@ -2,39 +2,36 @@ package fr.maif.eventsourcing;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Source;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
-import io.vavr.Tuple;
-import io.vavr.Tuple0;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
 import fr.maif.jooq.QueryResult;
+import fr.maif.json.Json;
 import io.vavr.API;
+import io.vavr.Tuple;
+import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.collection.Seq;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
-import org.jooq.*;
-import org.jooq.conf.ParamType;
-import org.jooq.impl.DSL;
+import org.jooq.Condition;
+import org.jooq.Converter;
+import org.jooq.Field;
+import org.jooq.JSONB;
 import org.jooq.impl.SQLDataType;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Types;
 import java.time.LocalDateTime;
-import java.util.Objects;
 import java.util.UUID;
 
 import static java.util.function.Function.identity;
@@ -52,9 +49,9 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
     private final static Field<String> EVENT_TYPE = field("event_type", String.class);
     private final static Field<Long> VERSION = field("version", Long.class);
     private final static Field<String> TRANSACTION_ID = field("transaction_id", String.class);
-    private final static Field<String> EVENT = field("event", SQLDataType.OTHER.asConvertedDataType(new StringJsonBinding()));
-    private final static Field<String> METADATA = field("metadata", SQLDataType.OTHER.asConvertedDataType(new StringJsonBinding()));
-    private final static Field<String> CONTEXT = field("context", SQLDataType.OTHER.asConvertedDataType(new StringJsonBinding()));
+    private final static Field<JsonNode> EVENT = field("event", SQLDataType.JSONB.asConvertedDataType(new JsonBConverter()));
+    private final static Field<JsonNode> METADATA = field("metadata", SQLDataType.JSONB.asConvertedDataType(new JsonBConverter()));
+    private final static Field<JsonNode> CONTEXT = field("context", SQLDataType.JSONB.asConvertedDataType(new JsonBConverter()));
     private final static Field<Integer> TOTAL_MESSAGE_IN_TRANSACTION = field("total_message_in_transaction", Integer.class);
     private final static Field<Integer> NUM_MESSAGE_IN_TRANSACTION = field("num_message_in_transaction", Integer.class);
     private final static Field<String> USER_ID = field("user_id", String.class);
@@ -81,7 +78,7 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
             JacksonSimpleFormat<Context> contextFormat) {
 
         this.system = system;
-        this.materializer = ActorMaterializer.create(system);
+        this.materializer = Materializer.createMaterializer(system);
         this.pgAsyncPool = pgAsyncPool;
         this.tableNames = tableNames;
         this.eventPublisher = eventPublisher;
@@ -219,15 +216,15 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
         return Source.fromSourceCompletionStage(this.pgAsyncPool.begin().map(ctx ->
                 loadEventsByQuery(ctx, query)
                         .watchTermination((nu, d) ->
-                                    d.handleAsync((__, e) -> {
-                                        if (e != null) {
-                                            LOGGER.error("loadEventsByQuery terminated with error", e);
-                                            return ctx.rollback().toCompletableFuture();
-                                        } else {
-                                            LOGGER.debug("loadEventsByQuery terminated correctly");
-                                            return ctx.commit().toCompletableFuture();
-                                        }
-                                    })
+                                d.handleAsync((__, e) -> {
+                                    if (e != null) {
+                                        LOGGER.error("loadEventsByQuery terminated with error", e);
+                                        return ctx.rollback().toCompletableFuture();
+                                    } else {
+                                        LOGGER.debug("loadEventsByQuery terminated correctly");
+                                        return ctx.commit().toCompletableFuture();
+                                    }
+                                })
                         )
         ).toCompletableFuture()).mapMaterializedValue(__ -> NotUsed.notUsed());
     }
@@ -303,92 +300,43 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
                 );
     }
 
-    private Option<JsonNode> readValue(String value) {
-        return Option.of(value)
-                .flatMap(str -> Try.of(() -> objectMapper.readTree(str)).toOption());
+    private Option<JsonNode> readValue(JsonNode value) {
+        return Option.of(value);
     }
 
 
-    public static class StringJsonBinding implements Binding<Object, String> {
+    public static class JsonBConverter implements Converter<JSONB, JsonNode> {
 
-        // The converter does all the work
         @Override
-        public Converter<Object, String> converter() {
-            return new Converter<Object, String>() {
-                @Override
-                public String from(Object t) {
-                    return t == null ? null : t.toString();
+        public JsonNode from(JSONB databaseObject) {
+            if (databaseObject != null && databaseObject.data() != null) {
+                JsonNode parsed = Json.parse(databaseObject.data());
+                if (parsed.isTextual()) {
+                    return Json.parse(parsed.asText());
                 }
-
-                @Override
-                public Object to(String u) {
-                    return u;
-                }
-
-                @Override
-                public Class<Object> fromType() {
-                    return Object.class;
-                }
-
-                @Override
-                public Class<String> toType() {
-                    return String.class;
-                }
-            };
-        }
-
-        // Rending a bind variable for the binding context's value and casting it to the json type
-        @Override
-        public void sql(BindingSQLContext<String> ctx) throws SQLException {
-            // Depending on how you generate your SQL, you may need to explicitly distinguish
-            // between jOOQ generating bind variables or inlined literals.
-            if (ctx.render().paramType() == ParamType.INLINED) {
-                ctx.render().visit(DSL.inline(ctx.convert(converter()).value())).sql("::jsonb");
-            } else if (ctx.render().paramType() == ParamType.NAMED) {
-                ctx.render().visit(DSL.query(ctx.variable() + "::jsonb"));
-            } else if (ctx.render().paramType() == ParamType.INDEXED) {
-                ctx.render().visit(DSL.query(ctx.variable() + "::jsonb"));
-            } else if (ctx.render().paramType() == ParamType.FORCE_INDEXED) {
-                ctx.render().visit(DSL.query(ctx.variable() + "::jsonb"));
+                return parsed;
             } else {
-                ctx.render().sql("?::jsonb");
+                return NullNode.getInstance();
             }
         }
 
-        // Registering VARCHAR types for JDBC CallableStatement OUT parameters
         @Override
-        public void register(BindingRegisterContext<String> ctx) throws SQLException {
-            ctx.statement().registerOutParameter(ctx.index(), Types.VARCHAR);
+        public JSONB to(JsonNode userObject) {
+            if (userObject == null) {
+                return null;
+            }
+            return JSONB.valueOf(Json.stringify(userObject));
         }
 
-        // Converting the JsValue to a String value and setting that on a JDBC PreparedStatement
         @Override
-        public void set(BindingSetStatementContext<String> ctx) throws SQLException {
-            ctx.statement().setString(ctx.index(), Objects.toString(ctx.convert(converter()).value(), null));
+        public Class<JSONB> fromType() {
+            return JSONB.class;
         }
 
-        // Getting a String value from a JDBC ResultSet and converting that to a JsValue
         @Override
-        public void get(BindingGetResultSetContext<String> ctx) throws SQLException {
-            ctx.convert(converter()).value(ctx.resultSet().getString(ctx.index()));
-        }
-
-        // Getting a String value from a JDBC CallableStatement and converting that to a JsValue
-        @Override
-        public void get(BindingGetStatementContext<String> ctx) throws SQLException {
-            ctx.convert(converter()).value(ctx.statement().getString(ctx.index()));
-        }
-
-        // Setting a value on a JDBC SQLOutput (useful for Oracle OBJECT types)
-        @Override
-        public void set(BindingSetSQLOutputContext<String> ctx) throws SQLException {
-            throw new SQLFeatureNotSupportedException();
-        }
-
-        // Getting a value from a JDBC SQLInput (useful for Oracle OBJECT types)
-        @Override
-        public void get(BindingGetSQLInputContext<String> ctx) throws SQLException {
-            throw new SQLFeatureNotSupportedException();
+        public Class<JsonNode> toType() {
+            return JsonNode.class;
         }
     }
+
 }

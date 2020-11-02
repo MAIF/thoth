@@ -1,7 +1,6 @@
 package fr.maif.eventsourcing.impl;
 
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import fr.maif.eventsourcing.*;
 import io.vavr.concurrent.Future;
@@ -16,7 +15,7 @@ public class DefaultAggregateStore<S extends State<S>, E extends Event, Meta, Co
 
 
     public DefaultAggregateStore(EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, ActorSystem system, TransactionManager<TxCtx> transactionManager) {
-        this(eventStore, eventEventHandler, ActorMaterializer.create(system), transactionManager);
+        this(eventStore, eventEventHandler, Materializer.createMaterializer(system), transactionManager);
     }
 
     public DefaultAggregateStore(EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, Materializer materializer, TransactionManager<TxCtx> transactionManager) {

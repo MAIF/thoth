@@ -1,7 +1,7 @@
 package fr.maif.eventsourcing.impl;
 
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -162,22 +162,22 @@ public class PostgresEventStoreTest {
     @Test
     public void loadEventsUnpublished() {
         initDatas();
-        List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(postgresEventStore.loadEventsUnpublished().runWith(Sink.seq(), ActorMaterializer.create(system)).toCompletableFuture().join());
+        List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(postgresEventStore.loadEventsUnpublished().runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
         assertThat(events).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
     }
     @Test
     public void markEventsAsPublished() {
         initDatas();
-        List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(postgresEventStore.loadEventsUnpublished().runWith(Sink.seq(), ActorMaterializer.create(system)).toCompletableFuture().join());
+        List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(postgresEventStore.loadEventsUnpublished().runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
         assertThat(events).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
         postgresEventStore.markAsPublished(events).get();
 
-        List<EventEnvelope<VikingEvent, Void, Void>> published = List.ofAll(postgresEventStore.loadEventsUnpublished().runWith(Sink.seq(), ActorMaterializer.create(system)).toCompletableFuture().join());
+        List<EventEnvelope<VikingEvent, Void, Void>> published = List.ofAll(postgresEventStore.loadEventsUnpublished().runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
         assertThat(published).isEmpty();
     }
 
     private List<EventEnvelope<VikingEvent, Void, Void>> getFromQuery(EventStore.Query query) {
-        return List.ofAll(postgresEventStore.loadEventsByQuery(query).runWith(Sink.seq(), ActorMaterializer.create(system)).toCompletableFuture().join());
+        return List.ofAll(postgresEventStore.loadEventsByQuery(query).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
     }
 
     private void initDatas() {

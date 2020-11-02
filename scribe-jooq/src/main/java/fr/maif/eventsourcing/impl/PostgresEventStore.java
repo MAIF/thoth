@@ -2,7 +2,6 @@ package fr.maif.eventsourcing.impl;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Source;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -68,7 +67,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
 
 
     private final ActorSystem system;
-    private final ActorMaterializer materializer;
+    private final Materializer materializer;
     private final DataSource dataSource;
     private final ExecutorService executor;
     private final TableNames tableNames;
@@ -98,7 +97,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
 
     public PostgresEventStore(ActorSystem system, EventPublisher<E, Meta, Context> eventPublisher, DataSource dataSource, ExecutorService executor, TableNames tableNames, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta>  metaFormat, JacksonSimpleFormat<Context>  contextFormat) {
         this.system = system;
-        this.materializer = ActorMaterializer.create(system);
+        this.materializer = Materializer.createMaterializer(system);
         this.dataSource = dataSource;
         this.executor = executor;
         this.tableNames = tableNames;
