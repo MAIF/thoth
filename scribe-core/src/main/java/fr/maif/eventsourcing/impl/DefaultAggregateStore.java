@@ -1,7 +1,6 @@
 package fr.maif.eventsourcing.impl;
 
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import fr.maif.eventsourcing.*;
 import io.vavr.concurrent.Future;

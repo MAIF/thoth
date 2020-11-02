@@ -3,7 +3,6 @@ package fr.maif.eventsourcing.impl;
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.japi.Pair;
-import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.*;
@@ -23,7 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class InMemoryEventStore<T, E extends Event, Meta, Context> implements EventStore<T, E, Meta, Context> {
 
     private final ActorSystem system;
-    private final ActorMaterializer materializer;
+    private final Materializer materializer;
 
     private java.util.List<EventEnvelope<E, Meta, Context>> eventStore = new ArrayList<>();
 
