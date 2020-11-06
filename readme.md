@@ -5,7 +5,9 @@
 [jar]:                  https://bintray.com/maif-functional-java/maven/scribe-core/_latestVersion
 [jar-badge]:            https://api.bintray.com/packages/maif-functional-java/maven/scribe-core/images/download.svg
 
-<img src="scribe.png" align="center" alt="Scribe" width="300"/>
+<p align="center">
+    <img src="scribe.png" alt="Scribe" width="300"/>
+</p>
 
 This repository provide tools to do event sourcing in your application. 
  
