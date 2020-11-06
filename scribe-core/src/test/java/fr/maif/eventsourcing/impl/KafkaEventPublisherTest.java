@@ -128,7 +128,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         assertThat(events).hasSize(3);
         assertThat(events).containsExactly(envelope1, envelope2, envelope3);
 
-        verify(eventStore, atMost(1)).markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
+        verify(eventStore, atMost(2)).markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
 
         publisher.close();
     }
