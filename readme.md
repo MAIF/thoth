@@ -49,6 +49,7 @@ Tuple0 sideEffect() {
 ## Documentations 
 
 * [Event sourcing](./scribe-core/readme.md) : the documentation of the core components
+* [Message structure](./commons-events/readme.md) : description of messages structure
 * [Event sourcing with reactive postgresql](./scribe-jooq-async/readme.md) : wire all together with the reactive postgresql client
 
 ## Development 

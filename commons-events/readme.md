@@ -1,8 +1,8 @@
 # The events 
 
-The library contains the java bean that represent event envelop containing all the metadatas of an event. 
+The library contains the java bean that represent event envelop containing all metadata of an event. 
 
-The envelop contains the fields: 
+Envelop contains following fields: 
 
  * `id` : the id of the event 
  * `sequenceNum` : the last event number 
