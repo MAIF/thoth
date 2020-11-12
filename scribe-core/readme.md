@@ -7,19 +7,19 @@ The concepts
  * a `command` is sent by the client.
  * `events` are read from the database. A `state` is calculated from these `events`
  * the `command` is validated using the current `state`
- > * if the `command` is valid then one or more `event` are returned and stored in database    
- > * if the `command` is not valid and error is returned to the client 
+   * if the `command` is valid then one or more `event` are returned and stored in database    
+   * if the `command` is not valid and error is returned to the client 
  * One or more `projections` are calculated from the `events` 
- > *  These `projections` are the read model optimised for querying 
+   *  These `projections` are the read model optimised for querying 
 
 To implement event-sourcing you need : 
  
  * a command handler 
- > * this component takes a command and must return either an error or a list of events 
+   * this component takes a command and must return either an error or a list of events 
  * an event handler 
- > * this component takes the current state and an event and must return the next state 
+   * this component takes the current state and an event and must return the next state 
  * serializer / deserializer 
- > * the events are stored in the database and published to an event store. This component handle these write and read operations.
+   * the events are stored in the database and published to an event store. This component handle these write and read operations.
  * 0 to n projections
  
  
@@ -208,12 +208,12 @@ public interface CommandHandler<Error, State, Command, Event, Message, TxCtx> {
 in our viking case we will have something like : 
 
  * `CommandHandler<String, Viking, VikingCommand, VikingEvent, Tuple0, Tuple0>` :
- > * String : the type of error
- > * Viking : the state 
- > * VikingCommand : the command
- > * VikingEvent : the event 
- > * The message : something the command handler can return in addition of the events 
- > * The transaction context : if needed a context that can be used to validate command. For example a JDBC connection or a Cassandra session.    
+   * String : the type of error
+   * Viking : the state 
+   * VikingCommand : the command
+   * VikingEvent : the event 
+   * The message : something the command handler can return in addition of the events 
+   * The transaction context : if needed a context that can be used to validate command. For example a JDBC connection or a Cassandra session.    
   
 ```java 
 
@@ -257,8 +257,8 @@ public interface EventHandler<State, Event> {
 
 in our viking case we will have something like :
 * `EventHandler<Viking, VikingEvent>`
-> * `Viking` the state 
-> * `VikingEvent` the event 
+  * `Viking` the state 
+  * `VikingEvent` the event 
 
 ```java 
 public class VikingEventHandler implements EventHandler<Viking, VikingEvent> {
