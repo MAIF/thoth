@@ -1,39 +1,39 @@
 # Event sourcing 
 
-This module provide helpers to do event sourcing in your application. 
+This module provides helpers to implement event sourcing in your application. 
 
 The concepts
 
  * a `command` is sent by the client.
- * `events` are read from the DB. A `state` is calculated from the `events` 
+ * `events` are read from the database. A `state` is calculated from these `events`
  * the `command` is validated using the current `state`
- > * if the `command` is valid then one or more `event` are returned and stored in db    
+ > * if the `command` is valid then one or more `event` are returned and stored in database    
  > * if the `command` is not valid and error is returned to the client 
  * One or more `projections` are calculated from the `events` 
- > *  The `projections` are the read model optimised for querying 
+ > *  These `projections` are the read model optimised for querying 
 
-To do event sourcing you need : 
+To implement event-sourcing you need : 
  
  * a command handler 
- > * this component take a command and must return an error or events 
+ > * this component takes a command and must return either an error or a list of events 
  * an event handler 
- > * this component take the current state and an event and must return the next state 
+ > * this component takes the current state and an event and must return the next state 
  * serializer / deserializer 
- > * the events are stored in the database and are published to an event store so they need to be written and read
- * 0 to n projection
+ > * the events are stored in the database and published to an event store. This component handle these write and read operations.
+ * 0 to n projections
  
  
-This librairie, rely on vavr for functional programming data classes and pattern matching. 
+This library, rely on Vavr for functional programming data classes and pattern matching. 
  
-This librairie provide interfaces that could be implemented with various datastore. 
+This library provides interfaces that could be implemented with various datastore. 
 Event sourcing is async by default, using vavr future for async process and akka stream for reactive streams. 
 
-This lib provide two implementations that are production ready : 
-* an event publisher base on kafka 
-* an event store base on postgresql and jooq 
+This library provides two implementations that are production ready : 
+* an event publisher based on kafka 
+* an event store based on postgresql and jooq 
 
-With this implementations, events and projections are stored in the same transaction. 
-The events are published once the transaction is commited. If the publication failed, a process will try to resend the events. 
+With these implementations, events and projections are stored in the same transaction. 
+The events are published once the transaction is committed. If the publication failed, a process will try to resend the events. 
 
  
 ## The viking domain 
@@ -67,7 +67,7 @@ public static class Viking implements State<Viking> {
 
 ```
 
-The commands needs to implement `Command`. Commands are a sum type, in java we do this using an interface :
+The commands need to implement `Command`. Commands are a sum type, in java we can do this using an interface :
 
 ```java 
 public interface VikingCommand extends Command<Tuple0, Tuple0> {
@@ -121,7 +121,7 @@ public interface VikingCommand extends Command<Tuple0, Tuple0> {
 }
 ```
 
-The events needs to implement `Event`. Events are a sum type, in java we do this using an interface : 
+The events need to implement `Event`. Events are a sum type, in java we can do this using an interface : 
  
 ```java 
 
@@ -273,12 +273,12 @@ public class VikingEventHandler implements EventHandler<Viking, VikingEvent> {
 }
 ``` 
 
-This function should apply an `Event`  to a `Option<State>`(that can be empty if the state doesn't exists). 
-The new state is returned, the event is a delete event, then an empty option should be returned.  
+This function should apply an `Event` to a `Option<State>`(that can be empty if the state doesn't exist). 
+The new state is returned, if the event is a delete event, then an empty option should be returned.  
 
-### Projections 
+### Projections
 
-The projections should implement:
+The projection should implement:
 
 ```java 
 public interface Projection<TxCtx, E extends Event, Meta, Context> {

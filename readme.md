@@ -9,9 +9,9 @@
     <img src="scribe.png" alt="Scribe" width="300"/>
 </p>
 
-This repository provide tools to do event sourcing in your application. 
+This repository provides tools to implement event sourcing in your application. 
  
-This libs are based on : 
+These libs are based on : 
  * Vavr for functional stuff (immutable `List`, `Either`, `Future`)
  * Akka stream for reactive streams
  * jackson for json 
@@ -21,14 +21,14 @@ This libs are based on :
 
 ## Modules 
 
- * `commons-event`: the pojos that represent the stored events. Can be used to parse events 
- * `scribe-core`: The APIs for event sourcing 
+ * `commons-event`: POJOs that represent the stored events. Can be used by consumers to parse events. 
+ * `scribe-core`: APIs for event-sourcing 
  * `scribe-jooq`: A jooq simple implementation of the `scribe-core` APIs   
  * `scribe-jooq-async`: A jooq implementation of the `scribe-core` APIs using the `jooq-async-api`interface
  
-## The things to know 
+## Things to know 
 
-The vavr `Future` is used for async call (java `CompletionStage` is not user friendly). 
+The vavr `Future` is used for async call (java `CompletionStage` is not user-friendly). 
 
 The akka stream `Source` is used for stream processing. 
 
