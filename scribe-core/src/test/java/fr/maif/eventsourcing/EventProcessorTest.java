@@ -158,7 +158,7 @@ public class EventProcessorTest {
                 .build();
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> eventEnvelope2 = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
-                .withEmissionDate(eventsFromJournal.get(0).emissionDate)
+                .withEmissionDate(eventsFromJournal.get(1).emissionDate)
                 .withId(eventsFromJournal.get(1).id)
                 .withEntityId("1")
                 .withSequenceNum(2L)
@@ -210,7 +210,7 @@ public class EventProcessorTest {
                 .build();
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> eventEnvelope2 = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
-                .withEmissionDate(eventsFromJournal.get(0).emissionDate)
+                .withEmissionDate(eventsFromJournal.get(1).emissionDate)
                 .withId(eventAndState.getEvents().get(0).id)
                 .withEntityId("1")
                 .withSequenceNum(2L)
