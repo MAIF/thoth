@@ -61,6 +61,7 @@ public class EventProcessorTest {
         java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> expectedEnvelope = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
+                .withEmissionDate(eventsFromJournal.get(0).emissionDate)
                 .withId(eventsFromJournal.get(0).id)
                 .withEntityId("1")
                 .withSequenceNum(1L)
@@ -102,6 +103,7 @@ public class EventProcessorTest {
 
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> expectedEnvelope = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
+                .withEmissionDate(eventsFromJournal.get(0).emissionDate)
                 .withId(eventsFromJournal.get(0).id)
                 .withEntityId("1")
                 .withSequenceNum(1L)
@@ -143,6 +145,7 @@ public class EventProcessorTest {
         java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> eventEnvelope1 = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
+                .withEmissionDate(eventsFromJournal.get(0).emissionDate)
                 .withId(eventsFromJournal.get(0).id)
                 .withEntityId("1")
                 .withSequenceNum(1L)
@@ -155,6 +158,7 @@ public class EventProcessorTest {
                 .build();
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> eventEnvelope2 = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
+                .withEmissionDate(eventsFromJournal.get(0).emissionDate)
                 .withId(eventsFromJournal.get(1).id)
                 .withEntityId("1")
                 .withSequenceNum(2L)
@@ -193,6 +197,7 @@ public class EventProcessorTest {
         java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> eventEnvelope1 = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
+                .withEmissionDate(eventsFromJournal.get(0).emissionDate)
                 .withId(eventsFromJournal.get(0).id)
                 .withEntityId("1")
                 .withSequenceNum(1L)
@@ -205,6 +210,7 @@ public class EventProcessorTest {
                 .build();
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> eventEnvelope2 = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
+                .withEmissionDate(eventsFromJournal.get(0).emissionDate)
                 .withId(eventAndState.getEvents().get(0).id)
                 .withEntityId("1")
                 .withSequenceNum(2L)

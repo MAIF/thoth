@@ -7,6 +7,7 @@ import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,6 +23,7 @@ public class JsonSerDeserializerTest {
 
         EventEnvelope<Helpers.VikingEvent, JsonNode, JsonNode> envelope = EventEnvelope.<Helpers.VikingEvent, JsonNode, JsonNode>builder()
                 .withId(UUID.randomUUID())
+                .withEmissionDate(LocalDateTime.now())
                 .withEntityId("1")
                 .withSequenceNum(1L)
                 .withEventType(Helpers.VikingEvent.VikingCreatedV1.name())

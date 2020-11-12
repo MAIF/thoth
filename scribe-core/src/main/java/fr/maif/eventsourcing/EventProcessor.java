@@ -3,10 +3,11 @@ package fr.maif.eventsourcing;
 import akka.actor.ActorSystem;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
-import io.vavr.Tuple0;
 import fr.maif.eventsourcing.TransactionManager.InTransactionResult;
 import fr.maif.eventsourcing.impl.DefaultAggregateStore;
-import io.vavr.*;
+import io.vavr.Tuple;
+import io.vavr.Tuple3;
+import io.vavr.Value;
 import io.vavr.collection.List;
 import io.vavr.collection.Seq;
 import io.vavr.concurrent.Future;
@@ -15,6 +16,7 @@ import io.vavr.control.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -197,6 +199,7 @@ public class EventProcessor<Error, S extends State<S>, C extends Command<Meta, C
         return eventStore.nextSequence(tx).map(nextSequence -> {
             EventEnvelope.Builder<E, Meta, Context> builder = EventEnvelope.<E, Meta, Context>builder()
                     .withId(id)
+                    .withEmissionDate(LocalDateTime.now())
                     .withEntityId(event.entityId())
                     .withSequenceNum(nextSequence)
                     .withEventType(event.type().name())

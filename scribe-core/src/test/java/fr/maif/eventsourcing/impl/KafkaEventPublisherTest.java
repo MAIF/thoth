@@ -40,6 +40,7 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Set;
@@ -232,9 +233,9 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
 
     private EventEnvelope<TestEvent, Void, Void> eventEnvelope(String value) {
         long sequenceNum = sequence.incrementAndGet();
-        UUID id = UUID.randomUUID();
         String entityId = "entityId";
         return EventEnvelope.<TestEvent, Void, Void>builder()
+                .withEmissionDate(LocalDateTime.now())
                 .withId(UUID.randomUUID())
                 .withEntityId(entityId)
                 .withSequenceNum(sequenceNum)
