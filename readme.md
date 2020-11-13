@@ -52,6 +52,10 @@ Tuple0 sideEffect() {
 * [Message structure](./commons-events/readme.md) : description of messages structure
 * [Event sourcing with reactive postgresql](./scribe-jooq-async/readme.md) : wire all together with the reactive postgresql client
 
+## Limits
+
+* A single command can't currently modify multiple entities [see this issue](https://github.com/MAIF/scribe/issues/4)
+
 ## Development 
 
 ### Compile / Test 
