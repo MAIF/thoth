@@ -40,17 +40,16 @@ The events are published once the transaction is committed. If the publication f
 
 In this example, we will handle vikings. The state will be 
 
-```java  
-public static class Viking implements State<Viking> {
+```java
+public class Viking implements State<Viking> {
 
         public final String id;
         public final String name;
-        public final Long sequenceNum;
+        public Long sequenceNum;
 
-        public Viking(String id, String name, Long sequenceNum) {
+        public Viking(String id, String name) {
             this.id = id;
             this.name = name;
-            this.sequenceNum = sequenceNum;
         }
 
         @Override
@@ -69,7 +68,7 @@ public static class Viking implements State<Viking> {
 
 The commands need to implement `Command`. Commands are a sum type, in java we can do this using an interface :
 
-```java 
+```java
 public interface VikingCommand extends Command<Tuple0, Tuple0> {
 
     Type<CreateViking> CreateVikingV1 = Type.create(CreateViking.class, 1L);
@@ -123,8 +122,7 @@ public interface VikingCommand extends Command<Tuple0, Tuple0> {
 
 The events need to implement `Event`. Events are a sum type, in java we can do this using an interface : 
  
-```java 
-
+```java
 public interface VikingEvent extends Event {
 
     // Types are needed to handle event versionning : 
@@ -142,7 +140,7 @@ public interface VikingEvent extends Event {
         }
         
         @Override
-        public Type type() {
+        public Type<VikingCreated> type() {
             return VikingCreatedV1;
         }
 
@@ -162,7 +160,7 @@ public interface VikingEvent extends Event {
         }
 
         @Override
-        public Type type() {
+        public Type<VikingUpdated> type() {
             return VikingUpdatedV1;
         }
 
@@ -181,7 +179,7 @@ public interface VikingEvent extends Event {
         }
 
         @Override
-        public Type type() {
+        public Type<VikingDeleted> type() {
             return VikingDeletedV1;
         }
 
@@ -198,7 +196,7 @@ public interface VikingEvent extends Event {
 
 The command handler should implement: 
 
-```java 
+```java
 public interface CommandHandler<Error, State, Command, Event, Message, TxCtx> {
 
     Future<Either<Error, Tuple2<List<Event>, Message>>> handleCommand(TxCtx ctx, Option<State> state, Command command);
@@ -215,29 +213,27 @@ in our viking case we will have something like :
    * The message : something the command handler can return in addition of the events 
    * The transaction context : if needed a context that can be used to validate command. For example a JDBC connection or a Cassandra session.    
   
-```java 
-
+```java
 public class VikingCommandHandler implements CommandHandler<String, Viking, VikingCommand, VikingEvent, Tuple0, Tuple0> {
     @Override
-    public Future<Either<String, Tuple2<List<VikingEvent>, Tuple0>>> handleCommand(Tuple0 unit, Option<Viking> state, VikingCommand vikingCommand) {
+    public Future<Either<String, Events<VikingEvent, Tuple0>>> handleCommand(Tuple0 tuple0, Option<Viking> option, VikingCommand vikingCommand) {
         return Future.successful(
-                // Here we pattern match on the type of the command 
+                // Here we pattern match on the type of the command
                 Match(vikingCommand).of(
-                        Case(CreateVikingV1.pattern(), e -> 
-                            // Here we can add validation and reject the command if needed
-                            Right(Tuple(List(new VikingEvent.VikingCreated(e.id, e.name)), unit()))
+                        Case(VikingCommand.CreateVikingV1.pattern(), e ->
+                                // Here we can add validation and reject the command if needed
+                                Right(Events.events(new VikingEvent.VikingCreated(e.id, e.name)))
                         ),
-                        Case(UpdateVikingV1.pattern(), e -> 
-                            Right(Tuple(List(new VikingEvent.VikingUpdated(e.id, e.name)), unit()))
+                        Case(VikingCommand.UpdateVikingV1.pattern(), e ->
+                                Right(Events.events(new VikingEvent.VikingUpdated(e.id, e.name)))
                         ),
-                        Case(DeleteVikingV1.pattern(), e -> 
-                            Right(Tuple(List(new VikingEvent.VikingDeleted(e.id)), unit()))
+                        Case(VikingCommand.DeleteVikingV1.pattern(), e ->
+                                Right(Events.events(new VikingEvent.VikingDeleted(e.id)))
                         )
                 )
         );
     }
 }
-
 ```
 
 ### Event handler
@@ -260,18 +256,18 @@ in our viking case we will have something like :
   * `Viking` the state 
   * `VikingEvent` the event 
 
-```java 
+```java
 public class VikingEventHandler implements EventHandler<Viking, VikingEvent> {
     @Override
     public Option<Viking> applyEvent(Option<Viking> state, VikingEvent event) {
         return Match(event).of(
-                Case(VikingCreatedV1.pattern(), e -> Option.of(new Viking(e.id, e.name))),
-                Case(VikingUpdatedV1.pattern(), e -> Option.of(new Viking(e.id, e.name))),
-                Case(VikingDeletedV1.pattern(), e -> Option.none())
+                Case(VikingEvent.VikingCreatedV1.pattern(), e -> Option.of(new Viking(e.id, e.name))),
+                Case(VikingEvent.VikingUpdatedV1.pattern(), e -> Option.of(new Viking(e.id, e.name))),
+                Case(VikingEvent.VikingDeletedV1.pattern(), e -> Option.none())
         );
     }
 }
-``` 
+```
 
 This function should apply an `Event` to a `Option<State>`(that can be empty if the state doesn't exist). 
 The new state is returned, if the event is a delete event, then an empty option should be returned.  
@@ -280,7 +276,7 @@ The new state is returned, if the event is a delete event, then an empty option 
 
 The projection should implement:
 
-```java 
+```java
 public interface Projection<TxCtx, E extends Event, Meta, Context> {
     Future<Tuple0> storeProjection(TxCtx ctx, List<EventEnvelope<E, Meta, Context>> events);
 }
@@ -326,32 +322,40 @@ public class VikingProjection implements Projection<Tuple0, VikingEvent, Tuple0,
 
 ### Wiring all together 
 
-```java 
-
-public class Vikings {
+```java
+public static class Vikings {
 
     private final EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, Tuple0, Tuple0, Tuple0> eventProcessor;
-    private final VikingProjection2 vikingReadModel = new VikingProjection2();
+    private final VikingProjection vikingReadModel = new VikingProjection();
 
     public Vikings(ActorSystem actorSystem) {
+        InMemoryEventStore<Tuple0, VikingEvent, Tuple0, Tuple0> eventStore = InMemoryEventStore.create(actorSystem);
+        VikingEventHandler eventHandler = new VikingEventHandler();
+        TransactionManager<Tuple0> transactionManager = new TransactionManager<>() {
+            @Override
+            public <T> Future<T> withTransaction(Function<Tuple0, Future<T>> function) {
+                return function.apply(Tuple.empty());
+            }
+        };
         this.eventProcessor =  new EventProcessor<>(
-                InMemoryEventStore.create(actorSystem),
-                new EventProcessorTest.FakeTransactionManager(),
+                eventStore,
+                transactionManager,
+                new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager),
                 new VikingCommandHandler(),
-                new VikingEventHandler(),
+                eventHandler,
                 List.of(vikingReadModel)
         );
     }
 
-    public Future<Either<String, Tuple4<Option<Viking>, Option<Viking>, List<EventEnvelope<VikingEvent, Tuple0, Tuple0>>, Tuple0>>> create(CreateViking command) {
+    public Future<Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, Tuple0>>> create(VikingCommand.CreateViking command) {
         return eventProcessor.processCommand(command);
     }
 
-    public Future<Either<String, Tuple4<Option<Viking>, Option<Viking>, List<EventEnvelope<VikingEvent, Tuple0, Tuple0>>, Tuple0>>> update(UpdateViking command) {
+    public Future<Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, Tuple0>>> update(VikingCommand.UpdateViking command) {
         return eventProcessor.processCommand(command);
     }
-    
-    public Future<Either<String, Tuple4<Option<Viking>, Option<Viking>, List<EventEnvelope<VikingEvent, Tuple0, Tuple0>>, Tuple0>>> delete(DeleteViking command) {
+
+    public Future<Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, Tuple0>>> delete(VikingCommand.DeleteViking command) {
         return eventProcessor.processCommand(command);
     }
 
@@ -362,6 +366,5 @@ public class Vikings {
     public Future<List<Viking>> findByName(String name) {
         return vikingReadModel.findByName(name);
     }
-    
 }
 ```
