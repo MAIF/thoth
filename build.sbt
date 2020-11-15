@@ -17,7 +17,9 @@ lazy val root = (project in file("."))
     `commons-events`,
     `scribe-core`,
     `scribe-jooq`,
-    `scribe-jooq-async`
+    `scribe-jooq-async`,
+    `demo-postgres-kafka`,
+    `demo-in-memory`
   )
   .enablePlugins(NoPublish, GitVersioning, GitBranchPrompt)
   .disablePlugins(BintrayPlugin)
@@ -37,7 +39,13 @@ lazy val `scribe-jooq` = project
   .dependsOn(`scribe-core`)
   .settings(publishCommonsSettings: _*)
 
-javacOptions in Compile ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
+lazy val `demo-postgres-kafka` = project
+  .dependsOn(`scribe-jooq`)
+
+lazy val `demo-in-memory` = project
+  .dependsOn(`scribe-core`)
+
+javacOptions in Compile ++= Seq("-source", "15", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
 
 testFrameworks := Seq(TestFrameworks.JUnit)
 testOptions += Tests.Argument(TestFrameworks.JUnit, "-v")

@@ -3,7 +3,7 @@ language: scala
 services:
 - docker
 scala: 2.12.12
-jdk: openjdk8
+jdk: openjdk15
 
 script: echo "No default script"
 
