@@ -429,21 +429,21 @@ Offset 2
 
 As we can see, BankEvents aren't published directly into kafka topic, they are wrapped in an "envelop" that contains metadata of the event:
 
-* id: unique id of the event
-* sequenceNum: sequenceNum of the event, sequence is shared between all events therefore sequence num of events for a given id could be non sequential
-* eventType: the type of the event (`MoneyWithdrawn`, `AccountCreated`, ...)
-* emissionDate: emissionDate of the event
-* transactionId: id that can be used to group events emitted by processing a single commands
-* metadata: json field that can be used to embed additional metadata if needed
-* event: BankEvent serialized to json
-* context: json field that can be used to embed additional context information if needed
-* version: version of the event
-* published: whether event is published, this field is always null in envelops published in Kafka, but is informed in database
-* totalMessageInTransaction: total number of messages emitted for the processed command
-* numMessageInTransaction: index of this message for current transaction
-* entityId: state (account) identifier
-* userId: can be use to identify user that emitted command
-* systemId: can be use to identify system that emitted events
+* `id`: unique id of the event
+* `sequenceNum`: sequenceNum of the event, sequence is shared between all events therefore sequence num of events for a given id could be non sequential
+* `eventType`: the type of the event (`MoneyWithdrawn`, `AccountCreated`, ...)
+* `emissionDate`: emissionDate of the event
+* `transactionId`: id that can be used to group events emitted by processing a single commands
+* `metadata`: json field that can be used to embed additional metadata if needed
+* `event`: BankEvent serialized to json
+* `context`: json field that can be used to embed additional context information if needed
+* `version`: version of the event
+* `published`: whether event is published, this field is always null in envelops published in Kafka, but is informed in database
+* `totalMessageInTransaction`: total number of messages emitted for the processed command
+* `numMessageInTransaction`: index of this message for current transaction
+* `entityId`: state (account) identifier
+* `userId`: can be use to identify user that emitted command
+* `systemId`: can be use to identify system that emitted events
 
 [Complete executable example.](../demo/demo-postgres-kafka)
 
