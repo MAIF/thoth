@@ -333,7 +333,7 @@ bank.createAccount(BigDecimal.valueOf(100))
 
 ## More
 
-See code for implementation of some other commands (withdraw, deposit, close, ...).
+See [complete example](../demo/demo-in-memory) of some other commands (withdraw, deposit, close, ...).
 
 # TODO
 
