@@ -332,16 +332,18 @@ bank.createAccount(BigDecimal.valueOf(100))
 .onFailure(Throwable::printStackTrace);
 ```
 
-## More
+## Complete example
 
 See [complete example](../demo/demo-in-memory) of some other commands (withdraw, deposit, close, ...).
+
+## Next step
+
+[Use real Postgres / Kafka instance to store / publish events.](./banking-real-life.md)
 
 # TODO
 
 * Link to sequenceNum explanation
 * Implement State when our model class already has a super class
 * Command class : metadata & context
-* Factorise entityId in events
 * Version bump example
-* multiple events : gestion des découverts
 * configure object mapper

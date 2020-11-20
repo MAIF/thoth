@@ -30,6 +30,7 @@ import java.util.concurrent.Executors;
 
 public class Bank {
     private final EventProcessor<String, Account, BankCommand, BankEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor;
+    private final MeanWithdrawProjection meanWithdrawProjection;
     private static final TimeBasedGenerator UUIDgenerator = Generators.timeBasedGenerator();
     private final ActorSystem actorSystem;
     private final String schema = """
@@ -101,13 +102,15 @@ public class Bank {
         dataSource.getConnection().prepareStatement(schema).execute();
         ExecutorService executorService = Executors.newFixedThreadPool(5);
 
+        this.meanWithdrawProjection = new MeanWithdrawProjection();
+
         this.eventProcessor = PostgresKafkaEventProcessor.create(
                 actorSystem,
                 eventStore(actorSystem, producerSettings, "bank", dataSource, executorService, new TableNames("bank_journal", "bank_sequence_num") ,eventFormat),
                 new JdbcTransactionManager(dataSource(), Executors.newFixedThreadPool(5)),
                 commandHandler,
                 eventHandler,
-                List.empty());
+                List.of(meanWithdrawProjection));
     }
 
     private EventStore<Connection, BankEvent, Tuple0, Tuple0> eventStore(
@@ -145,5 +148,9 @@ public class Bank {
 
     public Future<Option<Account>> findAccountById(String id) {
         return eventProcessor.getAggregate(id);
+    }
+
+    public BigDecimal meanWithdrawValue() {
+        return meanWithdrawProjection.meanWithdraw();
     }
 }

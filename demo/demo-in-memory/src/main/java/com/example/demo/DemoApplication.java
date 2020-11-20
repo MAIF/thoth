@@ -18,8 +18,6 @@ public class DemoApplication {
 
 		BigDecimal balance = bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get().balance;
 		System.out.println(balance);
-
-
 	}
 
 }

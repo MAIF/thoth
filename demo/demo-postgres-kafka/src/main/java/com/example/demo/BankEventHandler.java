@@ -20,7 +20,7 @@ public class BankEventHandler implements EventHandler<Account, BankEvent> {
                         deposit -> BankEventHandler.handleMoneyDeposited(previousState, deposit)
                 ),
                 Case(BankEvent.MoneyWithdrawnV1.pattern(),
-                        deposit -> BankEventHandler.handleMoneyWithdrawn(previousState, deposit)
+                        withdraw -> BankEventHandler.handleMoneyWithdrawn(previousState, withdraw)
                 ),
                 Case(BankEvent.AccountClosedV1.pattern(), BankEventHandler::handleAccountClosed
                 )

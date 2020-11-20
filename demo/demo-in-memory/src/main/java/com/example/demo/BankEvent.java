@@ -11,7 +11,7 @@ public abstract class BankEvent implements Event {
     public static Type<MoneyDeposited> MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);
     public static Type<AccountClosed> AccountClosedV1 = Type.create(AccountClosed.class, 1L);
 
-    protected final String accountId;
+    public final String accountId;
 
     public BankEvent(String accountId) {
         this.accountId = accountId;

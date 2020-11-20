@@ -298,3 +298,7 @@ We needed to provide an ExecutorService that will handle every database interact
 Usage remains the same as in [in memory example](./banking.md).
 
 [Complete executable example.](../demo/demo-postgres-kafka)
+
+## Next step
+__
+[Implement projections to read data differently](./projections.md)

@@ -15,8 +15,12 @@ public class DemoApplication {
 
 		String id = bank.createAccount(BigDecimal.valueOf(100)).get().get().currentState.get().id;
 
-		BigDecimal balance = bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get().balance;
+		bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
+		BigDecimal balance = bank.withdraw(id, BigDecimal.valueOf(10)).get().get().currentState.get().balance;
 		System.out.println(balance);
+
+		System.out.println(bank.meanWithdrawValue());
+
 
 
 	}
