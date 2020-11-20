@@ -1,10 +1,10 @@
 package com.example.demo;
 
-import fr.maif.eventsourcing.State;
+import fr.maif.eventsourcing.AbstractState;
 
 import java.math.BigDecimal;
 
-public class Account implements State<Account> {
+public class Account extends AbstractState<Account> {
     public String id;
     public BigDecimal balance;
     public long sequenceNum;
