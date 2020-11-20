@@ -10,13 +10,16 @@ import io.vavr.control.Either;
 import io.vavr.control.Option;
 
 import java.math.BigDecimal;
-import java.sql.Connection;
 
 import static com.example.demo.BankCommand.$CloseAccount;
 import static com.example.demo.BankCommand.$Deposit;
 import static com.example.demo.BankCommand.$OpenAccount;
 import static com.example.demo.BankCommand.$Withdraw;
-import static io.vavr.API.*;
+import static io.vavr.API.Case;
+import static io.vavr.API.Left;
+import static io.vavr.API.List;
+import static io.vavr.API.Match;
+import static io.vavr.API.Right;
 
 public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, Tuple0, PgAsyncTransaction> {
     @Override

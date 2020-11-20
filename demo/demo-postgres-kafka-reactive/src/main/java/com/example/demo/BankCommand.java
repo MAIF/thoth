@@ -1,8 +1,6 @@
 package com.example.demo;
 
 import fr.maif.eventsourcing.SimpleCommand;
-import fr.maif.eventsourcing.Type;
-import io.vavr.API;
 import io.vavr.API.Match.Pattern0;
 import io.vavr.Lazy;
 

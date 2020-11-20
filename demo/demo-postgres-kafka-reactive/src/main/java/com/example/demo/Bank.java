@@ -4,8 +4,13 @@ import akka.actor.ActorSystem;
 import akka.kafka.ProducerSettings;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
-import fr.maif.eventsourcing.*;
-import fr.maif.eventsourcing.format.JacksonEventFormat;
+import fr.maif.eventsourcing.EventEnvelope;
+import fr.maif.eventsourcing.EventProcessor;
+import fr.maif.eventsourcing.ProcessingSuccess;
+import fr.maif.eventsourcing.ReactivePostgresEventStore;
+import fr.maif.eventsourcing.ReactivePostgresKafkaEventProcessor;
+import fr.maif.eventsourcing.ReactiveTransactionManager;
+import fr.maif.eventsourcing.TableNames;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.eventsourcing.impl.DefaultAggregateStore;
 import fr.maif.eventsourcing.impl.KafkaEventPublisher;
@@ -13,7 +18,6 @@ import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
 import fr.maif.jooq.reactive.ReactivePgAsyncPool;
 import fr.maif.kafka.JsonFormatSerDer;
-import fr.maif.kafka.JsonSerializer;
 import fr.maif.kafka.KafkaSettings;
 import io.vavr.Lazy;
 import io.vavr.Tuple0;
@@ -33,7 +37,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.math.BigDecimal;
 
-import static io.vavr.API.*;
+import static io.vavr.API.List;
+import static io.vavr.API.println;
 
 public class Bank implements Closeable {
     private final EventProcessor<String, Account, BankCommand, BankEvent, PgAsyncTransaction, Tuple0, Tuple0, Tuple0> eventProcessor;

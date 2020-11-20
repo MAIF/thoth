@@ -1,17 +1,12 @@
 package com.example.demo;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.Type;
 import fr.maif.json.Json;
 import fr.maif.json.JsonFormat;
 import fr.maif.json.JsonRead;
-import fr.maif.json.JsonWrite;
-import io.vavr.API;
 import io.vavr.API.Match.Pattern0;
 import lombok.Builder;
-import lombok.Data;
 import lombok.Value;
 
 import java.math.BigDecimal;
@@ -22,8 +17,8 @@ import static fr.maif.json.JsonRead._bigDecimal;
 import static fr.maif.json.JsonRead._string;
 import static fr.maif.json.JsonRead.caseOf;
 import static fr.maif.json.JsonWrite.$bigdecimal;
-import static io.vavr.API.Match;
 import static io.vavr.API.Case;
+import static io.vavr.API.Match;
 
 public interface BankEvent extends Event {
 
