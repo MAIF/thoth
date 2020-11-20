@@ -27,6 +27,7 @@ public class EventEnvelopeJson {
     private static ObjectMapper buildMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
+        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         return mapper;
