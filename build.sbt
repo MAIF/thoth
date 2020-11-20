@@ -31,6 +31,11 @@ lazy val `demo-postgres-kafka` = (project in file("./demo/demo-postgres-kafka"))
 lazy val `demo-in-memory` = (project in file("./demo/demo-in-memory")).dependsOn(`scribe-core`).enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
+lazy val `demo-postgres-kafka-reactive` = (project in file("./demo/demo-postgres-kafka-reactive"))
+  .dependsOn(`scribe-core`, `scribe-jooq-async`)
+  .enablePlugins(NoPublish)
+  .disablePlugins(BintrayPlugin)
+
 lazy val `commons-events` = project
   .settings(publishCommonsSettings: _*)
 

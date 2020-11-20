@@ -33,7 +33,7 @@ public abstract class BankEvent implements Event {
         }
 
         @Override
-        public Type<?> type() {
+        public Type<MoneyWithdrawn> type() {
             return MoneyWithdrawnV1;
         }
     }
@@ -45,7 +45,7 @@ public abstract class BankEvent implements Event {
         }
 
         @Override
-        public Type<?> type() {
+        public Type<AccountOpened> type() {
             return AccountOpenedV1;
         }
     }
@@ -59,7 +59,7 @@ public abstract class BankEvent implements Event {
         }
 
         @Override
-        public Type<?> type() {
+        public Type<MoneyDeposited> type() {
             return MoneyDepositedV1;
         }
     }
@@ -71,7 +71,7 @@ public abstract class BankEvent implements Event {
         }
 
         @Override
-        public Type<?> type() {
+        public Type<AccountClosed> type() {
             return AccountClosedV1;
         }
     }

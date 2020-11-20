@@ -28,6 +28,7 @@ public class DemoApplication {
                                         error -> Future(Either.<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, Tuple0>>left(error)),
                                         currentState -> {
                                             String id = currentState.id;
+                                            println("account created with id "+id);
                                             return bank.withdraw(id, BigDecimal.valueOf(50));
                                         }
                                 )
@@ -40,11 +41,17 @@ public class DemoApplication {
         result
                 .onSuccess(balanceOrError ->
                         balanceOrError
-                                .peek(balance -> println(balance))
+                                .peek(balance -> println("Balance is now: "+balance))
                                 .orElseRun(error -> println("Error: " + error))
                 )
                 .onFailure(Throwable::printStackTrace)
-                .onComplete(res -> actorSystem.terminate());
+                .onComplete(res -> {
+                    Try(() -> {
+                        bank.close();
+                        return "";
+                    });
+                    actorSystem.terminate();
+                });
     }
 
 }

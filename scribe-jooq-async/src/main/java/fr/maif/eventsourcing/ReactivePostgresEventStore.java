@@ -89,6 +89,17 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
         this.objectMapper = MapperSingleton.getInstance();
     }
 
+    public static <E extends Event, Meta, Context> ReactivePostgresEventStore<E, Meta, Context> create(
+            ActorSystem system,
+            EventPublisher<E, Meta, Context> eventPublisher,
+            PgAsyncPool pgAsyncPool,
+            TableNames tableNames,
+            JacksonEventFormat<?, E> eventFormat,
+            JacksonSimpleFormat<Meta> metaFormat,
+            JacksonSimpleFormat<Context> contextFormat) {
+        return new ReactivePostgresEventStore<>(system, eventPublisher, pgAsyncPool, tableNames, eventFormat, metaFormat, contextFormat);
+    }
+
     @Override
     public ActorSystem system() {
         return system;

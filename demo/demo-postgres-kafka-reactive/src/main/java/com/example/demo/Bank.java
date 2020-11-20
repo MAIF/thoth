@@ -11,6 +11,7 @@ import fr.maif.eventsourcing.impl.KafkaEventPublisher;
 import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
 import fr.maif.jooq.reactive.ReactivePgAsyncPool;
+import fr.maif.kafka.JsonFormatSerDer;
 import fr.maif.kafka.JsonSerializer;
 import fr.maif.kafka.KafkaSettings;
 import io.vavr.Lazy;
@@ -27,11 +28,13 @@ import io.vertx.sqlclient.PoolOptions;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DefaultConfiguration;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.math.BigDecimal;
 
 import static io.vavr.API.*;
 
-public class Bank {
+public class Bank implements Closeable {
     private final EventProcessor<String, Account, BankCommand, BankEvent, PgAsyncTransaction, Tuple0, Tuple0, Tuple0> eventProcessor;
     private static final TimeBasedGenerator UUIDgenerator = Generators.timeBasedGenerator();
     private final ActorSystem actorSystem;
@@ -64,12 +67,14 @@ public class Bank {
                     CREATE SEQUENCE if not exists bank_sequence_num;
             """;
     private final PgAsyncPool pgAsyncPool;
+    private final Vertx vertx;
 
     public Bank(ActorSystem actorSystem,
                 BankCommandHandler commandHandler,
                 BankEventHandler eventHandler) {
         this.actorSystem = actorSystem;
-        this.pgAsyncPool = pgAsyncPool();
+        this.vertx = Vertx.vertx();
+        this.pgAsyncPool = pgAsyncPool(vertx);
         this.eventProcessor = ReactivePostgresKafkaEventProcessor.create(
                 actorSystem,
                 eventStore(actorSystem, pgAsyncPool),
@@ -89,13 +94,17 @@ public class Bank {
                 });
     }
 
-    private EventStore<PgAsyncTransaction, BankEvent, Tuple0, Tuple0> eventStore(ActorSystem actorSystem, PgAsyncPool dataSource) {
-        BankEventFormat eventFormat = new BankEventFormat();
-        KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher = new KafkaEventPublisher<>(actorSystem, producerSettings(settings(), eventFormat), "bank");
-        return ReactivePostgresEventStore.create(actorSystem, kafkaEventPublisher, dataSource, tableNames(), eventFormat, JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty());
+    @Override
+    public void close() throws IOException {
+        this.vertx.close();
     }
 
-    private PgAsyncPool pgAsyncPool() {
+    private EventStore<PgAsyncTransaction, BankEvent, Tuple0, Tuple0> eventStore(ActorSystem actorSystem, PgAsyncPool dataSource) {
+        KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher = new KafkaEventPublisher<>(actorSystem, producerSettings(settings()), "bank");
+        return ReactivePostgresEventStore.create(actorSystem, kafkaEventPublisher, dataSource, tableNames(), BankEventFormat.bankEventFormat.jacksonEventFormat(), JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty());
+    }
+
+    private PgAsyncPool pgAsyncPool(Vertx vertx) {
         DefaultConfiguration jooqConfig = new DefaultConfiguration();
         jooqConfig.setSQLDialect(SQLDialect.POSTGRES);
 
@@ -106,7 +115,6 @@ public class Bank {
                 .setUser("eventsourcing")
                 .setPassword("eventsourcing");
         PoolOptions poolOptions = new PoolOptions().setMaxSize(50);
-        Vertx vertx = Vertx.vertx();
         PgPool client = PgPool.pool(vertx, options, poolOptions);
 
         return new ReactivePgAsyncPool(client, jooqConfig);
@@ -116,15 +124,8 @@ public class Bank {
         return KafkaSettings.newBuilder("localhost:29092").build();
     }
 
-    private ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings(
-            KafkaSettings kafkaSettings,
-            JacksonEventFormat<String, BankEvent> eventFormat) {
-        return kafkaSettings.producerSettings(actorSystem, JsonSerializer.of(
-                eventFormat,
-                JacksonSimpleFormat.empty(),
-                JacksonSimpleFormat.empty()
-                )
-        );
+    private ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings(KafkaSettings kafkaSettings) {
+        return kafkaSettings.producerSettings(actorSystem, JsonFormatSerDer.of(BankEventFormat.bankEventFormat));
     }
 
     private TableNames tableNames() {
