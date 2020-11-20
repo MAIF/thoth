@@ -7,6 +7,8 @@ In this example, we will focus on managing accounts one by one (i.e. no transfer
 * because it's simpler to implement / understand
 * because [one feature](https://github.com/MAIF/scribe/issues/4) is missing to implement scenario such as multiple bank accounts
 
+Here is the process modeling of what append: 
+
 ![](scribe_bank_account.jpg) 
 
 ## Model (State) 
@@ -36,7 +38,10 @@ Let's start small with "open" commands :
 
 ```java
 public interface BankCommand extends SimpleCommand {
-    Type<OpenAccount> OpenAccountV1 = Type.create(OpenAccount.class, 1L);
+
+    static Pattern0<OpenAccount> $OpenAccount() {
+        return Pattern0.of(OpenAccount.class);
+    }
 
     class OpenAccount implements BankCommand {
         public Lazy<String> id;
@@ -69,8 +74,7 @@ There's a lot going on here:
 * Our class needs to implement an `entityId` method that should return something that identifies uniquely our account.
 This method returns a [Vavr Lazy](https://docs.vavr.io/#_lazy) object, which is useful when id isn't known yet.
 
-* We need to declare a `Type` for each command that will be used for [Vavr pattern matching](https://docs.vavr.io/#_the_basics_of_match_for_java),
- in addition to the name of the command, the type store its version, facilitating version bump of commands. 
+* We need to declare a `$OpenAccount()` for each command that will be used for [Vavr pattern matching](https://docs.vavr.io/#_the_basics_of_match_for_java). 
 
 * `OpenAccount` implementation is slightly different from others : we take a `Lazy<String>` instead of a String for id field, and overload `hasId` method.
 In our system, account id will be generated as random UUID, and we don't want to generate an id while we didn't check the correctness of the `OpenAccount` command.
@@ -87,6 +91,16 @@ One possible naming convention for events is using passive way, so let's call ou
 public abstract class BankEvent implements Event {
     public static Type<AccountOpened> AccountOpenedV1 = Type.create(AccountOpened.class, 1L);
     public static Type<MoneyDeposited> MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);
+    /**
+     * Boilerplate code to facilitate pattern matching   
+    /*
+    public static Pattern0<AccountOpened> $AccountOpened() {
+        return Pattern0.of(AccountOpened.class);
+    }
+    public static Pattern0<MoneyWithdrawn> $MoneyWithdrawn() {
+        return Pattern0.of(MoneyWithdrawn.class);
+    }
+
 
     protected final String accountId;
 
@@ -132,6 +146,7 @@ Let's decompose this snippet:
 * Event must implement two methods
   * entityId that must identify uniquely an account
   * a type, that can be used to perform [Vavr pattern matching](https://docs.vavr.io/#_the_basics_of_match_for_java), in addition to the name of the event, the type store its version, facilitating version bump of events.
+  * a `$AccountOpened(), that can be used to perform [Vavr pattern matching](https://docs.vavr.io/#_the_basics_of_match_for_java).
 
 ## From command to event
 
@@ -147,7 +162,7 @@ public class BankCommandHandler implements CommandHandler<String, Account, BankC
             Option<Account> previousState,
             BankCommand command) {
         return Future.of(() -> Match(command).of(
-            Case(BankCommand.OpenAccountV1.pattern(), this::handleOpening)
+            Case($OpenAccount(), this::handleOpening)
         ));
     }
 
@@ -204,8 +219,8 @@ public class BankEventHandler implements EventHandler<Account, BankEvent> {
             Option<Account> previousState,
             BankEvent event) {
         return Match(event).of(
-                Case(BankEvent.AccountOpenedV1.pattern(), BankEventHandler::handleAccountOpened),
-                Case(BankEvent.MoneyDepositedV1.pattern(),
+                Case($AccountOpened(), BankEventHandler::handleAccountOpened),
+                Case($MoneyDeposited(),
                         deposit -> BankEventHandler.handleMoneyDeposited(previousState, deposit)
                 )
         );
@@ -339,6 +354,10 @@ See [complete example](../demo/demo-in-memory) of some other commands (withdraw,
 ## Next step
 
 [Use real Postgres / Kafka instance to store / publish events.](./banking-real-life.md)
+
+## The non blocking way 
+
+[Use real Postgres / Kafka instance to store / publish events the non blocking way](./banking-real-life-non-blocking.md)
 
 # TODO
 

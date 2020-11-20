@@ -1,15 +1,13 @@
 package com.example.demo;
 
 import akka.actor.ActorSystem;
-import fr.maif.eventsourcing.ProcessingSuccess;
-import io.vavr.Tuple0;
 import io.vavr.control.Either;
 
 import java.math.BigDecimal;
 
-import io.vavr.concurrent.Future;
-
-import static io.vavr.API.*;
+import static io.vavr.API.Future;
+import static io.vavr.API.Try;
+import static io.vavr.API.println;
 
 public class DemoApplication {
 

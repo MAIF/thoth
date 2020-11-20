@@ -35,15 +35,12 @@ public interface BankEvent extends Event {
     static Pattern0<MoneyWithdrawn> $MoneyWithdrawn() {
         return Pattern0.of(MoneyWithdrawn.class);
     }
-
     static Pattern0<AccountOpened> $AccountOpened() {
         return Pattern0.of(AccountOpened.class);
     }
-
     static Pattern0<MoneyDeposited> $MoneyDeposited() {
         return Pattern0.of(MoneyDeposited.class);
     }
-
     static Pattern0<AccountClosed> $AccountClosed() {
         return Pattern0.of(AccountClosed.class);
     }

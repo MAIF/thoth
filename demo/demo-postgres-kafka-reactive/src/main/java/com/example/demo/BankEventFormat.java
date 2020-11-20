@@ -1,22 +1,21 @@
 package com.example.demo;
 
-import com.example.demo.BankEvent;
-import com.example.demo.BankEvent.*;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.example.demo.BankEvent.AccountClosed;
+import com.example.demo.BankEvent.AccountOpened;
+import com.example.demo.BankEvent.MoneyDeposited;
+import com.example.demo.BankEvent.MoneyWithdrawn;
 import fr.maif.eventsourcing.Type;
-import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.json.EventEnvelopeJsonFormat;
-import fr.maif.json.Json;
 import fr.maif.json.JsonRead;
 import fr.maif.json.JsonWrite;
-import io.vavr.API;
-import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.Tuple2;
 import io.vavr.collection.List;
-import io.vavr.control.Either;
 
-import static com.example.demo.BankEvent.*;
+import static com.example.demo.BankEvent.AccountClosedV1;
+import static com.example.demo.BankEvent.AccountOpenedV1;
+import static com.example.demo.BankEvent.MoneyDepositedV1;
+import static com.example.demo.BankEvent.MoneyWithdrawnV1;
 import static io.vavr.API.List;
 import static io.vavr.API.Tuple;
 

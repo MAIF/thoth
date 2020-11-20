@@ -11,6 +11,10 @@ import io.vavr.control.Option;
 
 import java.math.BigDecimal;
 
+import static com.example.demo.BankCommand.$CloseAccount;
+import static com.example.demo.BankCommand.$Deposit;
+import static com.example.demo.BankCommand.$OpenAccount;
+import static com.example.demo.BankCommand.$Withdraw;
 import static io.vavr.API.*;
 
 public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, Tuple0, Tuple0> {
@@ -20,10 +24,10 @@ public class BankCommandHandler implements CommandHandler<String, Account, BankC
             Option<Account> previousState,
             BankCommand command) {
         return Future.of(() -> Match(command).of(
-            Case(BankCommand.WithdrawV1.pattern(), withdraw -> this.handleWithdraw(previousState, withdraw)),
-            Case(BankCommand.DepositV1.pattern(), deposit -> this.handleDeposit(previousState, deposit)),
-            Case(BankCommand.OpenAccountV1.pattern(), this::handleOpening),
-                Case(BankCommand.CloseAccountV1.pattern(), close -> this.handleClosing(previousState, close))
+            Case($Withdraw(), withdraw -> this.handleWithdraw(previousState, withdraw)),
+            Case($Deposit(), deposit -> this.handleDeposit(previousState, deposit)),
+            Case($OpenAccount(), this::handleOpening),
+            Case($CloseAccount(), close -> this.handleClosing(previousState, close))
         ));
     }
 

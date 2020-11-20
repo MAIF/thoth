@@ -5,6 +5,7 @@ import io.vavr.control.Option;
 
 import java.math.BigDecimal;
 
+import static com.example.demo.BankEvent.*;
 import static io.vavr.API.Case;
 import static io.vavr.API.Match;
 
@@ -14,16 +15,14 @@ public class BankEventHandler implements EventHandler<Account, BankEvent> {
             Option<Account> previousState,
             BankEvent event) {
         return Match(event).of(
-                Case(BankEvent.AccountOpenedV1.pattern(), BankEventHandler::handleAccountOpened
-                ),
-                Case(BankEvent.MoneyDepositedV1.pattern(),
+                Case($AccountOpened(), BankEventHandler::handleAccountOpened),
+                Case($MoneyDeposited(),
                         deposit -> BankEventHandler.handleMoneyDeposited(previousState, deposit)
                 ),
-                Case(BankEvent.MoneyWithdrawnV1.pattern(),
+                Case($MoneyWithdrawn(),
                         withdraw -> BankEventHandler.handleMoneyWithdrawn(previousState, withdraw)
                 ),
-                Case(BankEvent.AccountClosedV1.pattern(), BankEventHandler::handleAccountClosed
-                )
+                Case($AccountClosed(), BankEventHandler::handleAccountClosed)
         );
     }
 
