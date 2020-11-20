@@ -237,33 +237,9 @@ public class Bank {
 ```
 
 
-## Event store
-
-Almost there !
-We now need to instantiate an `EventStore` that will replace our `InMemoryEventStore` : `PostgresEventStore`.
-
-This eventStore will handle any database / kafka interaction.
-
-```java
-public class Bank {
-    //...
-    private EventStore<Connection, BankEvent, Tuple0, Tuple0> eventStore(
-            ActorSystem actorSystem,
-            ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings, String topic,
-            DataSource dataSource,
-            ExecutorService executorService,
-            TableNames tableNames,
-            JacksonEventFormat<String, BankEvent> jacksonEventFormat) {
-        KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher = new KafkaEventPublisher<>(actorSystem, producerSettings, topic);
-        return PostgresEventStore.create(actorSystem, kafkaEventPublisher, dataSource, executorService, tableNames, jacksonEventFormat);
-    }
-    //...
-}
-```
-
 ## Event processor
 
-The last step is to swap our `EventProcessor` with `PostgresKafkaEventProcessor`.
+The next step is to swap our `EventProcessor` with `PostgresKafkaEventProcessor`.
 
 ```java
 public class Bank {
@@ -290,13 +266,16 @@ public class Bank {
                         List.of(meanWithdrawProjection),
                         eventFormat,
                         JacksonSimpleFormat.empty(),
-                        JacksonSimpleFormat.empty(),
-                        5
+                        JacksonSimpleFormat.empty()
                 ));
     }
     //...
 }
 ```
+
+## Event store
+
+The last thing to do is to remove manual instantiation of our EventStore, since it's now instantiated directly by our `PostgresKafkaEventProcessor`.
 
 ## Usage
 

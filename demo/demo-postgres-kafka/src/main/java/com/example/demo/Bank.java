@@ -101,6 +101,7 @@ public class Bank {
         ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings = producerSettings(settings(), eventFormat);
         DataSource dataSource = dataSource();
         dataSource.getConnection().prepareStatement(schema).execute();
+        TableNames tableNames = tableNames();
 
         this.meanWithdrawProjection = new MeanWithdrawProjection();
 
@@ -117,20 +118,8 @@ public class Bank {
                 List.of(meanWithdrawProjection),
                 eventFormat,
                 JacksonSimpleFormat.empty(),
-                JacksonSimpleFormat.empty(),
-                5
+                JacksonSimpleFormat.empty()
         ));
-    }
-
-    private EventStore<Connection, BankEvent, Tuple0, Tuple0> eventStore(
-            ActorSystem actorSystem,
-            ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings, String topic,
-            DataSource dataSource,
-            ExecutorService executorService,
-            TableNames tableNames,
-            JacksonEventFormat<String, BankEvent> jacksonEventFormat) {
-        KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher = new KafkaEventPublisher<>(actorSystem, producerSettings, topic);
-        return PostgresEventStore.create(actorSystem, kafkaEventPublisher, dataSource, executorService, tableNames, jacksonEventFormat);
     }
 
 
