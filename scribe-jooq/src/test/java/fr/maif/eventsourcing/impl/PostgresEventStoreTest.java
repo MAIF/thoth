@@ -55,7 +55,7 @@ public class PostgresEventStoreTest {
     @Test
     public void insertAndRead() {
         try (Connection connection = pgSimpleDataSource.getConnection()) {
-            LocalDateTime emissionDate = LocalDateTime.now();
+            LocalDateTime emissionDate = LocalDateTime.now().withNano(0);
             List<EventEnvelope<VikingEvent, Void, Void>> events = List(
                     eventEnvelope(1L, new VikingEvent.VikingCreated("bjorn@gmail.com"), emissionDate),
                     eventEnvelope(2L, new VikingEvent.VikingUpdated("bjorn@gmail.com"), emissionDate),
