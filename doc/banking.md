@@ -7,7 +7,7 @@ In this example, we will focus on managing accounts one by one (i.e. no transfer
 * because it's simpler to implement / understand
 * because [one feature](https://github.com/MAIF/scribe/issues/4) is missing to implement scenario such as multiple bank accounts
 
-![](scribe_bank_account.jpg) [see](https://miro.com/app/board/o9J_leTCajk=/)
+![](scribe_bank_account.jpg) 
 
 ## Model (State) 
 
