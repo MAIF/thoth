@@ -277,28 +277,176 @@ public class Bank {
         ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings = producerSettings(settings(), eventFormat);
         DataSource dataSource = dataSource();
 
-        ExecutorService executorService = Executors.newFixedThreadPool(5);
-
-        this.eventProcessor = PostgresKafkaEventProcessor.create(
-                actorSystem,
-                eventStore(actorSystem, producerSettings, "bank", dataSource, executorService, new TableNames("bank_journal", "bank_sequence_num") ,eventFormat),
-                new JdbcTransactionManager(dataSource(), executorService),
-                commandHandler,
-                eventHandler,
-                List.empty());
+        this.eventProcessor = new PostgresKafkaEventProcessor<>(new PostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<>(
+                        actorSystem,
+                        tableNames(),
+                        dataSource,
+                        "bank",
+                        producerSettings,
+                        AkkaExecutionContext.createDefault(actorSystem),
+                        new JdbcTransactionManager(dataSource(), Executors.newFixedThreadPool(5)),
+                        commandHandler,
+                        eventHandler,
+                        List.of(meanWithdrawProjection),
+                        eventFormat,
+                        JacksonSimpleFormat.empty(),
+                        JacksonSimpleFormat.empty(),
+                        5
+                ));
     }
     //...
 }
 ```
 
-We needed to provide an ExecutorService that will handle every database interaction. The indicated needs to be adapted in each application.
-
 ## Usage
 
 Usage remains the same as in [in memory example](./banking.md).
 
+A [docker-compose.yml](../docker-compose.test.yml) file is available to set-up dev environment.
+
+It exposes a PostgreSQL server on http://localhost:5432/ and a kafdrop instance on http://localhost:9000/.
+
+```java
+ActorSystem actorSystem = ActorSystem.create();
+BankCommandHandler commandHandler = new BankCommandHandler();
+BankEventHandler eventHandler = new BankEventHandler();
+Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
+
+String id = bank.createAccount(BigDecimal.valueOf(100)).get().get().currentState.get().id;
+
+bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
+```
+
+The above code puts the following events in bank_journal table in postgres :
+
+```
+eventsourcing=> select * from bank_journal;
+                  id                  |              entity_id               | sequence_num |   event_type   | version |            transaction_id            |                                event                                 | metadata | context | total_message_in_transaction | num_message_in_transaction |       emission_date        | user_id | system_id | published
+--------------------------------------+--------------------------------------+--------------+----------------+---------+--------------------------------------+----------------------------------------------------------------------+----------+---------+------------------------------+----------------------------+----------------------------+---------+-----------+-----------
+ b2810508-2b2b-11eb-a656-059dbef3f5e0 | b27f7e66-2b2b-11eb-a656-f50ef940bee6 |            1 | AccountOpened  |       1 | b280b6e7-2b2b-11eb-a656-138f3ba92bd6 | {"accountId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6"}                |          |         |                            2 |                          1 | 2020-11-20 13:27:04.536407 |         |           | t
+ b2a073e9-2b2b-11eb-a656-059dbef3f5e0 | b27f7e66-2b2b-11eb-a656-f50ef940bee6 |            2 | MoneyDeposited |       1 | b280b6e7-2b2b-11eb-a656-138f3ba92bd6 | {"amount": 100, "accountId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6"} |          |         |                            2 |                          2 | 2020-11-20 13:27:04.542099 |         |           | t
+ b2c030eb-2b2b-11eb-a656-059dbef3f5e0 | b27f7e66-2b2b-11eb-a656-f50ef940bee6 |            3 | MoneyWithdrawn |       1 | b2c030ea-2b2b-11eb-a656-138f3ba92bd6 | {"amount": 50, "accountId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6"}  |          |         |                            1 |                          1 | 2020-11-20 13:27:04.750188 |         |           | t
+(3 rows)
+```
+
+Events below are published to kafka's bank topic :
+
+Offset 0
+```json
+{
+   "id": "b2810508-2b2b-11eb-a656-059dbef3f5e0",
+   "sequenceNum": 1,
+   "eventType": "AccountOpened",
+   "emissionDate": [
+      2020,
+      11,
+      20,
+      13,
+      27,
+      4,
+      536407000
+   ],
+   "transactionId": "b280b6e7-2b2b-11eb-a656-138f3ba92bd6",
+   "metadata": null,
+   "event": {
+      "accountId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6"
+   },
+   "context": null,
+   "version": 1,
+   "published": null,
+   "totalMessageInTransaction": 2,
+   "numMessageInTransaction": 1,
+   "entityId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6",
+   "userId": null,
+   "systemId": null
+}
+```
+
+Offset 1
+```json
+{
+   "id": "b2a073e9-2b2b-11eb-a656-059dbef3f5e0",
+   "sequenceNum": 2,
+   "eventType": "MoneyDeposited",
+   "emissionDate": [
+      2020,
+      11,
+      20,
+      13,
+      27,
+      4,
+      542099000
+   ],
+   "transactionId": "b280b6e7-2b2b-11eb-a656-138f3ba92bd6",
+   "metadata": null,
+   "event": {
+      "accountId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6",
+      "amount": 100
+   },
+   "context": null,
+   "version": 1,
+   "published": null,
+   "totalMessageInTransaction": 2,
+   "numMessageInTransaction": 2,
+   "entityId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6",
+   "userId": null,
+   "systemId": null
+}
+```
+
+Offset 2
+
+```json
+{
+   "id": "b2c030eb-2b2b-11eb-a656-059dbef3f5e0",
+   "sequenceNum": 3,
+   "eventType": "MoneyWithdrawn",
+   "emissionDate": [
+      2020,
+      11,
+      20,
+      13,
+      27,
+      4,
+      750188000
+   ],
+   "transactionId": "b2c030ea-2b2b-11eb-a656-138f3ba92bd6",
+   "metadata": null,
+   "event": {
+      "accountId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6",
+      "amount": 50
+   },
+   "context": null,
+   "version": 1,
+   "published": null,
+   "totalMessageInTransaction": 1,
+   "numMessageInTransaction": 1,
+   "entityId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6",
+   "userId": null,
+   "systemId": null
+}
+```
+
+As we can see, BankEvents aren't published directly into kafka topic, they are wrapped in an "envelop" that contains metadata of the event:
+
+* id: unique id of the event
+* sequenceNum: sequenceNum of the event, sequence is shared between all events therefore sequence num of events for a given id could be non sequential
+* eventType: the type of the event (`MoneyWithdrawn`, `AccountCreated`, ...)
+* emissionDate: emissionDate of the event
+* transactionId: id that can be used to group events emitted by processing a single commands
+* metadata: json field that can be used to embed additional metadata if needed
+* event: BankEvent serialized to json
+* context: json field that can be used to embed additional context information if needed
+* version: version of the event
+* published: whether event is published, this field is always null in envelops published in Kafka, but is informed in database
+* totalMessageInTransaction: total number of messages emitted for the processed command
+* numMessageInTransaction: index of this message for current transaction
+* entityId: state (account) identifier
+* userId: can be use to identify user that emitted command
+* systemId: can be use to identify system that emitted events
+
 [Complete executable example.](../demo/demo-postgres-kafka)
 
 ## Next step
-__
+
 [Implement projections to read data differently](./projections.md)

@@ -4,6 +4,7 @@ import akka.actor.ActorSystem;
 import akka.kafka.ProducerSettings;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
+import fr.maif.akka.AkkaExecutionContext;
 import fr.maif.eventsourcing.*;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
@@ -100,17 +101,25 @@ public class Bank {
         ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings = producerSettings(settings(), eventFormat);
         DataSource dataSource = dataSource();
         dataSource.getConnection().prepareStatement(schema).execute();
-        ExecutorService executorService = Executors.newFixedThreadPool(5);
 
         this.meanWithdrawProjection = new MeanWithdrawProjection();
 
-        this.eventProcessor = PostgresKafkaEventProcessor.create(
+        this.eventProcessor = new PostgresKafkaEventProcessor<>(new PostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<>(
                 actorSystem,
-                eventStore(actorSystem, producerSettings, "bank", dataSource, executorService, new TableNames("bank_journal", "bank_sequence_num") ,eventFormat),
+                tableNames(),
+                dataSource,
+                "bank",
+                producerSettings,
+                AkkaExecutionContext.createDefault(actorSystem),
                 new JdbcTransactionManager(dataSource(), Executors.newFixedThreadPool(5)),
                 commandHandler,
                 eventHandler,
-                List.of(meanWithdrawProjection));
+                List.of(meanWithdrawProjection),
+                eventFormat,
+                JacksonSimpleFormat.empty(),
+                JacksonSimpleFormat.empty(),
+                5
+        ));
     }
 
     private EventStore<Connection, BankEvent, Tuple0, Tuple0> eventStore(

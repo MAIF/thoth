@@ -20,9 +20,6 @@ public class DemoApplication {
 		System.out.println(balance);
 
 		System.out.println(bank.meanWithdrawValue());
-
-
-
 	}
 
 }
