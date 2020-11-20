@@ -19,30 +19,39 @@ public class DemoApplication {
         BankEventHandler eventHandler = new BankEventHandler();
         Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
 
-        Future<Either<String, BigDecimal>> result = bank.init()
+        bank.init()
                 .flatMap(__ -> bank.createAccount(BigDecimal.valueOf(100)))
                 .flatMap(accountCreatedOrError ->
                         accountCreatedOrError
-                                .flatMap(processingResult -> processingResult.currentState.toEither("Current state is missing"))
                                 .fold(
-                                        error -> Future(Either.<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, Tuple0>>left(error)),
+                                        error -> Future(Either.<String, Account>left(error)),
                                         currentState -> {
                                             String id = currentState.id;
                                             println("account created with id "+id);
-                                            return bank.withdraw(id, BigDecimal.valueOf(50));
+                                            return bank.withdraw(id, BigDecimal.valueOf(50))
+                                                    .map(withDrawProcessingResult -> withDrawProcessingResult.map(Account::getBalance))
+                                                    .onSuccess(balanceOrError ->
+                                                            balanceOrError
+                                                                    .peek(balance -> println("Balance is now: "+balance))
+                                                                    .orElseRun(error -> println("Error: " + error))
+                                                    )
+                                                    .flatMap(balanceOrError ->
+                                                            bank.deposit(id, BigDecimal.valueOf(100))
+                                                    )
+                                                    .map(depositProcessingResult -> depositProcessingResult.map(Account::getBalance))
+                                                    .onSuccess(balanceOrError ->
+                                                            balanceOrError
+                                                                    .peek(balance -> println("Balance is now: "+balance))
+                                                                    .orElseRun(error -> println("Error: " + error))
+                                                    )
+                                                    .flatMap(balanceOrError ->
+                                                            bank.findAccountById(id)
+                                                    )
+                                                    .onSuccess(balanceOrError ->
+                                                            balanceOrError.forEach(account -> println("Account is: "+account ))
+                                                    );
                                         }
                                 )
-                )
-                .map(withDrawProcessingResult -> withDrawProcessingResult
-                        .flatMap(pr -> pr.currentState.toEither("Balance missing"))
-                        .map(Account::getBalance)
-                );
-
-        result
-                .onSuccess(balanceOrError ->
-                        balanceOrError
-                                .peek(balance -> println("Balance is now: "+balance))
-                                .orElseRun(error -> println("Error: " + error))
                 )
                 .onFailure(Throwable::printStackTrace)
                 .onComplete(res -> {

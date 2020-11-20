@@ -7,6 +7,7 @@ import com.fasterxml.uuid.impl.TimeBasedGenerator;
 import fr.maif.eventsourcing.*;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
+import fr.maif.eventsourcing.impl.DefaultAggregateStore;
 import fr.maif.eventsourcing.impl.KafkaEventPublisher;
 import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
@@ -68,6 +69,7 @@ public class Bank implements Closeable {
             """;
     private final PgAsyncPool pgAsyncPool;
     private final Vertx vertx;
+    private PgPool pgPool;
 
     public Bank(ActorSystem actorSystem,
                 BankCommandHandler commandHandler,
@@ -75,13 +77,21 @@ public class Bank implements Closeable {
         this.actorSystem = actorSystem;
         this.vertx = Vertx.vertx();
         this.pgAsyncPool = pgAsyncPool(vertx);
-        this.eventProcessor = ReactivePostgresKafkaEventProcessor.create(
-                actorSystem,
-                eventStore(actorSystem, pgAsyncPool),
-                new ReactiveTransactionManager(pgAsyncPool),
-                commandHandler,
-                eventHandler,
-                List.empty());
+
+        var eventStore = eventStore(actorSystem, pgAsyncPool);
+        var transactionManager = new ReactiveTransactionManager(pgAsyncPool);
+        var producerSettings = producerSettings(settings());
+        this.eventProcessor = new ReactivePostgresKafkaEventProcessor<>(
+                new ReactivePostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<>(
+                        eventStore,
+                        transactionManager,
+                        new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager),
+                        commandHandler,
+                        eventHandler,
+                        List.empty(),
+                        new KafkaEventPublisher<>(actorSystem, producerSettings, "bank")
+                )
+        );
     }
 
     public Future<Seq<Integer>> init() {
@@ -96,10 +106,11 @@ public class Bank implements Closeable {
 
     @Override
     public void close() throws IOException {
+        this.pgPool.close();
         this.vertx.close();
     }
 
-    private EventStore<PgAsyncTransaction, BankEvent, Tuple0, Tuple0> eventStore(ActorSystem actorSystem, PgAsyncPool dataSource) {
+    private ReactivePostgresEventStore<BankEvent, Tuple0, Tuple0> eventStore(ActorSystem actorSystem, PgAsyncPool dataSource) {
         KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher = new KafkaEventPublisher<>(actorSystem, producerSettings(settings()), "bank");
         return ReactivePostgresEventStore.create(actorSystem, kafkaEventPublisher, dataSource, tableNames(), BankEventFormat.bankEventFormat.jacksonEventFormat(), JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty());
     }
@@ -115,9 +126,9 @@ public class Bank implements Closeable {
                 .setUser("eventsourcing")
                 .setPassword("eventsourcing");
         PoolOptions poolOptions = new PoolOptions().setMaxSize(50);
-        PgPool client = PgPool.pool(vertx, options, poolOptions);
+        pgPool = PgPool.pool(vertx, options, poolOptions);
 
-        return new ReactivePgAsyncPool(client, jooqConfig);
+        return new ReactivePgAsyncPool(pgPool, jooqConfig);
     }
 
     private KafkaSettings settings() {
@@ -134,20 +145,23 @@ public class Bank implements Closeable {
 
 
 
-    public Future<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, Tuple0>>> createAccount(
+    public Future<Either<String, Account>> createAccount(
             BigDecimal amount) {
         Lazy<String> lazyId = Lazy.of(() -> UUIDgenerator.generate().toString());
-        return eventProcessor.processCommand(new BankCommand.OpenAccount(lazyId, amount));
+        return eventProcessor.processCommand(new BankCommand.OpenAccount(lazyId, amount))
+                .map(res -> res.flatMap(processingResult -> processingResult.currentState.toEither("Current state is missing")));
     }
 
-    public Future<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, Tuple0>>> withdraw(
+    public Future<Either<String, Account>> withdraw(
             String account, BigDecimal amount) {
-        return eventProcessor.processCommand(new BankCommand.Withdraw(account, amount));
+        return eventProcessor.processCommand(new BankCommand.Withdraw(account, amount))
+                .map(res -> res.flatMap(processingResult -> processingResult.currentState.toEither("Current state is missing")));
     }
 
-    public Future<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, Tuple0>>> deposit(
+    public Future<Either<String, Account>> deposit(
             String account, BigDecimal amount) {
-        return eventProcessor.processCommand(new BankCommand.Deposit(account, amount));
+        return eventProcessor.processCommand(new BankCommand.Deposit(account, amount))
+                .map(res -> res.flatMap(processingResult -> processingResult.currentState.toEither("Current state is missing")));
     }
 
     public Future<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, Tuple0>>> close(
