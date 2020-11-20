@@ -60,12 +60,12 @@ public interface BankCommand extends SimpleCommand {
 
 There's a lot going on here:
 
-* Commands are a sum type, therefore it can be implemented using a Java interface
+* Commands are a [sum type](https://en.wikipedia.org/wiki/Tagged_union), therefore it can be implemented using a Java interface
 
 * Our commands need to implement `SimpleCommand`, there is a more complete version of this class called `Command` that allows providing of additional information such as metadata. More on that later.
 
 * Our class needs to implement an `entityId` method that should return something that identifies uniquely our account.
-This method returns a [Vavr Lazy](https://docs.vavr.io/#_lazy) object, which is useful in [soqme cases](TODO).
+This method returns a [Vavr Lazy](https://docs.vavr.io/#_lazy) object, which is useful in [some cases](TODO).
 
 * We need to declare a `Type` for each command that will be used for [Vavr pattern matching](https://docs.vavr.io/#_the_basics_of_match_for_java),
  in addition to the name of the command, the type store its version, facilitating version bump of commands. 
@@ -126,7 +126,7 @@ public abstract class BankEvent implements Event {
 
 Let's decompose this snippet:
 
-* Like commands, events are a sum type, however we used an abstract class instead of an interface to factorize `entityId` logic
+* Like commands, events are a [sum type](https://en.wikipedia.org/wiki/Tagged_union), however we used an abstract class instead of an interface to factorize `entityId` logic
 * Event must implement two methods
   * entityId that must identify uniquely an account
   * a type, that can be used to perform [Vavr pattern matching](https://docs.vavr.io/#_the_basics_of_match_for_java), in addition to the name of the event, the type store its version, facilitating version bump of events.
