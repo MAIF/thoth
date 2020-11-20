@@ -24,6 +24,18 @@ lazy val root = (project in file("."))
   .enablePlugins(NoPublish, GitVersioning, GitBranchPrompt)
   .disablePlugins(BintrayPlugin)
 
+
+lazy val `demo` = project
+  .aggregate(`demo-postgres-kafka`, `demo-in-memory`)
+  .enablePlugins(NoPublish)
+  .disablePlugins(BintrayPlugin)
+
+lazy val `demo-postgres-kafka` = (project in file("./demo/demo-postgres-kafka")).dependsOn(`scribe-jooq`).enablePlugins(NoPublish)
+  .disablePlugins(BintrayPlugin)
+
+lazy val `demo-in-memory` = (project in file("./demo/demo-in-memory")).dependsOn(`scribe-core`).enablePlugins(NoPublish)
+  .disablePlugins(BintrayPlugin)
+
 lazy val `commons-events` = project
   .settings(publishCommonsSettings: _*)
 
@@ -39,11 +51,6 @@ lazy val `scribe-jooq` = project
   .dependsOn(`scribe-core`)
   .settings(publishCommonsSettings: _*)
 
-lazy val `demo-postgres-kafka` = project
-  .dependsOn(`scribe-jooq`)
-
-lazy val `demo-in-memory` = project
-  .dependsOn(`scribe-core`)
 
 javacOptions in Compile ++= Seq("-source", "15", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
 
