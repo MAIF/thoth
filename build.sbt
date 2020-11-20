@@ -25,11 +25,6 @@ lazy val root = (project in file("."))
   .disablePlugins(BintrayPlugin)
 
 
-lazy val `demo` = project
-  .aggregate(`demo-postgres-kafka`, `demo-in-memory`)
-  .enablePlugins(NoPublish)
-  .disablePlugins(BintrayPlugin)
-
 lazy val `demo-postgres-kafka` = (project in file("./demo/demo-postgres-kafka")).dependsOn(`scribe-jooq`).enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
