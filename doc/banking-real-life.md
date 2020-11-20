@@ -19,11 +19,6 @@ GRANT ALL PRIVILEGES ON DATABASE "eventsourcing" to eventsourcing;
 Schema creation:
 
 ```sql
-CREATE TABLE IF NOT EXISTS ACCOUNTS (
-    id varchar(100) PRIMARY KEY,
-    balance money NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS bank_journal (
   id UUID primary key,
   entity_id varchar(100) not null,
@@ -237,51 +232,102 @@ public class Bank {
 ```
 
 
-## Event processor
+## Kafka event publisher
 
-The next step is to swap our `EventProcessor` with `PostgresKafkaEventProcessor`.
+Using above methods, we need to define a `KafkaEventPublisher`, that will handle publication of events on kafka once they'll be store in the database.
 
 ```java
 public class Bank {
     //...
-    public Bank(ActorSystem actorSystem,
-                BankCommandHandler commandHandler,
-                BankEventHandler eventHandler
-                ) throws SQLException {
-        this.actorSystem = actorSystem;
-        JacksonEventFormat<String, BankEvent> eventFormat = new BankEventFormat();
-        ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings = producerSettings(settings(), eventFormat);
-        DataSource dataSource = dataSource();
-
-        this.eventProcessor = new PostgresKafkaEventProcessor<>(new PostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<>(
-                        actorSystem,
-                        tableNames(),
-                        dataSource,
-                        "bank",
-                        producerSettings,
-                        AkkaExecutionContext.createDefault(actorSystem),
-                        new JdbcTransactionManager(dataSource(), Executors.newFixedThreadPool(5)),
-                        commandHandler,
-                        eventHandler,
-                        List.of(meanWithdrawProjection),
-                        eventFormat,
-                        JacksonSimpleFormat.empty(),
-                        JacksonSimpleFormat.empty()
-                ));
+    private KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher(
+            ActorSystem actorSystem,
+            ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings,
+            String topic) {
+        return new KafkaEventPublisher<>(actorSystem, producerSettings, topic);
     }
     //...
 }
 ```
 
+
 ## Event store
 
-The last thing to do is to remove manual instantiation of our EventStore, since it's now instantiated directly by our `PostgresKafkaEventProcessor`.
+We need to change our `EventStore` implementation to `PostgresEventStore`.
+This new event store will store event in Postgres instead of in memory.
+
+```java
+public class Bank {
+    //...
+    private PostgresEventStore<BankEvent, Tuple0, Tuple0> eventStore(
+            ActorSystem actorSystem,
+            KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher,
+            DataSource dataSource,
+            ExecutorService executorService,
+            TableNames tableNames,
+            JacksonEventFormat<String, BankEvent> jacksonEventFormat) {
+        return PostgresEventStore.create(actorSystem, kafkaEventPublisher, dataSource, executorService, tableNames, jacksonEventFormat);
+    }
+    //...
+}
+```
+
+## Event processor
+
+The last step is to swap our `EventProcessor` with `PostgresKafkaEventProcessor`.
+
+To instantiate this new EventProcessor, we'll need everything we defined previously, and additional instances:
+* 
+
+
+```java
+public class Bank {
+    //...
+    public Bank(ActorSystem actorSystem,
+                    BankCommandHandler commandHandler,
+                    BankEventHandler eventHandler
+                    ) throws SQLException {
+        String topic = "bank";
+        this.actorSystem = actorSystem;
+        JacksonEventFormat<String, BankEvent> eventFormat = new BankEventFormat();
+        ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings = producerSettings(settings(), eventFormat);
+        DataSource dataSource = dataSource();
+        TableNames tableNames = tableNames();
+
+        ExecutorService executorService = Executors.newFixedThreadPool(5);
+        JdbcTransactionManager transactionManager = new JdbcTransactionManager(dataSource(), executorService);
+
+        KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher = kafkaEventPublisher(actorSystem, producerSettings, topic);
+
+        PostgresEventStore<BankEvent, Tuple0, Tuple0> eventStore = eventStore(
+                actorSystem,
+                kafkaEventPublisher,
+                dataSource,
+                executorService,
+                tableNames,
+                eventFormat
+        );
+
+        this.eventProcessor = new PostgresKafkaEventProcessor<>(new PostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<>(
+                actorSystem,
+                eventStore,
+                transactionManager,
+                commandHandler,
+                eventHandler,
+                List.of(meanWithdrawProjection),
+                kafkaEventPublisher
+        ));
+    }
+    //...
+}
+```
+
+
 
 ## Usage
 
 Usage remains the same as in [in memory example](./banking.md).
 
-A [docker-compose.yml](../docker-compose.test.yml) file is available to set-up dev environment.
+A [docker-compose.yml](../docker-compose.yml) file is available to set-up dev environment.
 
 It exposes a PostgreSQL server on http://localhost:5432/ and a kafdrop instance on http://localhost:9000/.
 
@@ -404,4 +450,4 @@ As we can see, BankEvents aren't published directly into kafka topic, they are w
 
 ## Next step
 
-[Implement projections to read data differently](./projections.md)
+* [Implement projections to read data differently](./projections.md)

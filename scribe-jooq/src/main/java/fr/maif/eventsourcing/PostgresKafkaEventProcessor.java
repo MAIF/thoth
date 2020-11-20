@@ -117,22 +117,6 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
         }
 
         public PostgresKafkaEventProcessorConfig(
-                ActorSystem system,
-                TableNames tableNames,
-                DataSource dataSource,
-                String topic,
-                ProducerSettings<String, EventEnvelope<E, Meta, Context>> producerSettings,
-                AkkaExecutionContext executionContext,
-                TransactionManager<Connection> transactionManager,
-                CommandHandler<Error, S, C, E, Message, Connection> commandHandler, EventHandler<S, E> eventHandler,
-                List<Projection<Connection, E, Meta, Context>> projections,
-                JacksonEventFormat<?, E> eventFormat,
-                JacksonSimpleFormat<Meta> metaFormat,
-                JacksonSimpleFormat<Context> contextFormat) {
-            this(system, tableNames, dataSource, topic, producerSettings, executionContext, transactionManager, null, commandHandler, eventHandler, projections, eventFormat, metaFormat, contextFormat, null);
-        }
-
-        public PostgresKafkaEventProcessorConfig(
                 PostgresEventStore<E, Meta, Context> eventStore,
                 TransactionManager<Connection> transactionManager,
                 AggregateStore<S, String, Connection> aggregateStore,
@@ -147,6 +131,23 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
             this.eventHandler = eventHandler;
             this.projections = projections;
             this.eventPublisher = eventPublisher;
+        }
+
+        public PostgresKafkaEventProcessorConfig(
+                ActorSystem actorSystem,
+                PostgresEventStore<E, Meta, Context> eventStore,
+                TransactionManager<Connection> transactionManager,
+                CommandHandler<Error, S, C, E, Message, Connection> commandHandler,
+                EventHandler<S, E> eventHandler,
+                List<Projection<Connection, E, Meta, Context>> projections,
+                KafkaEventPublisher<E, Meta, Context> eventPublisher) {
+            this.eventStore = eventStore;
+            this.transactionManager = transactionManager;
+            this.commandHandler = commandHandler;
+            this.eventHandler = eventHandler;
+            this.projections = projections;
+            this.eventPublisher = eventPublisher;
+            this.aggregateStore = new DefaultAggregateStore<>(this.eventStore, eventHandler, actorSystem, transactionManager);
         }
     }
 }

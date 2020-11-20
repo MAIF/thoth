@@ -7,7 +7,7 @@ In this example, we will focus on managing accounts one by one (i.e. no transfer
 * because it's simpler to implement / understand
 * because [one feature](https://github.com/MAIF/scribe/issues/4) is missing to implement scenario such as multiple bank accounts
 
-Here is the process modeling of what append: 
+Here is the process modeling of what happens: 
 
 ![](scribe_bank_account.jpg) 
 
@@ -93,7 +93,7 @@ public abstract class BankEvent implements Event {
     public static Type<MoneyDeposited> MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);
     /**
      * Boilerplate code to facilitate pattern matching   
-    /*
+    */
     public static Pattern0<AccountOpened> $AccountOpened() {
         return Pattern0.of(AccountOpened.class);
     }
@@ -354,15 +354,3 @@ See [complete example](../demo/demo-in-memory) of some other commands (withdraw,
 ## Next step
 
 [Use real Postgres / Kafka instance to store / publish events.](./banking-real-life.md)
-
-## The non blocking way 
-
-[Use real Postgres / Kafka instance to store / publish events the non blocking way](./banking-real-life-non-blocking.md)
-
-# TODO
-
-* Link to sequenceNum explanation
-* Implement State when our model class already has a super class
-* Command class : metadata & context
-* Version bump example
-* configure object mapper

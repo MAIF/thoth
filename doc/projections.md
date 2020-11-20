@@ -1,8 +1,13 @@
 # Projections
 
-Out account management system is still limited in consultation : all we can do is read accounts by id, one by one.
+Out account management system is limited in consultation : all we can do is read accounts by id, one by one.
 
-Projections help us to implement more specific read cases. They are built / updated by consuming events.
+Projections help us to implement different read scenario. They are built / updated by consuming events.
+
+## In transaction projection
+
+Scribe offers tools for building "in transaction" projections.
+These projections will be updated in the transaction used to register events in the database, therefore they'll be updated in "real time".
 
 Let's say we want a projection that stores mean withdrawal value.
 
@@ -60,7 +65,7 @@ public class Bank {
 }
 ```
 
-## Usage
+### Usage
 
 ```java
 public class DemoApplication {
@@ -80,3 +85,13 @@ public class DemoApplication {
 	}
 }
 ```
+
+## Eventually consistent projections
+
+Sometimes projections are too costly to be updated in transaction, sometimes we don't need real time update.
+
+In these case we could build "eventually consistent" projections, by connecting to our "bank" topic in Kafka, and consuming events from there.
+
+## Next step
+
+[Configure your database](./database%20configuration.md)
