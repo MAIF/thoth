@@ -302,9 +302,9 @@ The above code puts the following events in bank_journal table in postgres :
 eventsourcing=> select * from bank_journal;
                   id                  |              entity_id               | sequence_num |   event_type   | version |            transaction_id            |                                event                                 | metadata | context | total_message_in_transaction | num_message_in_transaction |       emission_date        | user_id | system_id | published
 --------------------------------------+--------------------------------------+--------------+----------------+---------+--------------------------------------+----------------------------------------------------------------------+----------+---------+------------------------------+----------------------------+----------------------------+---------+-----------+-----------
- b2810508-2b2b-11eb-a656-059dbef3f5e0 | b27f7e66-2b2b-11eb-a656-f50ef940bee6 |            1 | AccountOpened  |       1 | b280b6e7-2b2b-11eb-a656-138f3ba92bd6 | {"accountId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6"}                |          |         |                            2 |                          1 | 2020-11-20 13:27:04.536407 |         |           | t
- b2a073e9-2b2b-11eb-a656-059dbef3f5e0 | b27f7e66-2b2b-11eb-a656-f50ef940bee6 |            2 | MoneyDeposited |       1 | b280b6e7-2b2b-11eb-a656-138f3ba92bd6 | {"amount": 100, "accountId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6"} |          |         |                            2 |                          2 | 2020-11-20 13:27:04.542099 |         |           | t
- b2c030eb-2b2b-11eb-a656-059dbef3f5e0 | b27f7e66-2b2b-11eb-a656-f50ef940bee6 |            3 | MoneyWithdrawn |       1 | b2c030ea-2b2b-11eb-a656-138f3ba92bd6 | {"amount": 50, "accountId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6"}  |          |         |                            1 |                          1 | 2020-11-20 13:27:04.750188 |         |           | t
+ b6e90e54-2b35-11eb-bf14-d36eb2a73a4d | b6e787b2-2b35-11eb-bf14-b3c9ba98988e |            1 | AccountOpened  |       1 | b6e87213-2b35-11eb-bf14-03a006a0f3f3 | {"accountId": "b6e787b2-2b35-11eb-bf14-b3c9ba98988e"}                |          |         |                            2 |                          1 | 2020-11-20 14:38:46.907717 |         |           | t
+ b70a51f5-2b35-11eb-bf14-d36eb2a73a4d | b6e787b2-2b35-11eb-bf14-b3c9ba98988e |            2 | MoneyDeposited |       1 | b6e87213-2b35-11eb-bf14-03a006a0f3f3 | {"amount": 100, "accountId": "b6e787b2-2b35-11eb-bf14-b3c9ba98988e"} |          |         |                            2 |                          2 | 2020-11-20 14:38:46.91322  |         |           | t
+ b72bbca7-2b35-11eb-bf14-d36eb2a73a4d | b6e787b2-2b35-11eb-bf14-b3c9ba98988e |            3 | MoneyWithdrawn |       1 | b72bbca6-2b35-11eb-bf14-03a006a0f3f3 | {"amount": 50, "accountId": "b6e787b2-2b35-11eb-bf14-b3c9ba98988e"}  |          |         |                            1 |                          1 | 2020-11-20 14:38:47.134795 |         |           | t
 (3 rows)
 ```
 
@@ -313,29 +313,21 @@ Events below are published to kafka's bank topic :
 Offset 0
 ```json
 {
-   "id": "b2810508-2b2b-11eb-a656-059dbef3f5e0",
+   "id": "b6e90e54-2b35-11eb-bf14-d36eb2a73a4d",
    "sequenceNum": 1,
    "eventType": "AccountOpened",
-   "emissionDate": [
-      2020,
-      11,
-      20,
-      13,
-      27,
-      4,
-      536407000
-   ],
-   "transactionId": "b280b6e7-2b2b-11eb-a656-138f3ba92bd6",
+   "emissionDate": "2020-11-20T14:38:46.907717",
+   "transactionId": "b6e87213-2b35-11eb-bf14-03a006a0f3f3",
    "metadata": null,
    "event": {
-      "accountId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6"
+      "accountId": "b6e787b2-2b35-11eb-bf14-b3c9ba98988e"
    },
    "context": null,
    "version": 1,
    "published": null,
    "totalMessageInTransaction": 2,
    "numMessageInTransaction": 1,
-   "entityId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6",
+   "entityId": "b6e787b2-2b35-11eb-bf14-b3c9ba98988e",
    "userId": null,
    "systemId": null
 }
@@ -344,22 +336,14 @@ Offset 0
 Offset 1
 ```json
 {
-   "id": "b2a073e9-2b2b-11eb-a656-059dbef3f5e0",
+   "id": "b70a51f5-2b35-11eb-bf14-d36eb2a73a4d",
    "sequenceNum": 2,
    "eventType": "MoneyDeposited",
-   "emissionDate": [
-      2020,
-      11,
-      20,
-      13,
-      27,
-      4,
-      542099000
-   ],
-   "transactionId": "b280b6e7-2b2b-11eb-a656-138f3ba92bd6",
+   "emissionDate": "2020-11-20T14:38:46.91322",
+   "transactionId": "b6e87213-2b35-11eb-bf14-03a006a0f3f3",
    "metadata": null,
    "event": {
-      "accountId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6",
+      "accountId": "b6e787b2-2b35-11eb-bf14-b3c9ba98988e",
       "amount": 100
    },
    "context": null,
@@ -367,7 +351,7 @@ Offset 1
    "published": null,
    "totalMessageInTransaction": 2,
    "numMessageInTransaction": 2,
-   "entityId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6",
+   "entityId": "b6e787b2-2b35-11eb-bf14-b3c9ba98988e",
    "userId": null,
    "systemId": null
 }
@@ -377,22 +361,14 @@ Offset 2
 
 ```json
 {
-   "id": "b2c030eb-2b2b-11eb-a656-059dbef3f5e0",
+   "id": "b72bbca7-2b35-11eb-bf14-d36eb2a73a4d",
    "sequenceNum": 3,
    "eventType": "MoneyWithdrawn",
-   "emissionDate": [
-      2020,
-      11,
-      20,
-      13,
-      27,
-      4,
-      750188000
-   ],
-   "transactionId": "b2c030ea-2b2b-11eb-a656-138f3ba92bd6",
+   "emissionDate": "2020-11-20T14:38:47.134795",
+   "transactionId": "b72bbca6-2b35-11eb-bf14-03a006a0f3f3",
    "metadata": null,
    "event": {
-      "accountId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6",
+      "accountId": "b6e787b2-2b35-11eb-bf14-b3c9ba98988e",
       "amount": 50
    },
    "context": null,
@@ -400,7 +376,7 @@ Offset 2
    "published": null,
    "totalMessageInTransaction": 1,
    "numMessageInTransaction": 1,
-   "entityId": "b27f7e66-2b2b-11eb-a656-f50ef940bee6",
+   "entityId": "b6e787b2-2b35-11eb-bf14-b3c9ba98988e",
    "userId": null,
    "systemId": null
 }
