@@ -42,4 +42,4 @@ This implies to change this `Message` parameter from `Tuple0` to `List<Message>`
 
 ## Next step
 
-[Make your read faster with aggregateStore](./aggregatestore.md)
+[Custom message ordering](./event-ordering.md)
