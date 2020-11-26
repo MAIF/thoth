@@ -7,6 +7,7 @@ import akka.stream.javadsl.Source;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
+import fr.maif.json.MapperSingleton;
 import io.vavr.Tuple0;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
@@ -106,7 +107,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
         this.eventFormat = eventFormat;
         this.metaFormat = metaFormat;
         this.contextFormat = contextFormat;
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = MapperSingleton.getInstance();
     }
 
     public static <E extends Event, Meta, Context> PostgresEventStore<E, Meta, Context> create(
