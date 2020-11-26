@@ -2,13 +2,10 @@ package fr.maif.json;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
@@ -22,16 +19,7 @@ import java.util.function.Consumer;
 
 public class EventEnvelopeJson {
 
-    private final static ObjectMapper mapper = buildMapper();
-
-    private static ObjectMapper buildMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        return mapper;
-    }
+    private final static ObjectMapper mapper = MapperSingleton.getInstance();
 
     public static <E extends Event, Meta, Context> String serializeToString(EventEnvelope<E, Meta, Context> event,
                                                                             JacksonEventFormat<?, E> format,

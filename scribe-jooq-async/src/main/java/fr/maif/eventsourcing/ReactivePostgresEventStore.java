@@ -13,6 +13,7 @@ import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
 import fr.maif.jooq.QueryResult;
 import fr.maif.json.Json;
+import fr.maif.json.MapperSingleton;
 import io.vavr.API;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
@@ -85,7 +86,7 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
         this.eventFormat = eventFormat;
         this.metaFormat = metaFormat;
         this.contextFormat = contextFormat;
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = MapperSingleton.getInstance();
     }
 
     @Override
