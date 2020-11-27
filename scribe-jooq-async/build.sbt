@@ -23,3 +23,4 @@ libraryDependencies ++= Seq(
 )
 
 
+javacOptions in Compile ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")

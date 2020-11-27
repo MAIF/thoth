@@ -34,3 +34,5 @@ libraryDependencies ++= Seq(
   "org.scalatest"                   %% "scalatest"                 % "3.0.8" % Test,
   "org.testcontainers"              % "kafka"                      % "1.14.3" % Test
 )
+
+javacOptions in Compile ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
