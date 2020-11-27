@@ -26,6 +26,7 @@ import io.vavr.control.Try;
 import org.jooq.Condition;
 import org.jooq.Converter;
 import org.jooq.Field;
+import org.jooq.JSON;
 import org.jooq.JSONB;
 import org.jooq.impl.SQLDataType;
 import org.slf4j.LoggerFactory;
@@ -89,6 +90,17 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
         this.objectMapper = MapperSingleton.getInstance();
     }
 
+    public static <E extends Event, Meta, Context> ReactivePostgresEventStore<E, Meta, Context> create(
+            ActorSystem system,
+            EventPublisher<E, Meta, Context> eventPublisher,
+            PgAsyncPool pgAsyncPool,
+            TableNames tableNames,
+            JacksonEventFormat<?, E> eventFormat,
+            JacksonSimpleFormat<Meta> metaFormat,
+            JacksonSimpleFormat<Context> contextFormat) {
+        return new ReactivePostgresEventStore<>(system, eventPublisher, pgAsyncPool, tableNames, eventFormat, metaFormat, contextFormat);
+    }
+
     @Override
     public ActorSystem system() {
         return system;
@@ -124,12 +136,13 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
                                         fields.map(f -> null).toJavaList()
                                 ),
                 events.map(event -> {
-                    String eventString = Try.of(() -> objectMapper.writeValueAsString(eventFormat.write(event.event))).get();
-                    String contextString = contextFormat.write(Option.of(event.context))
-                            .flatMap(c -> Try.of(() -> objectMapper.writeValueAsString(c)).toOption())
+                    JSONB eventString = Try.of(() -> JSONB.valueOf(objectMapper.writeValueAsString(eventFormat.write(event.event))))
+                            .get();
+                    JSONB contextString = contextFormat.write(Option.of(event.context))
+                            .flatMap(c -> Try.of(() -> JSONB.valueOf(objectMapper.writeValueAsString(c))).toOption())
                             .getOrNull();
-                    String metaString = metaFormat.write(Option.of(event.metadata))
-                            .flatMap(m -> Try.of(() -> objectMapper.writeValueAsString(m)).toOption())
+                    JSONB metaString = metaFormat.write(Option.of(event.metadata))
+                            .flatMap(m -> Try.of(() -> JSONB.valueOf(objectMapper.writeValueAsString(m))).toOption())
                             .getOrNull();
                     LocalDateTime emissionDate = Option.of(event.emissionDate).getOrElse(LocalDateTime.now());
                     return List.of(

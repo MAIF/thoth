@@ -6,6 +6,6 @@ object Dependencies {
   val vavrVersion = "0.10.0"
   val jooqVersion = "3.13.4"
   val jooqAsyncVersion = "1.0.0-RC1"
-  val functionalJsonVersion = "1.0.0-BETA1"
+  val functionalJsonVersion = "1.0.0-BETA3"
 }
 

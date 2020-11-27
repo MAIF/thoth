@@ -65,7 +65,7 @@ public abstract class AbstractPostgresEventStoreTest {
 
     @Test
     public void insertAndRead() {
-        LocalDateTime emissionDate = LocalDateTime.now();
+        LocalDateTime emissionDate = LocalDateTime.now().withNano(0);
         List<EventEnvelope<VikingEvent, Void, Void>> events = API.List(
                 eventEnvelope(1L, new VikingEvent.VikingCreated("bjorn@gmail.com"), emissionDate),
                 eventEnvelope(2L, new VikingEvent.VikingUpdated("bjorn@gmail.com"), emissionDate),
