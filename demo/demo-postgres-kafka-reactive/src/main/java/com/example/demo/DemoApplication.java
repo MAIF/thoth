@@ -47,6 +47,11 @@ public class DemoApplication {
                                                     )
                                                     .onSuccess(balanceOrError ->
                                                             balanceOrError.forEach(account -> println("Account is: "+account ))
+                                                    )
+                                                    .flatMap(__ ->
+                                                        bank.meanWithdrawByClient(id).onSuccess(w -> {
+                                                            println("Withdraw sum "+w);
+                                                        })
                                                     );
                                         }
                                 )

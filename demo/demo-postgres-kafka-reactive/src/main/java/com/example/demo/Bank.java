@@ -7,6 +7,7 @@ import com.fasterxml.uuid.impl.TimeBasedGenerator;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventProcessor;
 import fr.maif.eventsourcing.ProcessingSuccess;
+import fr.maif.eventsourcing.Projection;
 import fr.maif.eventsourcing.ReactivePostgresEventStore;
 import fr.maif.eventsourcing.ReactivePostgresKafkaEventProcessor;
 import fr.maif.eventsourcing.ReactiveTransactionManager;
@@ -20,6 +21,7 @@ import fr.maif.jooq.reactive.ReactivePgAsyncPool;
 import fr.maif.kafka.JsonFormatSerDer;
 import fr.maif.kafka.KafkaSettings;
 import io.vavr.Lazy;
+import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.collection.Seq;
@@ -41,9 +43,7 @@ import static io.vavr.API.List;
 import static io.vavr.API.println;
 
 public class Bank implements Closeable {
-    private final EventProcessor<String, Account, BankCommand, BankEvent, PgAsyncTransaction, Tuple0, Tuple0, Tuple0> eventProcessor;
     private static final TimeBasedGenerator UUIDgenerator = Generators.timeBasedGenerator();
-    private final ActorSystem actorSystem;
     private final String accountTable = """
             CREATE TABLE IF NOT EXISTS ACCOUNTS (
                 id varchar(100) PRIMARY KEY,
@@ -72,9 +72,12 @@ public class Bank implements Closeable {
     private final String SEQUENCE = """
                     CREATE SEQUENCE if not exists bank_sequence_num;
             """;
+    private final ActorSystem actorSystem;
     private final PgAsyncPool pgAsyncPool;
     private final Vertx vertx;
     private PgPool pgPool;
+    private final EventProcessor<String, Account, BankCommand, BankEvent, PgAsyncTransaction, Tuple0, Tuple0, Tuple0> eventProcessor;
+    private final MeanWithdrawProjection projection;
 
     public Bank(ActorSystem actorSystem,
                 BankCommandHandler commandHandler,
@@ -86,6 +89,9 @@ public class Bank implements Closeable {
         var eventStore = eventStore(actorSystem, pgAsyncPool);
         var transactionManager = new ReactiveTransactionManager(pgAsyncPool);
         var producerSettings = producerSettings(settings());
+
+        projection = new MeanWithdrawProjection(pgAsyncPool);
+
         this.eventProcessor = new ReactivePostgresKafkaEventProcessor<>(
                 new ReactivePostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<>(
                         eventStore,
@@ -93,20 +99,22 @@ public class Bank implements Closeable {
                         new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager),
                         commandHandler,
                         eventHandler,
-                        List.empty(),
+                        List.of(projection),
                         new KafkaEventPublisher<>(actorSystem, producerSettings, "bank")
                 )
         );
     }
 
-    public Future<Seq<Integer>> init() {
+    public Future<Tuple0> init() {
         println("Initializing database");
         return Future.traverse(List(accountTable, bankJournalTable, SEQUENCE), script -> pgAsyncPool.execute(d -> d.query(script)))
                 .onSuccess(__ -> println("Database initialized"))
                 .onFailure(e -> {
                     println("Database initialization failed");
                     e.printStackTrace();
-                });
+                })
+                .flatMap(__  -> projection.init())
+                .map(__ -> Tuple.empty());
     }
 
     @Override
@@ -176,5 +184,13 @@ public class Bank implements Closeable {
 
     public Future<Option<Account>> findAccountById(String id) {
         return eventProcessor.getAggregate(id);
+    }
+
+    public Future<BigDecimal> meanWithdrawByClientAndMonth(String clientId, Integer year, String month) {
+        return projection.meanWithdrawByClientAndMonth(clientId, year, month);
+    }
+
+    public Future<BigDecimal> meanWithdrawByClient(String clientId) {
+        return projection.meanWithdrawByClient(clientId);
     }
 }
