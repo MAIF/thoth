@@ -63,6 +63,7 @@ Tuple0 sideEffect() {
 * [Projections](./doc/projections.md): projections documentation, implementing projection in sample application
 * [Database configuration](./doc/database%20configuration.md): databases index to create
 * [Messages](./doc/message.md): documentation of returning messages/warnings while handling commands
+* [Custom event ordering](./doc/event-ordering.md): documentation on custom event ordering
 * [Aggregate store](./doc/aggregatestore.md): documentation on periodic snapshot storing for performances
 * [Non blocking Postgres / Kafka implementation](./doc/banking-real-life-non-blocking.md): documentation of non blocking postgres / Kafka implementation using reactive postgres vertx driver
 
