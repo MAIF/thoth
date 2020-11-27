@@ -7,7 +7,6 @@ import com.fasterxml.uuid.impl.TimeBasedGenerator;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventProcessor;
 import fr.maif.eventsourcing.ProcessingSuccess;
-import fr.maif.eventsourcing.Projection;
 import fr.maif.eventsourcing.ReactivePostgresEventStore;
 import fr.maif.eventsourcing.ReactivePostgresKafkaEventProcessor;
 import fr.maif.eventsourcing.ReactiveTransactionManager;
@@ -24,7 +23,6 @@ import io.vavr.Lazy;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
-import io.vavr.collection.Seq;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
@@ -77,7 +75,7 @@ public class Bank implements Closeable {
     private final Vertx vertx;
     private PgPool pgPool;
     private final EventProcessor<String, Account, BankCommand, BankEvent, PgAsyncTransaction, Tuple0, Tuple0, Tuple0> eventProcessor;
-    private final MeanWithdrawProjection projection;
+    private final WithdrawByMonthProjection withdrawByMonthProjection;
 
     public Bank(ActorSystem actorSystem,
                 BankCommandHandler commandHandler,
@@ -90,7 +88,7 @@ public class Bank implements Closeable {
         var transactionManager = new ReactiveTransactionManager(pgAsyncPool);
         var producerSettings = producerSettings(settings());
 
-        projection = new MeanWithdrawProjection(pgAsyncPool);
+        this.withdrawByMonthProjection = new WithdrawByMonthProjection(pgAsyncPool);
 
         this.eventProcessor = new ReactivePostgresKafkaEventProcessor<>(
                 new ReactivePostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<>(
@@ -99,7 +97,7 @@ public class Bank implements Closeable {
                         new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager),
                         commandHandler,
                         eventHandler,
-                        List.of(projection),
+                        List.of(withdrawByMonthProjection),
                         new KafkaEventPublisher<>(actorSystem, producerSettings, "bank")
                 )
         );
@@ -113,7 +111,7 @@ public class Bank implements Closeable {
                     println("Database initialization failed");
                     e.printStackTrace();
                 })
-                .flatMap(__  -> projection.init())
+                .flatMap(__  -> withdrawByMonthProjection.init())
                 .map(__ -> Tuple.empty());
     }
 
@@ -187,10 +185,10 @@ public class Bank implements Closeable {
     }
 
     public Future<BigDecimal> meanWithdrawByClientAndMonth(String clientId, Integer year, String month) {
-        return projection.meanWithdrawByClientAndMonth(clientId, year, month);
+        return withdrawByMonthProjection.meanWithdrawByClientAndMonth(clientId, year, month);
     }
 
     public Future<BigDecimal> meanWithdrawByClient(String clientId) {
-        return projection.meanWithdrawByClient(clientId);
+        return withdrawByMonthProjection.meanWithdrawByClient(clientId);
     }
 }

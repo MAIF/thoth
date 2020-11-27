@@ -49,6 +49,9 @@ public class DemoApplication {
                                                             balanceOrError.forEach(account -> println("Account is: "+account ))
                                                     )
                                                     .flatMap(__ ->
+                                                            bank.withdraw(id, BigDecimal.valueOf(25))
+                                                    )
+                                                    .flatMap(__ ->
                                                         bank.meanWithdrawByClient(id).onSuccess(w -> {
                                                             println("Withdraw sum "+w);
                                                         })
