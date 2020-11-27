@@ -56,7 +56,7 @@ Tuple0 sideEffect() {
 }
 ```
 
-## Documentations 
+## Documentation
 
 * [Event sourcing](./doc/banking.md): documentation of the core components, implementing a sample in-memory banking application
 * [Jooq/Kafka](./doc/banking-real-life.md): migration of the sample application from in-memory to Postgres(JDBC) / Kafka
