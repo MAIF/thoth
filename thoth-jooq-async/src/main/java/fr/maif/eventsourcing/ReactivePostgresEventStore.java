@@ -26,10 +26,8 @@ import io.vavr.control.Try;
 import org.jooq.Condition;
 import org.jooq.Converter;
 import org.jooq.Field;
-import org.jooq.JSON;
 import org.jooq.JSONB;
 import org.jooq.Record15;
-import org.jooq.SelectForUpdateWaitStep;
 import org.jooq.SelectSeekStep1;
 import org.jooq.impl.SQLDataType;
 import org.slf4j.LoggerFactory;
@@ -40,7 +38,6 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
-import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
 import static java.util.function.Function.identity;
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.table;

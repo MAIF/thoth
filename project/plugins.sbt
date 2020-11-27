@@ -16,3 +16,5 @@ addSbtPlugin("org.xerial.sbt" % "sbt-sonatype"   % "3.9.7")
 addSbtPlugin("com.geirsson"   % "sbt-ci-release" % "1.5.6")
 
 addSbtPlugin("com.lightbend.paradox" % "sbt-paradox" % "0.6.9") // Apache 2.0
+
+addSbtPlugin("de.johoop" % "sbt-testng-plugin" % "3.1.1")

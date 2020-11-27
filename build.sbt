@@ -22,7 +22,8 @@ lazy val root = (project in file("."))
     `demo-postgres-kafka`,
     `demo-in-memory`,
     `sample`,
-    `thoth-documentation`
+    `thoth-documentation`,
+    `thoth-tck`
   )
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .settings(
@@ -48,6 +49,16 @@ lazy val `demo-in-memory` = (project in file("./demo/demo-in-memory"))
   )
 
 lazy val `thoth-documentation` = project
+  .settings(
+    skip in publish := true
+  )
+
+lazy val `thoth-tck` = project
+  .dependsOn(`thoth-core`)
+  .enablePlugins(TestNGPlugin)
+  .settings(
+    skip in publish := true
+  )
 
 lazy val `demo-postgres-kafka-reactive` =
   (project in file("./demo/demo-postgres-kafka-reactive"))
@@ -94,7 +105,8 @@ lazy val `thoth-core` = project
   )
 
 lazy val `thoth-jooq` = project
-  .dependsOn(`thoth-core`)
+  .dependsOn(`thoth-core`, `thoth-tck`)
+  .enablePlugins(TestNGPlugin)
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
     sonatypeCredentialHost := "s01.oss.sonatype.org",

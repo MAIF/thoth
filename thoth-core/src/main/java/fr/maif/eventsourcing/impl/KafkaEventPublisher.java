@@ -6,13 +6,15 @@ import akka.japi.Pair;
 import akka.kafka.ProducerMessage;
 import akka.kafka.ProducerSettings;
 import akka.kafka.javadsl.Producer;
+import akka.stream.KillSwitches;
 import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
+import akka.stream.RestartSettings;
+import akka.stream.UniqueKillSwitch;
 import akka.stream.javadsl.*;
 import fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
-import fr.maif.akka.AkkaExecutionContext;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventPublisher;
@@ -29,9 +31,8 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
-import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CompletableFuture;
 
-import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRATEGY;
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.WAIT;
 
 public class KafkaEventPublisher<E extends Event, Meta, Context> implements EventPublisher<E, Meta, Context>, Closeable {
@@ -47,6 +48,7 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
     private final Duration restartInterval;
     private final Duration maxRestartInterval;
     private final Flow<ProducerMessage.Results<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>, List<ProducerMessage.Results<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>>, NotUsed> groupFlow = Flow.<ProducerMessage.Results<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>>create().grouped(1000).map(List::ofAll);
+    private UniqueKillSwitch killSwitch;
 
     public KafkaEventPublisher(ActorSystem system, ProducerSettings<String, EventEnvelope<E, Meta, Context>> producerSettings, String topic) {
         this(system, producerSettings, topic, null);
@@ -79,8 +81,7 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
     }
 
     public <TxCtx> void start(EventStore<TxCtx, E, Meta, Context> eventStore, ConcurrentReplayStrategy concurrentReplayStrategy) {
-
-        RestartSource
+        killSwitch = RestartSource
                 .onFailuresWithBackoff(
                         restartInterval,
                         maxRestartInterval,
@@ -128,8 +129,9 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
                                     });
                         }
                 )
+                .viaMat(KillSwitches.single(), Keep.right())
                 .toMat(Sink.ignore(), Keep.both())
-                .run(materializer);
+                .run(materializer).first();
     }
 
 
@@ -163,6 +165,9 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
 
     @Override
     public void close() throws IOException {
+        if(Objects.nonNull(killSwitch)) {
+            this.killSwitch.shutdown();
+        }
         this.kafkaProducer.close();
     }
 
