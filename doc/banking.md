@@ -161,9 +161,10 @@ public class BankCommandHandler implements CommandHandler<String, Account, BankC
             Tuple0 transactionContext,
             Option<Account> previousState,
             BankCommand command) {
-        return Future.of(() -> Match(command).of(
-            Case($OpenAccount(), this::handleOpening)
-        ));
+        return Future.of(() -> Match(command).option(
+                Case($OpenAccount(), this::handleOpening)
+            ).toEither(() -> "Unknown command").flatMap(Function.identity())
+        );
     }
 
     private Either<String, Events<BankEvent, Tuple0>> handleOpening(
@@ -203,7 +204,8 @@ This implementation may look cumbersome, so let's decompose it again:
     * a transaction context (not used in this example)
     * an Option representing the previous state of the account, it can be empty if there is no previous state (i.e. if account does not exist)
     * the command to process
-* we used [Vavr pattern matching](https://docs.vavr.io/#_the_basics_of_match_for_java) using previously defined `Type` to determinate type of the command 
+* we used [Vavr pattern matching](https://docs.vavr.io/#_the_basics_of_match_for_java) using previously defined `Type` to determinate type of the command.
+You should always use `Match(command).either` instead of `Match(command).of` to handle unknown commands.  
 * our implementation of account creation checks that initial balance is positive, and then retrieve id of the new account (random UUID is generated at this moment).
 In this case we don't have to bother with previous state : since our command indicates that it has no id, there is no previous state to retrieve.
 * handling of account creation command can generate one or two events : when initial balance is positive, an event of deposit is generated in addition to the creation event
