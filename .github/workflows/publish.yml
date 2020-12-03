@@ -1,14 +1,8 @@
-# This is a basic workflow to help you get started with Actions
-
 name: Publish release
-
-# Controls when the action will run. 
 on:
   push:
     tags:
-    - '*'
-
-  # Allows you to run this workflow manually from the Actions tab
+      - v*
   workflow_dispatch:
 
 
