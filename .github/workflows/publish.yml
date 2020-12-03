@@ -1,9 +1,10 @@
 name: Publish release
 on:
   push:
+    branches:
+      - "!*"
     tags:
-      - v*
-  workflow_dispatch:
+      - "v*"
 
 
 jobs:
