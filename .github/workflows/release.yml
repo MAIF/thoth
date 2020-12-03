@@ -2,9 +2,6 @@ name: Release scribe
 on:
   workflow_dispatch:
     inputs:
-      lastVersion:
-        description: 'last version'
-        required: true
       releaseVersion:
         description: 'release version'
         required: true
