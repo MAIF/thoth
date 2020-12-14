@@ -6,7 +6,7 @@ Projections help us to implement different read scenario. They are built / updat
 
 ## In transaction projection
 
-Scribe offers tools for building "in transaction" projections.
+thoth offers tools for building "in transaction" projections.
 These projections will be updated in the transaction used to register events in the database, therefore they'll be updated in "real time".
 
 Let's say we want a projection that stores mean withdrawal value.

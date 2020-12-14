@@ -2,7 +2,7 @@
 
 This example is based on [bank example](), we'll replace our InMemoryEventStore by a real Event store using Postgres and Kafka.
 
-First we need to import `scribe-jooq` module. This module contains an implementation of scribe for Postgres using Jooq.
+First we need to import `thoth-jooq` module. This module contains an implementation of thoth for Postgres using Jooq.
 
 ## SQL
 
@@ -49,12 +49,12 @@ Here is what we need in the database:
 
 # Code
 
-First of all let's swap `scribe-core` dependency with `scribe-jooq`. This new dependency provides everything we need to set up postgres / kafka connection.
+First of all let's swap `thoth-core` dependency with `thoth-jooq`. This new dependency provides everything we need to set up postgres / kafka connection.
 
 ```xml
 <dependency>
     <groupId>fr.maif</groupId>
-    <artifactId>scribe-jooq</artifactId>
+    <artifactId>thoth-jooq</artifactId>
     <version>...</version>
 </dependency>
 ```
