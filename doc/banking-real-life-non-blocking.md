@@ -2,7 +2,7 @@
 
 This example is based on [bank example](), we'll replace our InMemoryEventStore by a real Event store using Postgres and Kafka.
 
-First we need to import `scribe-jooq-async` module. This module contains an implementation of scribe for Postgres using Jooq with the [vertx postgresql client](https://github.com/eclipse-vertx/vertx-sql-client).
+First we need to import `thoth-jooq-async` module. This module contains an implementation of thoth for Postgres using Jooq with the [vertx postgresql client](https://github.com/eclipse-vertx/vertx-sql-client).
 
 ## SQL
 
@@ -54,12 +54,12 @@ Here is what we need in the database:
 
 # Code
 
-First of all let's swap `scribe-core-async` dependency with `scribe-jooq-async`. This new dependency provides everything we need to set up postgres / kafka connection.
+First of all let's swap `thoth-core-async` dependency with `thoth-jooq-async`. This new dependency provides everything we need to set up postgres / kafka connection.
 
 ```xml
 <dependency>
     <groupId>fr.maif</groupId>
-    <artifactId>scribe-jooq-async</artifactId>
+    <artifactId>thoth-jooq-async</artifactId>
     <version>...</version>
 </dependency>
 ```

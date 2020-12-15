@@ -3,7 +3,7 @@ import Dependencies._
 
 organization := "fr.maif"
 
-name := "scribe-jooq-async"
+name := "thoth-jooq-async"
 
 scalaVersion := "2.12.12"
 

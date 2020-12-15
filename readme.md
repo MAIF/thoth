@@ -1,12 +1,12 @@
 # Event sourcing [![travis-badge][]][travis] [![jar-badge][]][jar]
 
-[travis]:               https://travis-ci.com/MAIF/scribe
-[travis-badge]:         https://travis-ci.com/MAIF/scribe.svg?token=yQytm3eoBniFj9mCoKpy&branch=master
-[jar]:                  https://bintray.com/maif-functional-java/maven/scribe-core/_latestVersion
-[jar-badge]:            https://api.bintray.com/packages/maif-functional-java/maven/scribe-core/images/download.svg
+[travis]:               https://travis-ci.com/MAIF/thoth
+[travis-badge]:         https://travis-ci.com/MAIF/thoth.svg?token=yQytm3eoBniFj9mCoKpy&branch=master
+[jar]:                  https://bintray.com/maif-functional-java/maven/thoth-core/_latestVersion
+[jar-badge]:            https://api.bintray.com/packages/maif-functional-java/maven/thoth-core/images/download.svg
 
 <p align="center">
-    <img src="scribe.png" alt="Scribe" width="300"/>
+    <img src="thoth.png" alt="thoth" width="300"/>
 </p>
 
 This repository provides tools to implement event sourcing in your application. 
@@ -32,9 +32,9 @@ These libs are based on :
 ## Modules 
 
  * `commons-event`: POJOs that represent the stored events. Can be used by consumers to parse events. 
- * `scribe-core`: APIs for event-sourcing 
- * `scribe-jooq`: A jooq simple implementation of the `scribe-core` APIs   
- * `scribe-jooq-async`: A jooq implementation of the `scribe-core` APIs using the `jooq-async-api`interface
+ * `thoth-core`: APIs for event-sourcing 
+ * `thoth-jooq`: A jooq simple implementation of the `thoth-core` APIs   
+ * `thoth-jooq-async`: A jooq implementation of the `thoth-core` APIs using the `jooq-async-api`interface
  
 ## Things to know 
 
@@ -69,7 +69,7 @@ Tuple0 sideEffect() {
 
 ## Limits
 
-* A single command can't currently modify multiple entities [see this issue](https://github.com/MAIF/scribe/issues/4)
+* A single command can't currently modify multiple entities [see this issue](https://github.com/MAIF/thoth/issues/4)
 
 ## Development 
 

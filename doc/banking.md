@@ -5,7 +5,7 @@ This sample explains how to implement event sourcing for a simple use case of ba
 In this example, we will focus on managing accounts one by one (i.e. no transfer operations) :
 
 * because it's simpler to implement / understand
-* because [one feature](https://github.com/MAIF/scribe/issues/4) is missing to implement scenario such as multiple bank accounts
+* because [one feature](https://github.com/MAIF/thoth/issues/4) is missing to implement scenario such as multiple bank accounts
 
 Here is the process modeling of what happens: 
 

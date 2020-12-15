@@ -2,7 +2,7 @@ import Dependencies._
 
 organization := "fr.maif"
 
-name := "scribe-core"
+name := "thoth-core"
 
 scalaVersion := "2.12.12"
 

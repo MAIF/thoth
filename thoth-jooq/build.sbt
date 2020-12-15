@@ -3,7 +3,7 @@ import Dependencies._
 
 organization := "fr.maif"
 
-name := "scribe-jooq"
+name := "thoth-jooq"
 
 scalaVersion := "2.12.12"
 

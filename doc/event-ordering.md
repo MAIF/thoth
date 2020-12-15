@@ -18,7 +18,7 @@ A solution is to send all these events on the same Kafka partition, since Kafka 
 To achieve this, we need to provide kafka a hash along with our event.
 Events with the same hash will be published on the same partition.
 
-By default, scribe use entityId of the state as a hash.
+By default, thoth use entityId of the state as a hash.
 In our case, this guarantee that all events regarding an account will be published / consumed in correct order.
 
 In some other cases, we may want to sort events on another criteria, or on a combination of criterion.

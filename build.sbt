@@ -1,6 +1,6 @@
 import ReleaseTransformations._
 
-name := "scribe"
+name := "thoth"
 organization := "fr.maif"
 
 scalaVersion := "2.12.12"
@@ -15,9 +15,9 @@ resolvers ++= res
 lazy val root = (project in file("."))
   .aggregate(
     `commons-events`,
-    `scribe-core`,
-    `scribe-jooq`,
-    `scribe-jooq-async`,
+    `thoth-core`,
+    `thoth-jooq`,
+    `thoth-jooq-async`,
     `demo-postgres-kafka`,
     `demo-in-memory`
   )
@@ -25,30 +25,30 @@ lazy val root = (project in file("."))
   .disablePlugins(BintrayPlugin)
 
 
-lazy val `demo-postgres-kafka` = (project in file("./demo/demo-postgres-kafka")).dependsOn(`scribe-jooq`).enablePlugins(NoPublish)
+lazy val `demo-postgres-kafka` = (project in file("./demo/demo-postgres-kafka")).dependsOn(`thoth-jooq`).enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
-lazy val `demo-in-memory` = (project in file("./demo/demo-in-memory")).dependsOn(`scribe-core`).enablePlugins(NoPublish)
+lazy val `demo-in-memory` = (project in file("./demo/demo-in-memory")).dependsOn(`thoth-core`).enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
 lazy val `demo-postgres-kafka-reactive` = (project in file("./demo/demo-postgres-kafka-reactive"))
-  .dependsOn(`scribe-core`, `scribe-jooq-async`)
+  .dependsOn(`thoth-core`, `thoth-jooq-async`)
   .enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
 lazy val `commons-events` = project
   .settings(publishCommonsSettings: _*)
 
-lazy val `scribe-jooq-async` = project
-  .dependsOn(`scribe-core`)
+lazy val `thoth-jooq-async` = project
+  .dependsOn(`thoth-core`)
   .settings(publishCommonsSettings: _*)
 
-lazy val `scribe-core` = project
+lazy val `thoth-core` = project
   .dependsOn(`commons-events`)
   .settings(publishCommonsSettings: _*)
 
-lazy val `scribe-jooq` = project
-  .dependsOn(`scribe-core`)
+lazy val `thoth-jooq` = project
+  .dependsOn(`thoth-core`)
   .settings(publishCommonsSettings: _*)
 
 
@@ -71,7 +71,7 @@ releaseProcess := Seq[ReleaseStep](
   pushChanges
 )
 
-lazy val githubRepo = "maif/scribe"
+lazy val githubRepo = "maif/thoth"
 
 lazy val publishCommonsSettings = Seq(
   homepage := Some(url(s"https://github.com/$githubRepo")),
