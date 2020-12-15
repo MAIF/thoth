@@ -9,7 +9,7 @@ In this example, we will focus on managing accounts one by one (i.e. no transfer
 
 Here is the process modeling of what happens: 
 
-![](scribe_bank_account.jpg) 
+![](thoth_bank_account.jpg) 
 
 ## Model (State) 
 
