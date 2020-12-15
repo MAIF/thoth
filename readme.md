@@ -19,6 +19,8 @@ It provides capabilities of defining two types of projections:
 * "Transactional" projections, that are updated in the same transaction as the events
 * "Eventually consistent" projections, updated asynchronously by consuming Kafka
 
+![](doc/thoth_event_sourcing.jpg)
+
 It also allows storing snapshots of the application state, for scenarios that implies lot of events. 
 
 These libs are based on : 
