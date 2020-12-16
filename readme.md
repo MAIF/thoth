@@ -1,7 +1,7 @@
-# Event sourcing [![travis-badge][]][travis] [![jar-badge][]][jar]
+# Event sourcing [![github-action-badge][]][github-action] [![jar-badge][]][jar]
 
-[travis]:               https://travis-ci.com/MAIF/thoth
-[travis-badge]:         https://travis-ci.com/MAIF/thoth.svg?token=yQytm3eoBniFj9mCoKpy&branch=master
+[github-action]:        https://github.com/MAIF/thoth/actions?query=workflow%3ABuild
+[github-action-badge]:  https://github.com/MAIF/thoth/workflows/Build/badge.svg?branch=master
 [jar]:                  https://bintray.com/maif-functional-java/maven/thoth-core/_latestVersion
 [jar-badge]:            https://api.bintray.com/packages/maif-functional-java/maven/thoth-core/images/download.svg
 
