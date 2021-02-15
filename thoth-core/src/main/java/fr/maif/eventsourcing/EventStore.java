@@ -50,6 +50,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
         public final LocalDateTime dateFrom;
         public final LocalDateTime dateTo;
         public final String entityId;
+        public final Integer size;
         public final String userId;
         public final String systemId;
         public final Long sequenceFrom;
@@ -60,6 +61,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
             this.dateFrom = builder.dateFrom;
             this.dateTo = builder.dateTo;
             this.entityId = builder.entityId;
+            this.size = builder.size;
             this.userId = builder.userId;
             this.systemId = builder.systemId;
             this.published = builder.published;
@@ -107,6 +109,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
             LocalDateTime dateFrom;
             LocalDateTime dateTo;
             String entityId;
+            Integer size;
             String userId;
             String systemId;
             Boolean published;
@@ -125,6 +128,11 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
             public Builder withEntityId(String entityId) {
                 this.entityId = entityId;
+                return this;
+            }
+
+            public Builder withSize(Integer size) {
+                this.size = size;
                 return this;
             }
 

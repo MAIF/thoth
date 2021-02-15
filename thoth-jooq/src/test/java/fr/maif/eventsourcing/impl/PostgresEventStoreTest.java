@@ -141,6 +141,13 @@ public class PostgresEventStoreTest {
     }
 
     @Test
+    public void queryingWithSize() {
+        initDatas();
+        List<EventEnvelope<VikingEvent, Void, Void>> events = getFromQuery(EventStore.Query.builder().withSequenceFrom(2L).withSize(2).build());
+        assertThat(events).containsExactlyInAnyOrder(event2, event3);
+    }
+
+    @Test
     public void queryingByDate() {
         initDatas();
         List<EventEnvelope<VikingEvent, Void, Void>> events = getFromQuery(EventStore.Query.builder()
