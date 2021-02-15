@@ -28,12 +28,15 @@ import org.jooq.Converter;
 import org.jooq.Field;
 import org.jooq.JSON;
 import org.jooq.JSONB;
+import org.jooq.Record15;
+import org.jooq.SelectSeekStep1;
 import org.jooq.impl.SQLDataType;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 import static java.util.function.Function.identity;
@@ -202,27 +205,32 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
                 query.sequenceFrom().map(SEQUENCE_NUM::ge)
         ).flatMap(identity());
 
-        return tx.stream(500, dsl -> dsl
-                .select(
-                        ID,
-                        ENTITY_ID,
-                        SEQUENCE_NUM,
-                        EVENT_TYPE,
-                        VERSION,
-                        TRANSACTION_ID,
-                        EVENT,
-                        METADATA,
-                        EMISSION_DATE,
-                        USER_ID,
-                        SYSTEM_ID,
-                        TOTAL_MESSAGE_IN_TRANSACTION,
-                        NUM_MESSAGE_IN_TRANSACTION,
-                        CONTEXT,
-                        PUBLISHED)
-                .from(table(this.tableNames.tableName))
-                .where(clauses.toJavaList())
-                .orderBy(SEQUENCE_NUM)
-        ).map(this::rsToEnvelope);
+        return tx.stream(500, dsl -> {
+            SelectSeekStep1<Record15<UUID, String, Long, String, Long, String, JsonNode, JsonNode, LocalDateTime, String, String, Integer, Integer, JsonNode, Boolean>, Long> queryBuilder = dsl
+                            .select(
+                                    ID,
+                                    ENTITY_ID,
+                                    SEQUENCE_NUM,
+                                    EVENT_TYPE,
+                                    VERSION,
+                                    TRANSACTION_ID,
+                                    EVENT,
+                                    METADATA,
+                                    EMISSION_DATE,
+                                    USER_ID,
+                                    SYSTEM_ID,
+                                    TOTAL_MESSAGE_IN_TRANSACTION,
+                                    NUM_MESSAGE_IN_TRANSACTION,
+                                    CONTEXT,
+                                    PUBLISHED)
+                            .from(table(this.tableNames.tableName))
+                            .where(clauses.toJavaList())
+                            .orderBy(SEQUENCE_NUM);
+            if (Objects.nonNull(query.size)) {
+                return queryBuilder.limit(query.size);
+            }
+            return queryBuilder;
+        }).map(this::rsToEnvelope);
     }
 
     @Override

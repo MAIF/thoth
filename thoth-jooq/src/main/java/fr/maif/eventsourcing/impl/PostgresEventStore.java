@@ -36,13 +36,12 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
-import java.util.Date;
+import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 
 import static io.vavr.API.Seq;
-import static java.util.concurrent.CompletableFuture.supplyAsync;
+import static io.vavr.API.Tuple;
 import static java.util.function.Function.identity;
 import static org.jooq.impl.DSL.*;
 
@@ -263,7 +262,10 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
 
         String strClauses = clauses.map(Tuple2::_1).mkString("WHERE", " AND ", "");
         String select = SELECT_CLAUSE + " FROM " + this.tableNames.tableName + " " + (clauses.isEmpty() ? "" : strClauses) + " ORDER BY sequence_num asc";
-
+        if (Objects.nonNull(query.size)) {
+            select = select + " limit ? ";
+            clauses = clauses.append(Tuple("", query.size));
+        }
         Object[] objects = clauses.map(Tuple2::_2).toJavaArray();
 
         LOGGER.debug("{}", select);
@@ -291,7 +293,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                     long version = rs.getLong("version");
                     JsonNode event = readValue(rs.getString("event")).getOrElse(NullNode.getInstance());
                     Either<?, E> eventRead = eventFormat.read(event_type, version, event);
-                    eventRead.left().forEach(err -> {
+                    eventRead.swap().forEach(err -> {
                         LOGGER.error("Error reading event {} : {}", event, err);
                     });
                     EventEnvelope.Builder<E, Meta, Context> builder = EventEnvelope.<E, Meta, Context>builder()
