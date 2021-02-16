@@ -7,7 +7,7 @@ scalaVersion := "2.12.12"
 
 val res = Seq(
   Resolver.jcenterRepo,
-  Resolver.bintrayRepo("maif-functional-java", "maven")
+  Resolver.githubPackages("OWNER")
 )
 
 resolvers ++= res
@@ -76,7 +76,6 @@ lazy val githubRepo = "maif/thoth"
 lazy val publishCommonsSettings = Seq(
   homepage := Some(url(s"https://github.com/$githubRepo")),
   startYear := Some(2018),
-  bintrayOmitLicense := true,
   crossPaths := false,
   scmInfo := Some(
     ScmInfo(
@@ -95,10 +94,10 @@ lazy val publishCommonsSettings = Seq(
   releaseCrossBuild := true,
   publishMavenStyle := true,
   publishArtifact in Test := false,
-  bintrayVcsUrl := Some(s"scm:git:git@github.com:$githubRepo.git"),
   resolvers ++= res,
-  bintrayOrganization := Some("maif-functional-java"),
-  bintrayRepository := "maven",
+  githubOwner := "maif",
+  githubRepository := "thoth",
+  githubTokenSource := TokenSource.Environment("GITHUB_TOKEN"),
   pomIncludeRepository := { _ =>
     false
   }

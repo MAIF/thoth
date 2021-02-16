@@ -25,6 +25,8 @@ jobs:
           git config --local user.email "thoth-github-actions@users.noreply.github.com"
           git config --local user.name "thoth-github-actions"
           sbt "release with-defaults release-version ${{ github.event.inputs.releaseVersion }} next-version ${{ github.event.inputs.nextVersion }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: push tag
         uses: ad-m/github-push-action@master
         with:

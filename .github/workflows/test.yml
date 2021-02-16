@@ -18,3 +18,5 @@ jobs:
       - name: Run test
         id: test
         run: sbt test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
