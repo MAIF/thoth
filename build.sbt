@@ -22,19 +22,15 @@ lazy val root = (project in file("."))
     `demo-in-memory`
   )
   .enablePlugins(NoPublish, GitVersioning, GitBranchPrompt)
-  .disablePlugins(BintrayPlugin)
 
 
 lazy val `demo-postgres-kafka` = (project in file("./demo/demo-postgres-kafka")).dependsOn(`thoth-jooq`).enablePlugins(NoPublish)
-  .disablePlugins(BintrayPlugin)
 
 lazy val `demo-in-memory` = (project in file("./demo/demo-in-memory")).dependsOn(`thoth-core`).enablePlugins(NoPublish)
-  .disablePlugins(BintrayPlugin)
 
 lazy val `demo-postgres-kafka-reactive` = (project in file("./demo/demo-postgres-kafka-reactive"))
   .dependsOn(`thoth-core`, `thoth-jooq-async`)
   .enablePlugins(NoPublish)
-  .disablePlugins(BintrayPlugin)
 
 lazy val `commons-events` = project
   .settings(publishCommonsSettings: _*)
