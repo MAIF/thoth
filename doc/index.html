@@ -61,17 +61,26 @@ tarteaucitron.init({
 
               <h1>Features</h1>
               <ul>
-                <li></li>
+                <li>Handle event journal</li>
+                <li>Kafka publish garanty</li>
+                <li>Two type of projections: transactional or eventually consistent</li>
+                <li>Based on Kafka, Vavr and Akka Streams</li>
+                <li>Reactive postgresql implementation</li>
               </ul>
             </div>
           </div>
           <div class="col-md-6 col-xs-12 more-details">
-            <img src="assets/images/svg/configure.svg" class="pictoPortrait">
-            <h2>blah blah</h2>
-            <p>blah blah</p>
-            <img src="assets/images/svg/latency.svg" class="pictoPaysage">
-            <h2>blah blah</h2>
-      	    <p>blah blah</p>
+            <i class="fa fa-list-ul fa-3x" aria-hidden="true"></i>
+            <h2>Built-in journal</h2>
+            <p>that stores every events</p>
+
+            <i class="fa fa-paper-plane fa-3x" aria-hidden="true"></i>          
+            <h2>Guarantee</h2>
+      	    <p>that every event will eventually be published in Kafka</p>
+
+            <i class="fa fa-picture-o fa-3x" aria-hidden="true"></i>
+            <h2>Projections</h2>
+      	    <p>Eventual consistent or in transaction</p>
           <div class="row contentCircle">
           <div class="col-md-12 col-xs-4">
             <a href="http://github.com/MAIF/thoth">
