@@ -19,7 +19,7 @@ It provides capabilities of defining two types of projections:
 * "Transactional" projections, that are updated in the same transaction as the events
 * "Eventually consistent" projections, updated asynchronously by consuming Kafka
 
-![](doc/thoth_event_sourcing.jpg)
+![](docs/thoth_event_sourcing.jpg)
 
 It also allows storing snapshots of the application state, for scenarios that implies lot of events. 
 
@@ -60,14 +60,14 @@ Tuple0 sideEffect() {
 
 ## Documentation
 
-* [Event sourcing](./doc/banking.md): documentation of the core components, implementing a sample in-memory banking application
-* [Jooq/Kafka](./doc/banking-real-life.md): migration of the sample application from in-memory to Postgres(JDBC) / Kafka
-* [Projections](./doc/projections.md): projections documentation, implementing projection in sample application
-* [Database configuration](./doc/database%20configuration.md): databases index to create
-* [Messages](./doc/message.md): documentation of returning messages/warnings while handling commands
-* [Custom event ordering](./doc/event-ordering.md): documentation on custom event ordering
-* [Aggregate store](./doc/aggregatestore.md): documentation on periodic snapshot storing for performances
-* [Non blocking Postgres / Kafka implementation](./doc/banking-real-life-non-blocking.md): documentation of non blocking postgres / Kafka implementation using reactive postgres vertx driver
+* [Event sourcing](./docs/banking.md): documentation of the core components, implementing a sample in-memory banking application
+* [Jooq/Kafka](./docs/banking-real-life.md): migration of the sample application from in-memory to Postgres(JDBC) / Kafka
+* [Projections](./docs/projections.md): projections documentation, implementing projection in sample application
+* [Database configuration](./docs/database%20configuration.md): databases index to create
+* [Messages](./docs/message.md): documentation of returning messages/warnings while handling commands
+* [Custom event ordering](./docs/event-ordering.md): documentation on custom event ordering
+* [Aggregate store](./docs/aggregatestore.md): documentation on periodic snapshot storing for performances
+* [Non blocking Postgres / Kafka implementation](./docs/banking-real-life-non-blocking.md): documentation of non blocking postgres / Kafka implementation using reactive postgres vertx driver
 
 ## Limits
 

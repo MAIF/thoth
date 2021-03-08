@@ -104,4 +104,4 @@ To implement an alternative read model (i.e. CQRS), [projections](./projections.
 
 ## Next step
 
-[Non blocking Postgres / Kafka implementation](./doc/banking-real-life-non-blocking.md)
+[Non blocking Postgres / Kafka implementation](./docs/banking-real-life-non-blocking.md)
