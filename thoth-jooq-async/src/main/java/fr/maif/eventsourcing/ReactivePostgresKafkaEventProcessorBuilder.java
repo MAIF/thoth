@@ -94,11 +94,11 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
         private final JacksonEventFormat<?, E> eventFormat;
         private final JacksonSimpleFormat<Meta> metaFormat;
 
-        public <Context> BuilderWithContextFormat<E, Meta, Context> withMetaFormater(JacksonSimpleFormat<Context> contextFormat) {
+        public <Context> BuilderWithContextFormat<E, Meta, Context> withContextFormater(JacksonSimpleFormat<Context> contextFormat) {
             return new BuilderWithContextFormat<E, Meta, Context>(system, pgAsyncPool, tableNames, transactionManager, eventFormat, metaFormat, contextFormat);
         }
 
-        public BuilderWithContextFormat<E, Meta, Tuple0> withNoMetaFormater() {
+        public BuilderWithContextFormat<E, Meta, Tuple0> withNoContextFormater() {
             return new BuilderWithContextFormat<E, Meta, Tuple0>(system, pgAsyncPool, tableNames, transactionManager, eventFormat, metaFormat, JacksonSimpleFormat.<Tuple0>empty());
         }
     }
