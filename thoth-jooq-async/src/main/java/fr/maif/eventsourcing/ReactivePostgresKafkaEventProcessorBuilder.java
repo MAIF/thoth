@@ -14,13 +14,6 @@ import lombok.AllArgsConstructor;
 
 public class ReactivePostgresKafkaEventProcessorBuilder {
 
-    @AllArgsConstructor
-    public static class EventPublisherSettings<E extends Event, Meta, Context> {
-        final String topic;
-        final ProducerSettings<String, EventEnvelope<E, Meta, Context>> producerSettings;
-        final Integer bufferSize;
-    }
-
 
     @AllArgsConstructor
     public static class BuilderWithSystem {

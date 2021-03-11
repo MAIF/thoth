@@ -86,13 +86,13 @@ public class Bank implements Closeable {
         this.withdrawByMonthProjection = new WithdrawByMonthProjection(pgAsyncPool);
 
         this.eventProcessor = ReactivePostgresKafkaEventProcessor
-                .newSystem()
+                .withSystem(actorSystem)
                 .withPgAsyncPool(pgAsyncPool)
                 .withTables(tableNames())
                 .withTransactionManager()
                 .withEventFormater(BankEventFormat.bankEventFormat.jacksonEventFormat())
                 .withNoMetaFormater()
-                .withNoMetaFormater()
+                .withNoContextFormater()
                 .withKafkaSettings("bank", producerSettings(settings()))
                 .withEventHandler(eventHandler)
                 .withDefaultAggregateStore()
