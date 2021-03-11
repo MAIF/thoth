@@ -475,4 +475,4 @@ As we can see, BankEvents aren't published directly into kafka topic, they are w
 
 ## Next step
 
-[Implement projections to read data differently](./projections-non-blocking.md)
+[Implement projections to read data differently (non blocking)](./projections-non-blocking.md)
