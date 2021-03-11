@@ -136,4 +136,6 @@ In these case we could build "eventually consistent" projections, by connecting 
 
 ## Next step
 
-[Configure your database](./database%20configuration.md)
+Congratulations ! You've reached the end of our documentation.
+
+Please submit an issue to suggest any improvement.
