@@ -13,6 +13,7 @@ libraryDependencies ++= Seq(
   "fr.maif"                         % "jooq-async-api"            % jooqAsyncVersion,
   "fr.maif"                         % "jooq-async-jdbc"           % jooqAsyncVersion,
   "fr.maif"                         % "jooq-async-reactive"       % jooqAsyncVersion,
+  "org.projectlombok"               % "lombok"                    % "1.18.18",
   "org.assertj"                     % "assertj-core"              % "3.10.0" % Test,
   "org.postgresql"                  % "postgresql"                % "42.2.5" % Test,
   "org.junit.platform"              % "junit-platform-launcher"   % "1.4.2" % Test,
