@@ -35,12 +35,12 @@ public class JdbcTransactionManager implements TransactionManager<Connection> {
                         .flatMap(callBack)
                         .flatMap(r -> commit(connection).map(__ -> r))
                         .recoverWith(e -> {
-                            LOGGER.debug("Error, rollbacking, {}", e);
+                            LOGGER.error("Error, rollbacking, {}", e);
                             return rollback(connection).flatMap(__ -> Future.failed(e));
                         })
                         .flatMap(r -> closeConnection(connection).map(__ -> r))
                         .recoverWith(e -> {
-                            LOGGER.debug("Error, closing connection, {}", e);
+                            LOGGER.error("Error, closing connection, {}", e);
                             return closeConnection(connection).flatMap(__ -> Future.failed(e));
                         })
                 );
