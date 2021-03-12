@@ -332,17 +332,21 @@ public class Bank {
         var eventStore = eventStore(actorSystem, pgAsyncPool);
         var transactionManager = new ReactiveTransactionManager(pgAsyncPool);
         var producerSettings = producerSettings(settings());
-        this.eventProcessor = new ReactivePostgresKafkaEventProcessor<>(
-                new ReactivePostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<>(
-                        eventStore,
-                        transactionManager,
-                        new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager),
-                        commandHandler,
-                        eventHandler,
-                        List.empty(),
-                        new KafkaEventPublisher<>(actorSystem, producerSettings, "bank")
-                )
-        );
+        
+        this.eventProcessor = ReactivePostgresKafkaEventProcessor
+                .withSystem(actorSystem)
+                .withPgAsyncPool(pgAsyncPool)
+                .withTables(tableNames())
+                .withTransactionManager()
+                .withEventFormater(BankEventFormat.bankEventFormat.jacksonEventFormat())
+                .withNoMetaFormater()
+                .withNoContextFormater()
+                .withKafkaSettings("bank", producerSettings(settings()))
+                .withEventHandler(eventHandler)
+                .withDefaultAggregateStore()
+                .withCommandHandler(commandHandler)
+                .withNoProjections()
+                .build();
     }
     //...
 }

@@ -91,18 +91,21 @@ public class Bank {
     public Bank() {
         //...
         this.withdrawByMonthProjection = new WithdrawByMonthProjection(pgAsyncPool);
-        
-        this.eventProcessor = new ReactivePostgresKafkaEventProcessor<>(
-                new ReactivePostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<>(
-                        eventStore,
-                        transactionManager,
-                        new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager),
-                        commandHandler,
-                        eventHandler,
-                        List.of(withdrawByMonthProjection),
-                        new KafkaEventPublisher<>(actorSystem, producerSettings, "bank")
-                )
-        );
+
+        this.eventProcessor = ReactivePostgresKafkaEventProcessor
+                .withSystem(actorSystem)
+                .withPgAsyncPool(pgAsyncPool)
+                .withTables(tableNames())
+                .withTransactionManager()
+                .withEventFormater(BankEventFormat.bankEventFormat.jacksonEventFormat())
+                .withNoMetaFormater()
+                .withNoContextFormater()
+                .withKafkaSettings("bank", producerSettings(settings()))
+                .withEventHandler(eventHandler)
+                .withDefaultAggregateStore()
+                .withCommandHandler(commandHandler)
+                .withProjections(this.withdrawByMonthProjection)
+                .build();
     }
     //...
     public BigDecimal meanWithdrawValue() {

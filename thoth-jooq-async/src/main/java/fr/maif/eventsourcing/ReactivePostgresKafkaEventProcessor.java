@@ -17,6 +17,14 @@ public class ReactivePostgresKafkaEventProcessor<Error, S extends State<S>, C ex
 
     private final PostgresKafkaEventProcessorConfig<Error, S, C, E, Message, Meta, Context> config;
 
+    public static ReactivePostgresKafkaEventProcessorBuilder.BuilderWithSystem newSystem() {
+        return new ReactivePostgresKafkaEventProcessorBuilder.BuilderWithSystem(ActorSystem.create());
+    }
+
+    public static ReactivePostgresKafkaEventProcessorBuilder.BuilderWithSystem withSystem(ActorSystem actorSystem) {
+        return new ReactivePostgresKafkaEventProcessorBuilder.BuilderWithSystem(actorSystem);
+    }
+
     public ReactivePostgresKafkaEventProcessor(PostgresKafkaEventProcessorConfig<Error, S, C, E, Message, Meta, Context> config) {
         super(
                 config.eventStore,

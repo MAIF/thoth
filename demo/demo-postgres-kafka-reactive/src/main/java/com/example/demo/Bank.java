@@ -83,24 +83,22 @@ public class Bank implements Closeable {
         this.actorSystem = actorSystem;
         this.vertx = Vertx.vertx();
         this.pgAsyncPool = pgAsyncPool(vertx);
-
-        var eventStore = eventStore(actorSystem, pgAsyncPool);
-        var transactionManager = new ReactiveTransactionManager(pgAsyncPool);
-        var producerSettings = producerSettings(settings());
-
         this.withdrawByMonthProjection = new WithdrawByMonthProjection(pgAsyncPool);
 
-        this.eventProcessor = new ReactivePostgresKafkaEventProcessor<>(
-                new ReactivePostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<>(
-                        eventStore,
-                        transactionManager,
-                        new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager),
-                        commandHandler,
-                        eventHandler,
-                        List.of(withdrawByMonthProjection),
-                        new KafkaEventPublisher<>(actorSystem, producerSettings, "bank")
-                )
-        );
+        this.eventProcessor = ReactivePostgresKafkaEventProcessor
+                .withSystem(actorSystem)
+                .withPgAsyncPool(pgAsyncPool)
+                .withTables(tableNames())
+                .withTransactionManager()
+                .withEventFormater(BankEventFormat.bankEventFormat.jacksonEventFormat())
+                .withNoMetaFormater()
+                .withNoContextFormater()
+                .withKafkaSettings("bank", producerSettings(settings()))
+                .withEventHandler(eventHandler)
+                .withDefaultAggregateStore()
+                .withCommandHandler(commandHandler)
+                .withProjections(this.withdrawByMonthProjection)
+                .build();
     }
 
     public Future<Tuple0> init() {
@@ -111,7 +109,7 @@ public class Bank implements Closeable {
                     println("Database initialization failed");
                     e.printStackTrace();
                 })
-                .flatMap(__  -> withdrawByMonthProjection.init())
+                .flatMap(__ -> withdrawByMonthProjection.init())
                 .map(__ -> Tuple.empty());
     }
 
@@ -119,11 +117,6 @@ public class Bank implements Closeable {
     public void close() throws IOException {
         this.pgPool.close();
         this.vertx.close();
-    }
-
-    private ReactivePostgresEventStore<BankEvent, Tuple0, Tuple0> eventStore(ActorSystem actorSystem, PgAsyncPool dataSource) {
-        KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher = new KafkaEventPublisher<>(actorSystem, producerSettings(settings()), "bank");
-        return ReactivePostgresEventStore.create(actorSystem, kafkaEventPublisher, dataSource, tableNames(), BankEventFormat.bankEventFormat.jacksonEventFormat(), JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty());
     }
 
     private PgAsyncPool pgAsyncPool(Vertx vertx) {
@@ -153,7 +146,6 @@ public class Bank implements Closeable {
     private TableNames tableNames() {
         return new TableNames("bank_journal", "bank_sequence_num");
     }
-
 
 
     public Future<Either<String, Account>> createAccount(
