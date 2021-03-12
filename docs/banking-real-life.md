@@ -231,46 +231,6 @@ public class Bank {
 }
 ```
 
-
-## Kafka event publisher
-
-Using above methods, we need to define a `KafkaEventPublisher`, that will handle publication of events on kafka once they'll be store in the database.
-
-```java
-public class Bank {
-    //...
-    private KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher(
-            ActorSystem actorSystem,
-            ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings,
-            String topic) {
-        return new KafkaEventPublisher<>(actorSystem, producerSettings, topic);
-    }
-    //...
-}
-```
-
-
-## Event store
-
-We need to change our `EventStore` implementation to `PostgresEventStore`.
-This new event store will store event in Postgres instead of in memory.
-
-```java
-public class Bank {
-    //...
-    private PostgresEventStore<BankEvent, Tuple0, Tuple0> eventStore(
-            ActorSystem actorSystem,
-            KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher,
-            DataSource dataSource,
-            ExecutorService executorService,
-            TableNames tableNames,
-            JacksonEventFormat<String, BankEvent> jacksonEventFormat) {
-        return PostgresEventStore.create(actorSystem, kafkaEventPublisher, dataSource, executorService, tableNames, jacksonEventFormat);
-    }
-    //...
-}
-```
-
 ## Event processor
 
 The last step is to swap our `EventProcessor` with `PostgresKafkaEventProcessor`.
@@ -295,27 +255,29 @@ public class Bank {
 
         ExecutorService executorService = Executors.newFixedThreadPool(5);
         JdbcTransactionManager transactionManager = new JdbcTransactionManager(dataSource(), executorService);
-
-        KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher = kafkaEventPublisher(actorSystem, producerSettings, topic);
-
-        PostgresEventStore<BankEvent, Tuple0, Tuple0> eventStore = eventStore(
-                actorSystem,
-                kafkaEventPublisher,
-                dataSource,
-                executorService,
-                tableNames,
-                eventFormat
-        );
-
-        this.eventProcessor = new PostgresKafkaEventProcessor<>(new PostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<>(
-                actorSystem,
-                eventStore,
-                transactionManager,
-                commandHandler,
-                eventHandler,
-                List.of(meanWithdrawProjection),
-                kafkaEventPublisher
-        ));
+        
+        this.eventProcessor = PostgresKafkaEventProcessor
+                .withActorSystem(actorSystem)
+                .withPgAsyncPool(dataSource())
+                .withTables(tableNames)
+                .withTransactionManager(transactionManager, executorService)
+                .withEventFormater(eventFormat)
+                .withNoMetaFormater()
+                .withNoContextFormater()
+                .withKafkaSettings(topic, producerSettings)
+                .withEventHandler(eventHandler)
+                .withAggregateStore(builder -> {
+                    var b = (BuilderWithEventHandler<Account, BankEvent, Tuple0, Tuple0>) builder;
+                    return new BankAggregateStore(
+                            b.eventStore,
+                            b.eventHandler,
+                            b.system,
+                            b.transactionManager
+                    );
+                })
+                .withCommandHandler(commandHandler)
+                .withProjections(meanWithdrawProjection)
+                .build();
     }
     //...
 }

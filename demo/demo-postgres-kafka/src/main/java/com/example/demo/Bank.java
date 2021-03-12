@@ -6,6 +6,7 @@ import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
 import fr.maif.akka.AkkaExecutionContext;
 import fr.maif.eventsourcing.*;
+import fr.maif.eventsourcing.PostgresKafkaEventProcessorBuilder.BuilderWithEventHandler;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.eventsourcing.impl.JdbcTransactionManager;
@@ -109,28 +110,28 @@ public class Bank {
         ExecutorService executorService = Executors.newFixedThreadPool(5);
         JdbcTransactionManager transactionManager = new JdbcTransactionManager(dataSource(), executorService);
 
-        KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher = kafkaEventPublisher(actorSystem, producerSettings, topic);
-
-        PostgresEventStore<BankEvent, Tuple0, Tuple0> eventStore = eventStore(
-                actorSystem,
-                kafkaEventPublisher,
-                dataSource,
-                executorService,
-                tableNames,
-                eventFormat
-        );
-
-        BankAggregateStore bankAggregateStore = new BankAggregateStore(eventStore, eventHandler, actorSystem, transactionManager);
-
-        this.eventProcessor = new PostgresKafkaEventProcessor<>(new PostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<>(
-                eventStore,
-                transactionManager,
-                bankAggregateStore,
-                commandHandler,
-                eventHandler,
-                List.of(meanWithdrawProjection),
-                kafkaEventPublisher
-        ));
+        this.eventProcessor = PostgresKafkaEventProcessor
+                .withActorSystem(actorSystem)
+                .withPgAsyncPool(dataSource())
+                .withTables(tableNames)
+                .withTransactionManager(transactionManager, executorService)
+                .withEventFormater(eventFormat)
+                .withNoMetaFormater()
+                .withNoContextFormater()
+                .withKafkaSettings(topic, producerSettings)
+                .withEventHandler(eventHandler)
+                .withAggregateStore(builder -> {
+                    var b = (BuilderWithEventHandler<Account, BankEvent, Tuple0, Tuple0>) builder;
+                    return new BankAggregateStore(
+                            b.eventStore,
+                            b.eventHandler,
+                            b.system,
+                            b.transactionManager
+                    );
+                })
+                .withCommandHandler(commandHandler)
+                .withProjections(meanWithdrawProjection)
+                .build();
     }
 
     private KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher(

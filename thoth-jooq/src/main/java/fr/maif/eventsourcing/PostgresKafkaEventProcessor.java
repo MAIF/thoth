@@ -20,6 +20,14 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
 
     private final PostgresKafkaEventProcessorConfig<Error, S, C, E, Message, Meta, Context> config;
 
+    public static PostgresKafkaEventProcessorBuilder.BuilderWithSystem withActorSystem(ActorSystem actorSystem) {
+        return new PostgresKafkaEventProcessorBuilder.BuilderWithSystem(actorSystem);
+    }
+
+    public static PostgresKafkaEventProcessorBuilder.BuilderWithSystem newActorSystem() {
+        return new PostgresKafkaEventProcessorBuilder.BuilderWithSystem(ActorSystem.create());
+    }
+
     public PostgresKafkaEventProcessor(PostgresKafkaEventProcessorConfig<Error, S, C, E, Message, Meta, Context> config) {
         super(
                 config.eventStore,
