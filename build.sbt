@@ -19,7 +19,8 @@ lazy val root = (project in file("."))
     `thoth-jooq`,
     `thoth-jooq-async`,
     `demo-postgres-kafka`,
-    `demo-in-memory`
+    `demo-in-memory`,
+    `sample`
   )
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .settings(
@@ -27,6 +28,12 @@ lazy val root = (project in file("."))
   )
 
 lazy val `demo-postgres-kafka` = (project in file("./demo/demo-postgres-kafka"))
+  .dependsOn(`thoth-jooq`)
+  .settings(
+    skip in publish := true
+  )
+
+lazy val `sample` = project
   .dependsOn(`thoth-jooq`)
   .settings(
     skip in publish := true
