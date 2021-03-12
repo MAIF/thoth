@@ -2,8 +2,8 @@
 
 [github-action]:        https://github.com/MAIF/thoth/actions?query=workflow%3ABuild
 [github-action-badge]:  https://github.com/MAIF/thoth/workflows/Build/badge.svg?branch=master
-[jar]:                  https://bintray.com/maif-functional-java/maven/thoth-core/_latestVersion
-[jar-badge]:            https://api.bintray.com/packages/maif-functional-java/maven/thoth-core/images/download.svg
+[jar]:              https://maven-badges.herokuapp.com/maven-central/fr.maif/thoth-core_2.13
+[jar-badge]:        https://maven-badges.herokuapp.com/maven-central/fr.maif/thoth-core_2.13/badge.svg
 
 <p align="center">
     <img src="thoth.png" alt="thoth" width="300"/>
