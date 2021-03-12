@@ -59,7 +59,7 @@ First of all let's swap `thoth-core-async` dependency with `thoth-jooq-async`. T
 ```xml
 <dependency>
     <groupId>fr.maif</groupId>
-    <artifactId>thoth-jooq-async</artifactId>
+    <artifactId>thoth-jooq-async_2.13</artifactId>
     <version>...</version>
 </dependency>
 ```

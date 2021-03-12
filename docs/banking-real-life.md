@@ -54,7 +54,7 @@ First of all let's swap `thoth-core` dependency with `thoth-jooq`. This new depe
 ```xml
 <dependency>
     <groupId>fr.maif</groupId>
-    <artifactId>thoth-jooq</artifactId>
+    <artifactId>thoth-jooq_2.13</artifactId>
     <version>...</version>
 </dependency>
 ```

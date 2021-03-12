@@ -3,6 +3,8 @@ import ReleaseTransformations._
 name := "thoth"
 organization := "fr.maif"
 
+resolvers ++= Seq(Resolver.jcenterRepo)
+
 scalaVersion := "2.12.13"
 crossScalaVersions := List("2.13.5", "2.12.13")
 
@@ -46,28 +48,39 @@ lazy val `demo-postgres-kafka-reactive` =
 lazy val `commons-events` = project
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-    sonatypeCredentialHost := "s01.oss.sonatype.org"
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    scalaVersion := "2.12.13",
+    crossPaths := false
   )
 
 lazy val `thoth-jooq-async` = project
   .dependsOn(`thoth-core`)
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-    sonatypeCredentialHost := "s01.oss.sonatype.org"
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    scalaVersion := "2.12.13",
+    crossScalaVersions := List("2.13.5", "2.12.13"),
+    crossPaths := true
   )
 
 lazy val `thoth-core` = project
   .dependsOn(`commons-events`)
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-    sonatypeCredentialHost := "s01.oss.sonatype.org"
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    scalaVersion := "2.12.13",
+    crossScalaVersions := List("2.13.5", "2.12.13"),
+    crossPaths := true
   )
 
 lazy val `thoth-jooq` = project
   .dependsOn(`thoth-core`)
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-    sonatypeCredentialHost := "s01.oss.sonatype.org"
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    scalaVersion := "2.12.13",
+    crossScalaVersions := List("2.13.5", "2.12.13"),
+    crossPaths := true
   )
 
 javacOptions in Compile ++= Seq(
@@ -102,43 +115,42 @@ inThisBuild(
   List(
     homepage := Some(url(s"https://github.com/$githubRepo")),
     startYear := Some(2018),
-    crossPaths := true,
     scmInfo := Some(
-      ScmInfo(
-        url(s"https://github.com/$githubRepo"),
-        s"scm:git:https://github.com/$githubRepo.git",
-        Some(s"scm:git:git@github.com:$githubRepo.git")
-      )
-    ),
+        ScmInfo(
+          url(s"https://github.com/$githubRepo"),
+          s"scm:git:https://github.com/$githubRepo.git",
+          Some(s"scm:git:git@github.com:$githubRepo.git")
+        )
+      ),
     licenses := Seq(
-      ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))
-    ),
+        ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))
+      ),
     developers := List(
-      Developer(
-        "alexandre.delegue",
-        "Alexandre Delègue",
-        "",
-        url(s"https://github.com/larousso")
+        Developer(
+          "alexandre.delegue",
+          "Alexandre Delègue",
+          "",
+          url(s"https://github.com/larousso")
+        ),
+        Developer(
+          "benjamin.cavy",
+          "Benjamin Cavy",
+          "",
+          url(s"https://github.com/ptitFicus")
+        ),
+        Developer(
+          "gregory.bevan",
+          "Grégory Bévan",
+          "",
+          url(s"https://github.com/GregoryBevan")
+        ),
+        Developer(
+          "georges.ginon",
+          "Georges Ginon",
+          "",
+          url(s"https://github.com/ftoumHub")
+        )
       ),
-      Developer(
-        "benjamin.cavy",
-        "Benjamin Cavy",
-        "",
-        url(s"https://github.com/ptitFicus")
-      ),
-      Developer(
-        "gregory.bevan",
-        "Grégory Bévan",
-        "",
-        url(s"https://github.com/GregoryBevan")
-      ),
-      Developer(
-        "georges.ginon",
-        "Georges Ginon",
-        "",
-        url(s"https://github.com/ftoumHub")
-      )
-    ),
     releaseCrossBuild := true,
     publishArtifact in Test := false
   )
