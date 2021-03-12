@@ -12,7 +12,8 @@ These projections will be updated in the transaction used to register events in 
 Let's say we want a projection that stores mean withdrawal value by month.
 
 We could have this table: 
-```
+
+```sql
 CREATE TABLE IF NOT EXISTS WITHDRAW_BY_MONTH( client_id text, month text, year smallint, withdraw numeric);
 CREATE UNIQUE INDEX IF NOT EXISTS WITHDRAW_BY_MONTH_UNIQUE_IDX ON WITHDRAW_BY_MONTH(client_id, month, year);
 ALTER TABLE WITHDRAW_BY_MONTH ADD CONSTRAINT WITHDRAW_BY_MONTH_UNIQUE UNIQUE USING INDEX WITHDRAW_BY_MONTH_UNIQUE_IDX;
@@ -137,7 +138,7 @@ Sometimes projections are too costly to be updated in transaction, sometimes we 
 
 In these case we could build "eventually consistent" projections, by connecting to our "bank" topic in Kafka, and consuming events from there.
 
-## Next step
+## The end
 
 Congratulations ! You've reached the end of our documentation.
 

@@ -52,7 +52,3 @@ public static class MoneyWithdrawn extends BankEvent {
 ```
 
 All we need to do is to override method `hash`. Events with the same hash are guaranteed to go on the same Kafka partition.
-
-## Next step
-
-[Make your read faster with aggregateStore](./aggregatestore.md)

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+
+<head>
+<title>Projections · Thoth</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content='Thoth'/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="../lib/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="../js/page.js"></script>
+<script type="text/javascript" src="../js/groups.js"></script>
+<link rel="stylesheet" type="text/css" href="../lib/normalize.css/normalize.css"/>
+<link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
+<link rel="stylesheet" type="text/css" href="../css/page.css"/>
+
+<!--
+<link rel="shortcut icon" href="../images/favicon.ico" />
+-->
+</head>
+
+<body>
+<div class="off-canvas-wrapper">
+<div class="off-canvas-wrapper-inner" data-off-canvas-wrapper>
+
+<div class="off-canvas position-left" id="off-canvas-menu" data-off-canvas>
+<nav class="off-canvas-nav">
+<div class="nav-home">
+<a href="../index.html" >
+<span class="home-icon">⌂</span>Thoth
+</a>
+<div class="version-number">
+1.0.2*
+</div>
+</div>
+<select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
+<div class="nav-toc">
+<ul>
+  <li><a href="../technical-considerations.html" class="page">Technical considerations</a></li>
+  <li><a href="../banking.html" class="page">In memory example</a></li>
+  <li><a href="../standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
+  <ul>
+    <li><a href="../standard/banking-real-life.html" class="page">Postgres Kafka event sourcing</a></li>
+    <li><a href="../standard/projections.html" class="active page">Projections</a></li>
+  </ul></li>
+  <li><a href="../database-configuration.html" class="page">Database configuration</a></li>
+  <li><a href="../advanced/index.html" class="page">Advanced use cases</a>
+  <ul>
+    <li><a href="../advanced/message.html" class="page">Warning / Info messages</a></li>
+    <li><a href="../advanced/event-ordering.html" class="page">Custom message ordering</a></li>
+    <li><a href="../advanced/aggregatestore.html" class="page">Aggregate store</a></li>
+  </ul></li>
+  <li><a href="../non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
+  <ul>
+    <li><a href="../non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
+    <li><a href="../non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
+  </ul></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="off-canvas-content" data-off-canvas-content>
+
+<header class="site-header expanded row">
+<div class="small-12 column">
+<a href="#" class="off-canvas-toggle hide-for-medium" data-toggle="off-canvas-menu"><svg class="svg-icon svg-icon-menu" version="1.1" id="Menu" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve"> <path class="svg-icon-menu-path" fill="#53CDEC" d="M16.4,9H3.6C3.048,9,3,9.447,3,10c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,9.447,16.952,9,16.4,9z M16.4,13
+H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
+C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
+</a>
+<div class="title-wrapper">
+<div class="title-logo"></div>
+<div class="title"><a href="../index.html">Thoth</a></div>
+</div>
+<!--
+<a href="https://www.example.com" class="logo show-for-medium">logo</a>
+-->
+</div>
+</header>
+
+<div class="expanded row">
+
+<div class="medium-3 large-2 show-for-medium column">
+<nav class="site-nav">
+<div class="nav-home">
+<a href="../index.html" >
+<span class="home-icon">⌂</span>Thoth
+</a>
+<div class="version-number">
+1.0.2*
+</div>
+</div>
+<select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
+<div class="nav-toc">
+<ul>
+  <li><a href="../technical-considerations.html" class="page">Technical considerations</a></li>
+  <li><a href="../banking.html" class="page">In memory example</a></li>
+  <li><a href="../standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
+  <ul>
+    <li><a href="../standard/banking-real-life.html" class="page">Postgres Kafka event sourcing</a></li>
+    <li><a href="../standard/projections.html" class="active page">Projections</a></li>
+  </ul></li>
+  <li><a href="../database-configuration.html" class="page">Database configuration</a></li>
+  <li><a href="../advanced/index.html" class="page">Advanced use cases</a>
+  <ul>
+    <li><a href="../advanced/message.html" class="page">Warning / Info messages</a></li>
+    <li><a href="../advanced/event-ordering.html" class="page">Custom message ordering</a></li>
+    <li><a href="../advanced/aggregatestore.html" class="page">Aggregate store</a></li>
+  </ul></li>
+  <li><a href="../non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
+  <ul>
+    <li><a href="../non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
+    <li><a href="../non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
+  </ul></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="small-12 medium-9 large-10 column">
+<section class="site-content">
+
+<div class="page-header row">
+<div class="medium-12 show-for-medium column">
+<div class="nav-breadcrumbs">
+<ul>
+  <li><a href="../index.html">Thoth</a></li>
+  <li><a href="../standard/index.html">Standard JOOQ/Kafka implementation</a></li>
+  <li>Projections</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="page-content row">
+<div class="small-12 large-9 column" id="docs">
+<h1><a href="#projections" name="projections" class="anchor"><span class="anchor-link"></span></a>Projections</h1>
+<p>Out account management system is limited in consultation : all we can do is read accounts by id, one by one.</p>
+<p>Projections help us to implement different read scenario. They are built / updated by consuming events.</p>
+<h2><a href="#in-transaction-projection" name="in-transaction-projection" class="anchor"><span class="anchor-link"></span></a>In transaction projection</h2>
+<p>thoth offers tools for building &ldquo;in transaction&rdquo; projections. These projections will be updated in the transaction used to register events in the database, therefore they&rsquo;ll be updated in &ldquo;real time&rdquo;.</p>
+<p>Let&rsquo;s say we want a projection that stores mean withdrawal value.</p>
+<pre class="prettyprint"><code class="language-java">public class MeanBalanceProjection implements Projection&lt;Connection, BankEvent, Tuple0, Tuple0&gt; {
+    private BigDecimal withDrawTotal = BigDecimal.ZERO;
+    private long withdrawCount = 0L;
+
+    @Override
+    public Future&lt;Tuple0&gt; storeProjection(Connection connection, List&lt;EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; envelopes) {
+        return Future.of(() -&gt; {
+            envelopes.forEach(envelope -&gt; {
+                BankEvent bankEvent = envelope.event;
+                if(envelope.event instanceof BankEvent.MoneyWithdrawn) {
+                    withDrawTotal = withDrawTotal.add(((BankEvent.MoneyWithdrawn)bankEvent).amount);
+                    withdrawCount ++;
+                }
+            });
+            
+            return Tuple.empty();
+        });
+    }
+    
+    public BigDecimal meanWithdraw() {
+        return withDrawTotal.divide(BigDecimal.valueOf(withdrawCount));
+    }
+}
+</code></pre>
+<p>In the above example, we implemented an in memory projection, however in a real use case we should store values somewhere (e.g. in a database).</p>
+<p>Next step is to declare the projection in our EventProcessor implementation.</p>
+<pre class="prettyprint"><code class="language-java">public class Bank {
+    private final MeanWithdrawProjection meanWithdrawProjection;
+    //...
+    public Bank() {
+        //...
+        this.meanWithdrawProjection = new MeanWithdrawProjection();
+        this.eventProcessor = PostgresKafkaEventProcessor.create(
+            actorSystem,
+            eventStore(actorSystem, producerSettings, &quot;bank&quot;, dataSource, executorService, new TableNames(&quot;bank_journal&quot;, &quot;bank_sequence_num&quot;) ,eventFormat),
+            new JdbcTransactionManager(dataSource(), Executors.newFixedThreadPool(5)),
+            commandHandler,
+            eventHandler,
+            List.of(meanWithdrawProjection)
+        );
+    }
+    //...
+    public BigDecimal meanWithdrawValue() {
+        return meanWithdrawProjection.meanWithdraw();
+    }
+}
+</code></pre>
+<h3><a href="#usage" name="usage" class="anchor"><span class="anchor-link"></span></a>Usage</h3>
+<pre class="prettyprint"><code class="language-java">public class DemoApplication {
+
+	public static void main(String[] args) throws SQLException {
+		ActorSystem actorSystem = ActorSystem.create();
+		BankCommandHandler commandHandler = new BankCommandHandler();
+		BankEventHandler eventHandler = new BankEventHandler();
+		Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
+
+		String id = bank.createAccount(BigDecimal.valueOf(100)).get().get().currentState.get().id;
+
+		bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
+		bank.withdraw(id, BigDecimal.valueOf(10)).get().get().currentState.get();
+
+		System.out.println(bank.meanWithdrawValue()); // 30
+	}
+}
+</code></pre>
+<h2><a href="#eventually-consistent-projections" name="eventually-consistent-projections" class="anchor"><span class="anchor-link"></span></a>Eventually consistent projections</h2>
+<p>Sometimes projections are too costly to be updated in transaction, sometimes we don&rsquo;t need real time update.</p>
+<p>In these case we could build &ldquo;eventually consistent&rdquo; projections, by connecting to our &ldquo;bank&rdquo; topic in Kafka, and consuming events from there.</p>
+<div class="source-github">
+The source code for this page can be found <a href="https://github.com/MAIF/thoth/tree/master/thoth-documentation/src/main/paradox/standard/projections.md">here</a>.
+</div>
+
+<div class="nav-next">
+<p><strong>Next:</strong> <a href="../database-configuration.html">Database configuration</a></p>
+</div>
+</div>
+<div class="large-3 show-for-large column" data-sticky-container>
+<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
+<div class="page-nav">
+<div class="nav-title">On this page:</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="../standard/projections.html#projections" class="header">Projections</a>
+  <ul>
+    <li><a href="../standard/projections.html#in-transaction-projection" class="header">In transaction projection</a></li>
+    <li><a href="../standard/projections.html#eventually-consistent-projections" class="header">Eventually consistent projections</a></li>
+  </ul></li>
+</ul>
+</div>
+</div>
+</nav>
+</div>
+</div>
+
+</section>
+</div>
+
+</div>
+
+<footer class="site-footer">
+
+<section class="site-footer-nav">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 medium-4 large-3 text-center column">
+<div class="nav-links">
+<ul>
+<!-- <li><a href="https://www.example.com/products/">Products</a> -->
+</ul>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</section>
+
+<section class="site-footer-base">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 text-center large-9 column">
+
+<!--
+<div class="copyright">
+<span class="text">&copy; 2021</span>
+<a href="https://www.example.com" class="logo">logo</a>
+</div>
+-->
+</div>
+
+</div>
+</div>
+</div>
+</section>
+</footer>
+
+</div>
+</div>
+</div>
+</body>
+
+<script type="text/javascript" src="../lib/foundation/dist/foundation.min.js"></script>
+<script type="text/javascript">jQuery(document).foundation();</script>
+<script type="text/javascript" src="../js/magellan.js"></script>
+
+<style type="text/css">@import "../lib/prettify/prettify.css";</style>
+<script type="text/javascript" src="../lib/prettify/prettify.js"></script>
+<script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
+<script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-112498312-1"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+
+gtag('config', 'UA-112498312-1');
+</script>
+</html>
+
+
+
+

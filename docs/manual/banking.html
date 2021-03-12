@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+
+<head>
+<title>In memory example · Thoth</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content='Thoth'/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="lib/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="js/page.js"></script>
+<script type="text/javascript" src="js/groups.js"></script>
+<link rel="stylesheet" type="text/css" href="lib/normalize.css/normalize.css"/>
+<link rel="stylesheet" type="text/css" href="lib/foundation/dist/foundation.min.css"/>
+<link rel="stylesheet" type="text/css" href="css/page.css"/>
+
+<!--
+<link rel="shortcut icon" href="images/favicon.ico" />
+-->
+</head>
+
+<body>
+<div class="off-canvas-wrapper">
+<div class="off-canvas-wrapper-inner" data-off-canvas-wrapper>
+
+<div class="off-canvas position-left" id="off-canvas-menu" data-off-canvas>
+<nav class="off-canvas-nav">
+<div class="nav-home">
+<a href="index.html" >
+<span class="home-icon">⌂</span>Thoth
+</a>
+<div class="version-number">
+1.0.2*
+</div>
+</div>
+<select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
+<div class="nav-toc">
+<ul>
+  <li><a href="technical-considerations.html" class="page">Technical considerations</a></li>
+  <li><a href="banking.html" class="active page">In memory example</a></li>
+  <li><a href="standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
+  <ul>
+    <li><a href="standard/banking-real-life.html" class="page">Postgres Kafka event sourcing</a></li>
+    <li><a href="standard/projections.html" class="page">Projections</a></li>
+  </ul></li>
+  <li><a href="database-configuration.html" class="page">Database configuration</a></li>
+  <li><a href="advanced/index.html" class="page">Advanced use cases</a>
+  <ul>
+    <li><a href="advanced/message.html" class="page">Warning / Info messages</a></li>
+    <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
+    <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
+  </ul></li>
+  <li><a href="non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
+  <ul>
+    <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
+    <li><a href="non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
+  </ul></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="off-canvas-content" data-off-canvas-content>
+
+<header class="site-header expanded row">
+<div class="small-12 column">
+<a href="#" class="off-canvas-toggle hide-for-medium" data-toggle="off-canvas-menu"><svg class="svg-icon svg-icon-menu" version="1.1" id="Menu" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve"> <path class="svg-icon-menu-path" fill="#53CDEC" d="M16.4,9H3.6C3.048,9,3,9.447,3,10c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,9.447,16.952,9,16.4,9z M16.4,13
+H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
+C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
+</a>
+<div class="title-wrapper">
+<div class="title-logo"></div>
+<div class="title"><a href="index.html">Thoth</a></div>
+</div>
+<!--
+<a href="https://www.example.com" class="logo show-for-medium">logo</a>
+-->
+</div>
+</header>
+
+<div class="expanded row">
+
+<div class="medium-3 large-2 show-for-medium column">
+<nav class="site-nav">
+<div class="nav-home">
+<a href="index.html" >
+<span class="home-icon">⌂</span>Thoth
+</a>
+<div class="version-number">
+1.0.2*
+</div>
+</div>
+<select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
+<div class="nav-toc">
+<ul>
+  <li><a href="technical-considerations.html" class="page">Technical considerations</a></li>
+  <li><a href="banking.html" class="active page">In memory example</a></li>
+  <li><a href="standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
+  <ul>
+    <li><a href="standard/banking-real-life.html" class="page">Postgres Kafka event sourcing</a></li>
+    <li><a href="standard/projections.html" class="page">Projections</a></li>
+  </ul></li>
+  <li><a href="database-configuration.html" class="page">Database configuration</a></li>
+  <li><a href="advanced/index.html" class="page">Advanced use cases</a>
+  <ul>
+    <li><a href="advanced/message.html" class="page">Warning / Info messages</a></li>
+    <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
+    <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
+  </ul></li>
+  <li><a href="non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
+  <ul>
+    <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
+    <li><a href="non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
+  </ul></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="small-12 medium-9 large-10 column">
+<section class="site-content">
+
+<div class="page-header row">
+<div class="medium-12 show-for-medium column">
+<div class="nav-breadcrumbs">
+<ul>
+  <li><a href="index.html">Thoth</a></li>
+  <li>In memory example</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="page-content row">
+<div class="small-12 large-9 column" id="docs">
+<h1><a href="#in-memory-example" name="in-memory-example" class="anchor"><span class="anchor-link"></span></a>In memory example</h1>
+<p>This sample explains how to implement event sourcing for a simple use case of bank account.</p>
+<p>In this example, we will focus on managing accounts one by one (i.e. no transfer operations) :</p>
+<ul>
+  <li>because it&rsquo;s simpler to implement / understand</li>
+  <li>because <a href="https://github.com/MAIF/thoth/issues/4">one feature</a> is missing to implement scenario such as multiple bank accounts</li>
+</ul>
+<p>Here is the process modeling of what happens: </p>
+<p><img src="img/thoth_bank_account.jpg" /> </p>
+<h2><a href="#model-state-" name="model-state-" class="anchor"><span class="anchor-link"></span></a>Model (State)</h2>
+<p>Let&rsquo;s start with a simple bank account representation.</p>
+<pre class="prettyprint"><code class="language-java">public class Account extends AbstractState {
+    public String id;
+    public BigDecimal balance;
+}
+</code></pre>
+<p>This Account class needs to extend <code>AbstractState</code>. It represents the state of one Account at a given time.</p>
+<h2><a href="#command" name="command" class="anchor"><span class="anchor-link"></span></a>Command</h2>
+<p>Here are some commands that our system should accept</p>
+<ul>
+  <li>withdraw</li>
+  <li>deposit</li>
+  <li>close</li>
+  <li>open</li>
+</ul>
+<p>Let&rsquo;s start small with &ldquo;open&rdquo; commands :</p>
+<pre class="prettyprint"><code class="language-java">public interface BankCommand extends SimpleCommand {
+
+    static Pattern0&lt;OpenAccount&gt; $OpenAccount() {
+        return Pattern0.of(OpenAccount.class);
+    }
+
+    class OpenAccount implements BankCommand {
+        public Lazy&lt;String&gt; id;
+        public BigDecimal initialBalance;
+
+        public OpenAccount(Lazy&lt;String&gt; id, BigDecimal initialBalance) {
+            this.initialBalance = initialBalance;
+            this.id = id;
+        }
+
+        @Override
+        public Lazy&lt;String&gt; entityId() {
+            return id;
+        }
+
+        @Override
+        public Boolean hasId() {
+            return false;
+        }
+    }
+}
+</code></pre>
+<p>There&rsquo;s a lot going on here:</p>
+<ul>
+  <li>
+  <p>Commands are a <a href="https://en.wikipedia.org/wiki/Tagged_union">sum type</a>, therefore it can be implemented using a Java interface</p></li>
+  <li>
+  <p>Our commands need to implement <code>SimpleCommand</code>, there is a more complete version of this class called <code>Command</code> that allows providing of additional information such as metadata. More on that later.</p></li>
+  <li>
+  <p>Our class needs to implement an <code>entityId</code> method that should return something that identifies uniquely our account. This method returns a <a href="https://docs.vavr.io/#_lazy">Vavr Lazy</a> object, which is useful when id isn&rsquo;t known yet.</p></li>
+  <li>
+  <p>We need to declare a <code>$OpenAccount()</code> for each command that will be used for <a href="https://docs.vavr.io/#_the_basics_of_match_for_java">Vavr pattern matching</a>. </p></li>
+  <li>
+  <p><code>OpenAccount</code> implementation is slightly different from others : we take a <code>Lazy&lt;String&gt;</code> instead of a String for id field, and overload <code>hasId</code> method. In our system, account id will be generated as random UUID, and we don&rsquo;t want to generate an id while we didn&rsquo;t check the correctness of the <code>OpenAccount</code> command. That&rsquo;s why we use a <code>Lazy</code> for the id : to defer id generation. The overload of <code>hasId</code> method to make it return <code>false</code> indicates that our command does not yet have an id.</p></li>
+</ul>
+<h2><a href="#event" name="event" class="anchor"><span class="anchor-link"></span></a>Event</h2>
+<p>Our system will generate an event when receiving our withdraw command (if correct).</p>
+<p>One possible naming convention for events is using passive way, so let&rsquo;s call our events <code>AccountOpened</code>, <code>MoneyWithdrawn</code> and <code>MoneyDeposited</code>.</p>
+<pre class="prettyprint"><code class="language-java">public abstract class BankEvent implements Event {
+    public static Type&lt;AccountOpened&gt; AccountOpenedV1 = Type.create(AccountOpened.class, 1L);
+    public static Type&lt;MoneyDeposited&gt; MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);
+    /**
+     * Boilerplate code to facilitate pattern matching   
+    */
+    public static Pattern0&lt;AccountOpened&gt; $AccountOpened() {
+        return Pattern0.of(AccountOpened.class);
+    }
+    public static Pattern0&lt;MoneyWithdrawn&gt; $MoneyWithdrawn() {
+        return Pattern0.of(MoneyWithdrawn.class);
+    }
+
+
+    protected final String accountId;
+
+    public BankEvent(String accountId) {
+        this.accountId = accountId;
+    }
+
+    @Override
+    public String entityId() {
+        return accountId;
+    }
+
+    public static class AccountOpened extends BankEvent {
+        public AccountOpened(String id) {
+            super(id);
+        }
+
+        @Override
+        public Type&lt;?&gt; type() {
+            return AccountOpenedV1;
+        }
+    }
+
+    public static class MoneyDeposited extends BankEvent {
+        public final BigDecimal amount;
+
+        public MoneyDeposited(String id, BigDecimal amount) {
+            super(id);
+            this.amount = amount;
+        }
+
+        @Override
+        public Type&lt;?&gt; type() {
+            return MoneyWithdrawnV1;
+        }
+    }
+}
+</code></pre>
+<p>Let&rsquo;s decompose this snippet:</p>
+<ul>
+  <li>Like commands, events are a <a href="https://en.wikipedia.org/wiki/Tagged_union">sum type</a>, however we used an abstract class instead of an interface to factorize <code>entityId</code> logic</li>
+  <li>Event must implement two methods</li>
+  <li>entityId that must identify uniquely an account</li>
+  <li>a type, that can be used to perform <a href="https://docs.vavr.io/#_the_basics_of_match_for_java">Vavr pattern matching</a>, in addition to the name of the event, the type store its version, facilitating version bump of events.</li>
+  <li>a `$AccountOpened(), that can be used to perform <a href="https://docs.vavr.io/#_the_basics_of_match_for_java">Vavr pattern matching</a>.</li>
+</ul>
+<h2><a href="#from-command-to-event" name="from-command-to-event" class="anchor"><span class="anchor-link"></span></a>From command to event</h2>
+<p>Now that we got a state representation, some commands and events, it&rsquo;s time to implement our first command handler.</p>
+<p>Let&rsquo;s start small with account creation:</p>
+<pre class="prettyprint"><code class="language-java">public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, Tuple0, Tuple0&gt; {
+    @Override
+    public Future&lt;Either&lt;String, Events&lt;BankEvent, Tuple0&gt;&gt;&gt; handleCommand(
+            Tuple0 transactionContext,
+            Option&lt;Account&gt; previousState,
+            BankCommand command) {
+        return Future.of(() -&gt; Match(command).option(
+                Case($OpenAccount(), this::handleOpening)
+            ).toEither(() -&gt; &quot;Unknown command&quot;).flatMap(Function.identity())
+        );
+    }
+
+    private Either&lt;String, Events&lt;BankEvent, Tuple0&gt;&gt; handleOpening(
+            BankCommand.OpenAccount opening) {
+        if(opening.initialBalance.compareTo(BigDecimal.ZERO) &lt; 0) {
+            return Left(&quot;Initial balance can&#39;t be negative&quot;);
+        }
+
+        String newId = opening.id.get();
+        List&lt;BankEvent&gt; events = List(new BankEvent.AccountOpened(newId));
+        if(opening.initialBalance.compareTo(BigDecimal.ZERO) &gt; 0) {
+            events = events.push(new BankEvent.MoneyDeposited(newId, opening.initialBalance));
+        }
+
+        return Right(Events.events(events));
+    }
+}
+</code></pre>
+<p>This implementation may look cumbersome, so let&rsquo;s decompose it again:</p>
+<ul>
+  <li>when implementing <code>CommandHanler</code>, we need to provide 6 parameters:</li>
+  <li>first one is the error format, if commandHandler is given an invalid event, it should return an error of this type,  here we chose to use the good old <code>String</code> type however a more complex error type should be used in real life scenario</li>
+  <li>second one is the class representing the state manipulated by our application : <code>Account</code></li>
+  <li>third one is the class representing commands: <code>BankCommand</code></li>
+  <li>fourth one is the class representing events: <code>BankEvent</code></li>
+  <li>fifth one can be used to represent some additional information (such as warnings) resulting from command processing, as we intend to keep this example as simple as possible, it is not used here</li>
+  <li>sixth one can be used to provide a transaction context that can be used to validate command (for instance a JDBC connection, or a Cassandra session) we don&rsquo;t need this yet</li>
+  <li>implementations of <code>CommandHandler</code> must implement <code>handleCommand</code> method</li>
+  <li>this method returns a <code>Future</code> because some times we need to perform some I/O operation to validate commands (e.g. make an HTTP call, or read something in a database)</li>
+  <li>this <code>Future</code> wraps an <code>Either</code> that can contain an error (if command processing failed) or an instance of <code>Events</code> class,  which is just a package containing a list of <code>Event</code> generated from the command and additional information if needed.</li>
+  <li>this method provides 3 arguments:
+    <ul>
+      <li>a transaction context (not used in this example)</li>
+      <li>an Option representing the previous state of the account, it can be empty if there is no previous state (i.e. if account does not exist)</li>
+      <li>the command to process</li>
+    </ul>
+  </li>
+  <li>we used <a href="https://docs.vavr.io/#_the_basics_of_match_for_java">Vavr pattern matching</a> using previously defined <code>Type</code> to determinate type of the command. You should always use <code>Match(command).either</code> instead of <code>Match(command).of</code> to handle unknown commands.</li>
+  <li>our implementation of account creation checks that initial balance is positive, and then retrieve id of the new account (random UUID is generated at this moment). In this case we don&rsquo;t have to bother with previous state : since our command indicates that it has no id, there is no previous state to retrieve.</li>
+  <li>handling of account creation command can generate one or two events : when initial balance is positive, an event of deposit is generated in addition to the creation event</li>
+</ul>
+<h2><a href="#state-update" name="state-update" class="anchor"><span class="anchor-link"></span></a>State update</h2>
+<p>The last step is to update the state of our account using our <code>AccountOpened</code> event.</p>
+<pre class="prettyprint"><code class="language-java">public class BankEventHandler implements EventHandler&lt;Account, BankEvent&gt; {
+    @Override
+    public Option&lt;Account&gt; applyEvent(
+            Option&lt;Account&gt; previousState,
+            BankEvent event) {
+        return Match(event).of(
+                Case($AccountOpened(), BankEventHandler::handleAccountOpened),
+                Case($MoneyDeposited(),
+                        deposit -&gt; BankEventHandler.handleMoneyDeposited(previousState, deposit)
+                )
+        );
+    }
+
+    private static Option&lt;Account&gt; handleAccountOpened(BankEvent.AccountOpened event) {
+        Account account = new Account();
+        account.id = event.accountId;
+        account.balance = BigDecimal.ZERO;
+
+        return Option.some(account);
+    }
+
+    private static Option&lt;Account&gt; handleMoneyDeposited(
+            Option&lt;Account&gt; previousState,
+            BankEvent.MoneyDeposited event) {
+        return previousState.map(state -&gt; {
+            state.balance = state.balance.add(event.amount);
+            return state;
+        });
+    }
+}
+</code></pre>
+<p>Our <code>BankEventHandler</code> implements <code>EventHandler</code>, which takes two parameters : state representation (<code>Account</code>), and events (<code>BankEvent</code>). The <code>applyEvent</code> method gives us two parameters: * an <code>Option</code> representing previous state, it&rsquo;s empty if there is no previous state for the event&rsquo;s entityId * the <code>Event</code> to apply to the previous state (if any), to get the next state</p>
+<p>Once again we used pattern matching to get event type. As for commands, we defined a method for each event type. Since computing next state for an existing state and an event is a pure function, it&rsquo;s a good practice to make these methods static. </p>
+<p>This method returns an <code>Option</code>, that should be empty if the <code>Account</code> is to be closed : future call implying this account will have an empty previousState.</p>
+<h2><a href="#wiring-all-the-things" name="wiring-all-the-things" class="anchor"><span class="anchor-link"></span></a>Wiring all the things</h2>
+<p>Now that we defined every step from command to state update, it&rsquo;s time to wire-up everything:</p>
+<pre class="prettyprint"><code class="language-java">public class Bank {
+    private final EventProcessor&lt;String, Account, BankCommand, BankEvent, Tuple0, Tuple0, Tuple0, Tuple0&gt; eventProcessor;
+    private static final TimeBasedGenerator UUIDgenerator = Generators.timeBasedGenerator();
+
+
+    public Bank(ActorSystem actorSystem,
+                BankCommandHandler commandHandler,
+                BankEventHandler eventHandler
+                ) {
+        InMemoryEventStore&lt;Tuple0, BankEvent, Tuple0, Tuple0&gt; eventStore = InMemoryEventStore.create(actorSystem);
+        this.eventProcessor = new EventProcessor&lt;&gt;(
+                actorSystem,
+                eventStore,
+                noOpTransactionManager(),
+                commandHandler,
+                eventHandler,
+                List.empty()
+        );
+    }
+
+    private TransactionManager&lt;Tuple0&gt; noOpTransactionManager() {
+        return new TransactionManager&lt;&gt;() {
+            @Override
+            public &lt;T&gt; Future&lt;T&gt; withTransaction(Function&lt;Tuple0, Future&lt;T&gt;&gt; function) {
+                return function.apply(Tuple.empty());
+            }
+        };
+    }
+
+    public Future&lt;Either&lt;String, ProcessingSuccess&lt;Account, BankEvent, Tuple0, Tuple0, Tuple0&gt;&gt;&gt; createAccount(BigDecimal amount) {
+        Lazy&lt;String&gt; lazyId = Lazy.of(() -&gt; UUIDgenerator.generate().toString());
+        return eventProcessor.processCommand(new BankCommand.OpenAccount(lazyId, amount));
+    }
+
+    public Future&lt;Option&lt;Account&gt;&gt; findAccountById(String id) {
+        return eventProcessor.getAggregate(id);
+    }
+}
+</code></pre>
+<p>This <code>Bank</code> class is the one the rest of our application should use.</p>
+<p>It instantiates an <code>EventProcessor</code> that takes 8 parameters: * Error representation: <code>String</code> as usual * State representation: <code>Account</code> * Command representation: <code>BankCommand</code> * Event representation: <code>BankEvent</code> * TransactionContext, Message, Metadata and Context : all <code>Tuple0</code> since they are not used in this example</p>
+<p>This EventProcessor takes our EventHandler and CommandHandler. This class is the one that really wires everything up.</p>
+<p>When we call <code>processCommand</code> method, an EventProcessor: 1. give it to its <code>CommandHanler</code> (here <code>BankCommandHandler</code>) along with the previous state (if any) to get events 2. store events in an <code>EventStore</code>: in this example an <code>InMemoryEventStore</code>, in a real use case it would be a database based event store (like <code>PostgresEventStore</code>) 3. update projection with events (more on that later) 4. publish events to Kafka: this is done by the <code>EventStore</code>, but since we used an <code>InMemoryEventStore</code>it&rsquo;s not done in this example 5. returns a <code>Future&lt;Either&lt;String, ProcessingSuccess&lt;...&gt;&gt;&gt;</code> :  * a <code>Future</code> since all above operations usually includes I/O  * an <code>Either</code> to indicate that result could be an error (e.g. if command is incorrect)  * a <code>ProcessingError</code> that contains various information about the process : current (new) state, previous state, events, &hellip;</p>
+<p>When we call <code>getAggregate</code>, an EventProcessor: 1. load all events for the given entityId 2. sequentially apply all events to an empty state 3. return the final state as an <code>Option</code> (it may be empty, for instance if the account is closed)</p>
+<h2><a href="#usage" name="usage" class="anchor"><span class="anchor-link"></span></a>Usage</h2>
+<pre class="prettyprint"><code class="language-java">ActorSystem actorSystem = ActorSystem.create();
+BankCommandHandler commandHandler = new BankCommandHandler();
+BankEventHandler eventHandler = new BankEventHandler();
+Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
+
+bank.createAccount(BigDecimal.valueOf(100))
+    .peek(either -&gt;
+        either.map(result -&gt; result.currentState
+                    .peek(account -&gt; System.out.println(account.balance))
+                )
+                .peekLeft(System.err::println)
+    )
+.onFailure(Throwable::printStackTrace);
+</code></pre>
+<h2><a href="#complete-example" name="complete-example" class="anchor"><span class="anchor-link"></span></a>Complete example</h2>
+<p>See <a href="https://github.com/MAIF/thoth/tree/master/demo/demo-in-memory">complete example</a> of some other commands (withdraw, deposit, close, &hellip;).</p>
+<div class="source-github">
+The source code for this page can be found <a href="https://github.com/MAIF/thoth/tree/master/thoth-documentation/src/main/paradox/banking.md">here</a>.
+</div>
+
+<div class="nav-next">
+<p><strong>Next:</strong> <a href="standard/index.html">Standard JOOQ/Kafka implementation</a></p>
+</div>
+</div>
+<div class="large-3 show-for-large column" data-sticky-container>
+<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
+<div class="page-nav">
+<div class="nav-title">On this page:</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="banking.html#in-memory-example" class="header">In memory example</a>
+  <ul>
+    <li><a href="banking.html#model-state-" class="header">Model (State)</a></li>
+    <li><a href="banking.html#command" class="header">Command</a></li>
+    <li><a href="banking.html#event" class="header">Event</a></li>
+    <li><a href="banking.html#from-command-to-event" class="header">From command to event</a></li>
+    <li><a href="banking.html#state-update" class="header">State update</a></li>
+    <li><a href="banking.html#wiring-all-the-things" class="header">Wiring all the things</a></li>
+    <li><a href="banking.html#usage" class="header">Usage</a></li>
+    <li><a href="banking.html#complete-example" class="header">Complete example</a></li>
+  </ul></li>
+</ul>
+</div>
+</div>
+</nav>
+</div>
+</div>
+
+</section>
+</div>
+
+</div>
+
+<footer class="site-footer">
+
+<section class="site-footer-nav">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 medium-4 large-3 text-center column">
+<div class="nav-links">
+<ul>
+<!-- <li><a href="https://www.example.com/products/">Products</a> -->
+</ul>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</section>
+
+<section class="site-footer-base">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 text-center large-9 column">
+
+<!--
+<div class="copyright">
+<span class="text">&copy; 2021</span>
+<a href="https://www.example.com" class="logo">logo</a>
+</div>
+-->
+</div>
+
+</div>
+</div>
+</div>
+</section>
+</footer>
+
+</div>
+</div>
+</div>
+</body>
+
+<script type="text/javascript" src="lib/foundation/dist/foundation.min.js"></script>
+<script type="text/javascript">jQuery(document).foundation();</script>
+<script type="text/javascript" src="js/magellan.js"></script>
+
+<style type="text/css">@import "lib/prettify/prettify.css";</style>
+<script type="text/javascript" src="lib/prettify/prettify.js"></script>
+<script type="text/javascript" src="lib/prettify/lang-scala.js"></script>
+<script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-112498312-1"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+
+gtag('config', 'UA-112498312-1');
+</script>
+</html>
+
+
+
+

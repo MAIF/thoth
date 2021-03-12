@@ -38,6 +38,11 @@ lazy val `demo-in-memory` = (project in file("./demo/demo-in-memory"))
     skip in publish := true
   )
 
+lazy val `thoth-documentation` = project
+  .settings(
+    skip in publish := true
+  )
+
 lazy val `demo-postgres-kafka-reactive` =
   (project in file("./demo/demo-postgres-kafka-reactive"))
     .dependsOn(`thoth-core`, `thoth-jooq-async`)

@@ -26,7 +26,3 @@ CREATE INDEX app_user_id_idx ON app_journal (user_id);
 CREATE INDEX app_system_id_idx ON app_journal (system_id);
 CREATE INDEX app_emission_date_idx ON app_journal (emission_date);
 ```
-
-## Next step
-
-[Returning messages and warnings](./message.md)

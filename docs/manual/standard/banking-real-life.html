@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+
+<head>
+<title>Postgres Kafka event sourcing · Thoth</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content='Thoth'/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="../lib/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="../js/page.js"></script>
+<script type="text/javascript" src="../js/groups.js"></script>
+<link rel="stylesheet" type="text/css" href="../lib/normalize.css/normalize.css"/>
+<link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
+<link rel="stylesheet" type="text/css" href="../css/page.css"/>
+
+<!--
+<link rel="shortcut icon" href="../images/favicon.ico" />
+-->
+</head>
+
+<body>
+<div class="off-canvas-wrapper">
+<div class="off-canvas-wrapper-inner" data-off-canvas-wrapper>
+
+<div class="off-canvas position-left" id="off-canvas-menu" data-off-canvas>
+<nav class="off-canvas-nav">
+<div class="nav-home">
+<a href="../index.html" >
+<span class="home-icon">⌂</span>Thoth
+</a>
+<div class="version-number">
+1.0.2*
+</div>
+</div>
+<select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
+<div class="nav-toc">
+<ul>
+  <li><a href="../technical-considerations.html" class="page">Technical considerations</a></li>
+  <li><a href="../banking.html" class="page">In memory example</a></li>
+  <li><a href="../standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
+  <ul>
+    <li><a href="../standard/banking-real-life.html" class="active page">Postgres Kafka event sourcing</a></li>
+    <li><a href="../standard/projections.html" class="page">Projections</a></li>
+  </ul></li>
+  <li><a href="../database-configuration.html" class="page">Database configuration</a></li>
+  <li><a href="../advanced/index.html" class="page">Advanced use cases</a>
+  <ul>
+    <li><a href="../advanced/message.html" class="page">Warning / Info messages</a></li>
+    <li><a href="../advanced/event-ordering.html" class="page">Custom message ordering</a></li>
+    <li><a href="../advanced/aggregatestore.html" class="page">Aggregate store</a></li>
+  </ul></li>
+  <li><a href="../non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
+  <ul>
+    <li><a href="../non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
+    <li><a href="../non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
+  </ul></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="off-canvas-content" data-off-canvas-content>
+
+<header class="site-header expanded row">
+<div class="small-12 column">
+<a href="#" class="off-canvas-toggle hide-for-medium" data-toggle="off-canvas-menu"><svg class="svg-icon svg-icon-menu" version="1.1" id="Menu" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve"> <path class="svg-icon-menu-path" fill="#53CDEC" d="M16.4,9H3.6C3.048,9,3,9.447,3,10c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,9.447,16.952,9,16.4,9z M16.4,13
+H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
+C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
+</a>
+<div class="title-wrapper">
+<div class="title-logo"></div>
+<div class="title"><a href="../index.html">Thoth</a></div>
+</div>
+<!--
+<a href="https://www.example.com" class="logo show-for-medium">logo</a>
+-->
+</div>
+</header>
+
+<div class="expanded row">
+
+<div class="medium-3 large-2 show-for-medium column">
+<nav class="site-nav">
+<div class="nav-home">
+<a href="../index.html" >
+<span class="home-icon">⌂</span>Thoth
+</a>
+<div class="version-number">
+1.0.2*
+</div>
+</div>
+<select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
+<div class="nav-toc">
+<ul>
+  <li><a href="../technical-considerations.html" class="page">Technical considerations</a></li>
+  <li><a href="../banking.html" class="page">In memory example</a></li>
+  <li><a href="../standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
+  <ul>
+    <li><a href="../standard/banking-real-life.html" class="active page">Postgres Kafka event sourcing</a></li>
+    <li><a href="../standard/projections.html" class="page">Projections</a></li>
+  </ul></li>
+  <li><a href="../database-configuration.html" class="page">Database configuration</a></li>
+  <li><a href="../advanced/index.html" class="page">Advanced use cases</a>
+  <ul>
+    <li><a href="../advanced/message.html" class="page">Warning / Info messages</a></li>
+    <li><a href="../advanced/event-ordering.html" class="page">Custom message ordering</a></li>
+    <li><a href="../advanced/aggregatestore.html" class="page">Aggregate store</a></li>
+  </ul></li>
+  <li><a href="../non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
+  <ul>
+    <li><a href="../non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
+    <li><a href="../non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
+  </ul></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="small-12 medium-9 large-10 column">
+<section class="site-content">
+
+<div class="page-header row">
+<div class="medium-12 show-for-medium column">
+<div class="nav-breadcrumbs">
+<ul>
+  <li><a href="../index.html">Thoth</a></li>
+  <li><a href="../standard/index.html">Standard JOOQ/Kafka implementation</a></li>
+  <li>Postgres Kafka event sourcing</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="page-content row">
+<div class="small-12 large-9 column" id="docs">
+<h1><a href="#postgres-kafka-event-sourcing" name="postgres-kafka-event-sourcing" class="anchor"><span class="anchor-link"></span></a>Postgres Kafka event sourcing</h1>
+<p>This example is based on <a href="../banking.html">bank example</a>, we&rsquo;ll replace our InMemoryEventStore by a real Event store using Postgres and Kafka.</p>
+<p>First we need to import <code>thoth-jooq</code> module. This module contains an implementation of thoth for Postgres using Jooq.</p>
+<h2><a href="#sql" name="sql" class="anchor"><span class="anchor-link"></span></a>SQL</h2>
+<p>First thing first : we need to set up database.</p>
+<p>Database and user creation: </p>
+<pre class="prettyprint"><code class="language-sql">CREATE DATABASE eventsourcing;
+CREATE USER eventsourcing WITH PASSWORD &#39;eventsourcing&#39;;
+GRANT ALL PRIVILEGES ON DATABASE &quot;eventsourcing&quot; to eventsourcing;
+</code></pre>
+<p>Schema creation:</p>
+<pre class="prettyprint"><code class="language-sql">CREATE TABLE IF NOT EXISTS bank_journal (
+  id UUID primary key,
+  entity_id varchar(100) not null,
+  sequence_num bigint not null,
+  event_type varchar(100) not null,
+  version int not null,
+  transaction_id varchar(100) not null,
+  event jsonb not null,
+  metadata jsonb,
+  context jsonb,
+  total_message_in_transaction int default 1,
+  num_message_in_transaction int default 1,
+  emission_date timestamp not null default now(),
+  user_id varchar(100),
+  system_id varchar(100),
+  published boolean default false,
+  UNIQUE (entity_id, sequence_num)
+);
+
+CREATE SEQUENCE if not exists bank_sequence_num;
+</code></pre>
+<p>Here is what we need in the database:</p>
+<ul>
+  <li>An <code>ACCOUNTS</code> table to keep our accounts safe, we kept it simple here to match our model</li>
+  <li>A <code>BANK_JOURNAL</code> table that will contain our events</li>
+  <li>A <code>BANK_SEQUENCE_NUM</code> to generate sequence_num of our events</li>
+</ul>
+<h1><a href="#code" name="code" class="anchor"><span class="anchor-link"></span></a>Code</h1>
+<p>First of all let&rsquo;s swap <code>thoth-core</code> dependency with <code>thoth-jooq</code>. This new dependency provides everything we need to set up postgres / kafka connection.</p>
+<pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;thoth-jooq&lt;/artifactId&gt;
+    &lt;version&gt;...&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<h2><a href="#event-serialization" name="event-serialization" class="anchor"><span class="anchor-link"></span></a>Event serialization</h2>
+<p>Let&rsquo;s start with event reading and writing. We need to declare a serializer to read / write events to DB.</p>
+<pre class="prettyprint"><code class="language-java">public class BankEventFormat implements JacksonEventFormat&lt;String, BankEvent&gt; {
+    @Override
+    public Either&lt;String, BankEvent&gt; read(String type, Long version, JsonNode json) {
+        return API.Match(Tuple.of(type, version)).option(
+                Case(BankEvent.MoneyDepositedV1.pattern2(), () -&gt; Json.fromJson(json, BankEvent.MoneyDeposited.class)),
+                Case(BankEvent.MoneyWithdrawnV1.pattern2(), () -&gt; Json.fromJson(json, BankEvent.MoneyWithdrawn.class)),
+                Case(BankEvent.AccountClosedV1.pattern2(), () -&gt; Json.fromJson(json, BankEvent.AccountClosed.class)),
+                Case(BankEvent.AccountOpenedV1.pattern2(), () -&gt; Json.fromJson(json, BankEvent.AccountOpened.class))
+        )
+                .toEither(() -&gt; &quot;Unknown event type &quot; + type + &quot;(v&quot; + version + &quot;)&quot;)
+                .flatMap(jsResult -&gt; jsResult.toEither().mapLeft(errs -&gt; errs.mkString(&quot;,&quot;)));
+    }
+
+    @Override
+    public JsonNode write(BankEvent event) {
+        return Json.toJson(event, JsonWrite.auto());
+    }
+}
+</code></pre>
+<p>We implemented this using <a href="https://github.com/MAIF/functional-json">functionnal-json</a> library, since it provides nice utilities to handle / aggregate deserialization errors.</p>
+<p>To allow event serialization / deserialization we also need to add some Jackson annotations (<code>@JsonCreator</code> and <code>@JsonProperty</code>) to events&rsquo; constructors.</p>
+<pre class="prettyprint"><code class="language-java">public abstract class BankEvent implements Event {
+    public static Type&lt;MoneyWithdrawn&gt; MoneyWithdrawnV1 = Type.create(MoneyWithdrawn.class, 1L);
+    public static Type&lt;AccountOpened&gt; AccountOpenedV1 = Type.create(AccountOpened.class, 1L);
+    public static Type&lt;MoneyDeposited&gt; MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);
+    public static Type&lt;AccountClosed&gt; AccountClosedV1 = Type.create(AccountClosed.class, 1L);
+
+    public final String accountId;
+
+    public BankEvent(String accountId) {
+        this.accountId = accountId;
+    }
+
+    @Override
+    public String entityId() {
+        return accountId;
+    }
+
+    public static class MoneyWithdrawn extends BankEvent {
+        public final BigDecimal amount;
+        @JsonCreator
+        public MoneyWithdrawn(@JsonProperty(&quot;accountId&quot;)String account, @JsonProperty(&quot;amount&quot;)BigDecimal amount) {
+            super(account);
+            this.amount = amount;
+        }
+
+        @Override
+        public Type&lt;?&gt; type() {
+            return MoneyWithdrawnV1;
+        }
+    }
+
+    public static class AccountOpened extends BankEvent {
+        @JsonCreator
+        public AccountOpened(@JsonProperty(&quot;accountId&quot;)String id) {
+            super(id);
+        }
+
+        @Override
+        public Type&lt;?&gt; type() {
+            return AccountOpenedV1;
+        }
+    }
+
+    public static class MoneyDeposited extends BankEvent {
+        public final BigDecimal amount;
+        @JsonCreator
+        public MoneyDeposited(@JsonProperty(&quot;accountId&quot;)String id, @JsonProperty(&quot;amount&quot;)BigDecimal amount) {
+            super(id);
+            this.amount = amount;
+        }
+
+        @Override
+        public Type&lt;?&gt; type() {
+            return MoneyDepositedV1;
+        }
+    }
+
+    public static class AccountClosed extends BankEvent {
+        @JsonCreator
+        public AccountClosed(@JsonProperty(&quot;accountId&quot;)String id) {
+            super(id);
+        }
+
+        @Override
+        public Type&lt;?&gt; type() {
+            return AccountClosedV1;
+        }
+    }
+}
+</code></pre>
+<h2><a href="#database-connection" name="database-connection" class="anchor"><span class="anchor-link"></span></a>Database connection</h2>
+<p>Speaking of database, we also need to set up a database connection somewhere.</p>
+<p>In the sample application, this is made in <code>Bank</code> class, in real world application, this could be made in some configuration class.</p>
+<pre class="prettyprint"><code class="language-Java">public class Bank {
+    // ...
+    private DataSource dataSource() {
+        PGSimpleDataSource dataSource = new PGSimpleDataSource();
+        dataSource.setServerName(&quot;localhost&quot;);
+        dataSource.setPassword(&quot;eventsourcing&quot;);
+        dataSource.setUser(&quot;eventsourcing&quot;);
+        dataSource.setDatabaseName(&quot;eventsourcing&quot;);
+        dataSource.setPortNumbers(5432);
+        return dataSource;
+    }
+    // ...
+}
+</code></pre>
+<p>We also need a <code>TableNames</code> instance to provide information about created table name and sequence.</p>
+<pre class="prettyprint"><code class="language-java">public class Bank {
+    //...
+    private TableNames tableNames() {
+        return new TableNames(&quot;bank_journal&quot;, &quot;bank_sequence_num&quot;);
+    }
+    //...
+}
+</code></pre>
+<p>Since this implementation will use a real database, we need to change TransactionContext type from <code>Tuple0</code> to <code>Connection</code> in <code>CommandHandler</code>.</p>
+<p>This transaction context allows sharing database context for command verification and events insertion.</p>
+<pre class="prettyprint"><code class="language-java">public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, Tuple0, Connection&gt; {
+    //...
+}
+</code></pre>
+<h2><a href="#kafka-connection" name="kafka-connection" class="anchor"><span class="anchor-link"></span></a>Kafka connection</h2>
+<p>To handle the kafka part, we need two things: * A <code>KafkaSettings</code> instance, that should contain kafka location and keystore / truststore information (if needed) * A <code>ProducerSettings</code> instance that will be used to publish events in kafka</p>
+<pre class="prettyprint"><code class="language-java">public class Bank {
+    //...
+    private KafkaSettings settings() {
+        return KafkaSettings.newBuilder(&quot;localhost:29092&quot;).build();
+    }
+
+    private ProducerSettings&lt;String, EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; producerSettings(
+            KafkaSettings kafkaSettings,
+            JacksonEventFormat&lt;String, BankEvent&gt; eventFormat) {
+        return kafkaSettings.producerSettings(actorSystem, JsonSerializer.of(
+                eventFormat,
+                JacksonSimpleFormat.empty(),
+                JacksonSimpleFormat.empty()
+            )
+        );
+    }
+    //...
+}
+</code></pre>
+<h2><a href="#kafka-event-publisher" name="kafka-event-publisher" class="anchor"><span class="anchor-link"></span></a>Kafka event publisher</h2>
+<p>Using above methods, we need to define a <code>KafkaEventPublisher</code>, that will handle publication of events on kafka once they&rsquo;ll be store in the database.</p>
+<pre class="prettyprint"><code class="language-java">public class Bank {
+    //...
+    private KafkaEventPublisher&lt;BankEvent, Tuple0, Tuple0&gt; kafkaEventPublisher(
+            ActorSystem actorSystem,
+            ProducerSettings&lt;String, EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; producerSettings,
+            String topic) {
+        return new KafkaEventPublisher&lt;&gt;(actorSystem, producerSettings, topic);
+    }
+    //...
+}
+</code></pre>
+<h2><a href="#event-store" name="event-store" class="anchor"><span class="anchor-link"></span></a>Event store</h2>
+<p>We need to change our <code>EventStore</code> implementation to <code>PostgresEventStore</code>. This new event store will store event in Postgres instead of in memory.</p>
+<pre class="prettyprint"><code class="language-java">public class Bank {
+    //...
+    private PostgresEventStore&lt;BankEvent, Tuple0, Tuple0&gt; eventStore(
+            ActorSystem actorSystem,
+            KafkaEventPublisher&lt;BankEvent, Tuple0, Tuple0&gt; kafkaEventPublisher,
+            DataSource dataSource,
+            ExecutorService executorService,
+            TableNames tableNames,
+            JacksonEventFormat&lt;String, BankEvent&gt; jacksonEventFormat) {
+        return PostgresEventStore.create(actorSystem, kafkaEventPublisher, dataSource, executorService, tableNames, jacksonEventFormat);
+    }
+    //...
+}
+</code></pre>
+<h2><a href="#event-processor" name="event-processor" class="anchor"><span class="anchor-link"></span></a>Event processor</h2>
+<p>The last step is to swap our <code>EventProcessor</code> with <code>PostgresKafkaEventProcessor</code>.</p>
+<p>To instantiate this new EventProcessor, we&rsquo;ll need everything we defined previously, and additional instances: * </p>
+<pre class="prettyprint"><code class="language-java">public class Bank {
+    //...
+    public Bank(ActorSystem actorSystem,
+                    BankCommandHandler commandHandler,
+                    BankEventHandler eventHandler
+                    ) throws SQLException {
+        String topic = &quot;bank&quot;;
+        this.actorSystem = actorSystem;
+        JacksonEventFormat&lt;String, BankEvent&gt; eventFormat = new BankEventFormat();
+        ProducerSettings&lt;String, EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; producerSettings = producerSettings(settings(), eventFormat);
+        DataSource dataSource = dataSource();
+        TableNames tableNames = tableNames();
+
+        ExecutorService executorService = Executors.newFixedThreadPool(5);
+        JdbcTransactionManager transactionManager = new JdbcTransactionManager(dataSource(), executorService);
+
+        KafkaEventPublisher&lt;BankEvent, Tuple0, Tuple0&gt; kafkaEventPublisher = kafkaEventPublisher(actorSystem, producerSettings, topic);
+
+        PostgresEventStore&lt;BankEvent, Tuple0, Tuple0&gt; eventStore = eventStore(
+                actorSystem,
+                kafkaEventPublisher,
+                dataSource,
+                executorService,
+                tableNames,
+                eventFormat
+        );
+
+        this.eventProcessor = new PostgresKafkaEventProcessor&lt;&gt;(new PostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig&lt;&gt;(
+                actorSystem,
+                eventStore,
+                transactionManager,
+                commandHandler,
+                eventHandler,
+                List.of(meanWithdrawProjection),
+                kafkaEventPublisher
+        ));
+    }
+    //...
+}
+</code></pre>
+<h2><a href="#usage" name="usage" class="anchor"><span class="anchor-link"></span></a>Usage</h2>
+<p>Usage remains the same as in <a href="../banking.html">in memory example</a>.</p>
+<p>A <a href="https://github.com/MAIF/thoth/tree/master/docker-compose.yml">docker-compose.yml</a> file is available to set-up dev environment.</p>
+<p>It exposes a PostgreSQL server on <a href="http://localhost:5432/">http://localhost:5432/</a> and a kafdrop instance on <a href="http://localhost:9000/">http://localhost:9000/</a>.</p>
+<pre class="prettyprint"><code class="language-java">ActorSystem actorSystem = ActorSystem.create();
+BankCommandHandler commandHandler = new BankCommandHandler();
+BankEventHandler eventHandler = new BankEventHandler();
+Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
+
+String id = bank.createAccount(BigDecimal.valueOf(100)).get().get().currentState.get().id;
+
+bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
+</code></pre>
+<p>The above code puts the following events in bank_journal table in postgres :</p>
+<pre><code>eventsourcing=&gt; select * from bank_journal;
+                  id                  |              entity_id               | sequence_num |   event_type   | version |            transaction_id            |                                event                                 | metadata | context | total_message_in_transaction | num_message_in_transaction |       emission_date        | user_id | system_id | published
+--------------------------------------+--------------------------------------+--------------+----------------+---------+--------------------------------------+----------------------------------------------------------------------+----------+---------+------------------------------+----------------------------+----------------------------+---------+-----------+-----------
+ b6e90e54-2b35-11eb-bf14-d36eb2a73a4d | b6e787b2-2b35-11eb-bf14-b3c9ba98988e |            1 | AccountOpened  |       1 | b6e87213-2b35-11eb-bf14-03a006a0f3f3 | {&quot;accountId&quot;: &quot;b6e787b2-2b35-11eb-bf14-b3c9ba98988e&quot;}                |          |         |                            2 |                          1 | 2020-11-20 14:38:46.907717 |         |           | t
+ b70a51f5-2b35-11eb-bf14-d36eb2a73a4d | b6e787b2-2b35-11eb-bf14-b3c9ba98988e |            2 | MoneyDeposited |       1 | b6e87213-2b35-11eb-bf14-03a006a0f3f3 | {&quot;amount&quot;: 100, &quot;accountId&quot;: &quot;b6e787b2-2b35-11eb-bf14-b3c9ba98988e&quot;} |          |         |                            2 |                          2 | 2020-11-20 14:38:46.91322  |         |           | t
+ b72bbca7-2b35-11eb-bf14-d36eb2a73a4d | b6e787b2-2b35-11eb-bf14-b3c9ba98988e |            3 | MoneyWithdrawn |       1 | b72bbca6-2b35-11eb-bf14-03a006a0f3f3 | {&quot;amount&quot;: 50, &quot;accountId&quot;: &quot;b6e787b2-2b35-11eb-bf14-b3c9ba98988e&quot;}  |          |         |                            1 |                          1 | 2020-11-20 14:38:47.134795 |         |           | t
+(3 rows)
+</code></pre>
+<p>Events below are published to kafka&rsquo;s bank topic :</p>
+<p>Offset 0</p>
+<pre class="prettyprint"><code class="language-json">{
+   &quot;id&quot;: &quot;b6e90e54-2b35-11eb-bf14-d36eb2a73a4d&quot;,
+   &quot;sequenceNum&quot;: 1,
+   &quot;eventType&quot;: &quot;AccountOpened&quot;,
+   &quot;emissionDate&quot;: &quot;2020-11-20T14:38:46.907717&quot;,
+   &quot;transactionId&quot;: &quot;b6e87213-2b35-11eb-bf14-03a006a0f3f3&quot;,
+   &quot;metadata&quot;: null,
+   &quot;event&quot;: {
+      &quot;accountId&quot;: &quot;b6e787b2-2b35-11eb-bf14-b3c9ba98988e&quot;
+   },
+   &quot;context&quot;: null,
+   &quot;version&quot;: 1,
+   &quot;published&quot;: null,
+   &quot;totalMessageInTransaction&quot;: 2,
+   &quot;numMessageInTransaction&quot;: 1,
+   &quot;entityId&quot;: &quot;b6e787b2-2b35-11eb-bf14-b3c9ba98988e&quot;,
+   &quot;userId&quot;: null,
+   &quot;systemId&quot;: null
+}
+</code></pre>
+<p>Offset 1</p>
+<pre class="prettyprint"><code class="language-json">{
+   &quot;id&quot;: &quot;b70a51f5-2b35-11eb-bf14-d36eb2a73a4d&quot;,
+   &quot;sequenceNum&quot;: 2,
+   &quot;eventType&quot;: &quot;MoneyDeposited&quot;,
+   &quot;emissionDate&quot;: &quot;2020-11-20T14:38:46.91322&quot;,
+   &quot;transactionId&quot;: &quot;b6e87213-2b35-11eb-bf14-03a006a0f3f3&quot;,
+   &quot;metadata&quot;: null,
+   &quot;event&quot;: {
+      &quot;accountId&quot;: &quot;b6e787b2-2b35-11eb-bf14-b3c9ba98988e&quot;,
+      &quot;amount&quot;: 100
+   },
+   &quot;context&quot;: null,
+   &quot;version&quot;: 1,
+   &quot;published&quot;: null,
+   &quot;totalMessageInTransaction&quot;: 2,
+   &quot;numMessageInTransaction&quot;: 2,
+   &quot;entityId&quot;: &quot;b6e787b2-2b35-11eb-bf14-b3c9ba98988e&quot;,
+   &quot;userId&quot;: null,
+   &quot;systemId&quot;: null
+}
+</code></pre>
+<p>Offset 2</p>
+<pre class="prettyprint"><code class="language-json">{
+   &quot;id&quot;: &quot;b72bbca7-2b35-11eb-bf14-d36eb2a73a4d&quot;,
+   &quot;sequenceNum&quot;: 3,
+   &quot;eventType&quot;: &quot;MoneyWithdrawn&quot;,
+   &quot;emissionDate&quot;: &quot;2020-11-20T14:38:47.134795&quot;,
+   &quot;transactionId&quot;: &quot;b72bbca6-2b35-11eb-bf14-03a006a0f3f3&quot;,
+   &quot;metadata&quot;: null,
+   &quot;event&quot;: {
+      &quot;accountId&quot;: &quot;b6e787b2-2b35-11eb-bf14-b3c9ba98988e&quot;,
+      &quot;amount&quot;: 50
+   },
+   &quot;context&quot;: null,
+   &quot;version&quot;: 1,
+   &quot;published&quot;: null,
+   &quot;totalMessageInTransaction&quot;: 1,
+   &quot;numMessageInTransaction&quot;: 1,
+   &quot;entityId&quot;: &quot;b6e787b2-2b35-11eb-bf14-b3c9ba98988e&quot;,
+   &quot;userId&quot;: null,
+   &quot;systemId&quot;: null
+}
+</code></pre>
+<p>As we can see, BankEvents aren&rsquo;t published directly into kafka topic, they are wrapped in an &ldquo;envelop&rdquo; that contains metadata of the event:</p>
+<ul>
+  <li><code>id</code>: unique id of the event</li>
+  <li><code>sequenceNum</code>: sequenceNum of the event, sequence is shared between all events therefore sequence num of events for a given id could be non sequential</li>
+  <li><code>eventType</code>: the type of the event (<code>MoneyWithdrawn</code>, <code>AccountCreated</code>, &hellip;)</li>
+  <li><code>emissionDate</code>: emissionDate of the event</li>
+  <li><code>transactionId</code>: id that can be used to group events emitted by processing a single commands</li>
+  <li><code>metadata</code>: json field that can be used to embed additional metadata if needed</li>
+  <li><code>event</code>: BankEvent serialized to json</li>
+  <li><code>context</code>: json field that can be used to embed additional context information if needed</li>
+  <li><code>version</code>: version of the event</li>
+  <li><code>published</code>: whether event is published, this field is always null in envelops published in Kafka, but is informed in database</li>
+  <li><code>totalMessageInTransaction</code>: total number of messages emitted for the processed command</li>
+  <li><code>numMessageInTransaction</code>: index of this message for current transaction</li>
+  <li><code>entityId</code>: state (account) identifier</li>
+  <li><code>userId</code>: can be use to identify user that emitted command</li>
+  <li><code>systemId</code>: can be use to identify system that emitted events</li>
+</ul>
+<p><a href="https://github.com/MAIF/thoth/tree/master/demo/demo-postgres-kafka">Complete executable example.</a></p>
+<div class="source-github">
+The source code for this page can be found <a href="https://github.com/MAIF/thoth/tree/master/thoth-documentation/src/main/paradox/standard/banking-real-life.md">here</a>.
+</div>
+
+<div class="nav-next">
+<p><strong>Next:</strong> <a href="../standard/projections.html">Projections</a></p>
+</div>
+</div>
+<div class="large-3 show-for-large column" data-sticky-container>
+<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
+<div class="page-nav">
+<div class="nav-title">On this page:</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="../standard/banking-real-life.html#postgres-kafka-event-sourcing" class="header">Postgres Kafka event sourcing</a>
+  <ul>
+    <li><a href="../standard/banking-real-life.html#sql" class="header">SQL</a></li>
+    <li><a href="../standard/banking-real-life.html#code" class="header">Code</a></li>
+  </ul></li>
+</ul>
+</div>
+</div>
+</nav>
+</div>
+</div>
+
+</section>
+</div>
+
+</div>
+
+<footer class="site-footer">
+
+<section class="site-footer-nav">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 medium-4 large-3 text-center column">
+<div class="nav-links">
+<ul>
+<!-- <li><a href="https://www.example.com/products/">Products</a> -->
+</ul>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</section>
+
+<section class="site-footer-base">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 text-center large-9 column">
+
+<!--
+<div class="copyright">
+<span class="text">&copy; 2021</span>
+<a href="https://www.example.com" class="logo">logo</a>
+</div>
+-->
+</div>
+
+</div>
+</div>
+</div>
+</section>
+</footer>
+
+</div>
+</div>
+</div>
+</body>
+
+<script type="text/javascript" src="../lib/foundation/dist/foundation.min.js"></script>
+<script type="text/javascript">jQuery(document).foundation();</script>
+<script type="text/javascript" src="../js/magellan.js"></script>
+
+<style type="text/css">@import "../lib/prettify/prettify.css";</style>
+<script type="text/javascript" src="../lib/prettify/prettify.js"></script>
+<script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
+<script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-112498312-1"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+
+gtag('config', 'UA-112498312-1');
+</script>
+</html>
+
+
+
+
