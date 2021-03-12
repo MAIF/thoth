@@ -3,14 +3,12 @@ import ReleaseTransformations._
 name := "thoth"
 organization := "fr.maif"
 
-scalaVersion := "2.12.12"
+scalaVersion := "2.12.13"
+crossScalaVersions := List("2.13.5", "2.12.13")
 
-val res = Seq(
-  Resolver.jcenterRepo,
-  Resolver.bintrayRepo("maif-functional-java", "maven")
-)
-
-resolvers ++= res
+usePgpKeyHex("5B6BE1966878E3AE16B85BC975B8BA741462DEA9")
+sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+sonatypeCredentialHost := "s01.oss.sonatype.org"
 
 lazy val root = (project in file("."))
   .aggregate(
@@ -21,38 +19,65 @@ lazy val root = (project in file("."))
     `demo-postgres-kafka`,
     `demo-in-memory`
   )
-  .enablePlugins(NoPublish, GitVersioning, GitBranchPrompt)
-  .disablePlugins(BintrayPlugin)
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .settings(
+    skip in publish := true
+  )
 
+lazy val `demo-postgres-kafka` = (project in file("./demo/demo-postgres-kafka"))
+  .dependsOn(`thoth-jooq`)
+  .settings(
+    skip in publish := true
+  )
 
-lazy val `demo-postgres-kafka` = (project in file("./demo/demo-postgres-kafka")).dependsOn(`thoth-jooq`).enablePlugins(NoPublish)
-  .disablePlugins(BintrayPlugin)
+lazy val `demo-in-memory` = (project in file("./demo/demo-in-memory"))
+  .dependsOn(`thoth-core`)
+  .settings(
+    skip in publish := true
+  )
 
-lazy val `demo-in-memory` = (project in file("./demo/demo-in-memory")).dependsOn(`thoth-core`).enablePlugins(NoPublish)
-  .disablePlugins(BintrayPlugin)
-
-lazy val `demo-postgres-kafka-reactive` = (project in file("./demo/demo-postgres-kafka-reactive"))
-  .dependsOn(`thoth-core`, `thoth-jooq-async`)
-  .enablePlugins(NoPublish)
-  .disablePlugins(BintrayPlugin)
+lazy val `demo-postgres-kafka-reactive` =
+  (project in file("./demo/demo-postgres-kafka-reactive"))
+    .dependsOn(`thoth-core`, `thoth-jooq-async`)
+    .settings(
+      skip in publish := true
+    )
 
 lazy val `commons-events` = project
-  .settings(publishCommonsSettings: _*)
+  .settings(
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+    sonatypeCredentialHost := "s01.oss.sonatype.org"
+  )
 
 lazy val `thoth-jooq-async` = project
   .dependsOn(`thoth-core`)
-  .settings(publishCommonsSettings: _*)
+  .settings(
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+    sonatypeCredentialHost := "s01.oss.sonatype.org"
+  )
 
 lazy val `thoth-core` = project
   .dependsOn(`commons-events`)
-  .settings(publishCommonsSettings: _*)
+  .settings(
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+    sonatypeCredentialHost := "s01.oss.sonatype.org"
+  )
 
 lazy val `thoth-jooq` = project
   .dependsOn(`thoth-core`)
-  .settings(publishCommonsSettings: _*)
+  .settings(
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+    sonatypeCredentialHost := "s01.oss.sonatype.org"
+  )
 
-
-javacOptions in Compile ++= Seq("-source", "15", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
+javacOptions in Compile ++= Seq(
+  "-source",
+  "15",
+  "-target",
+  "8",
+  "-Xlint:unchecked",
+  "-Xlint:deprecation"
+)
 
 testFrameworks := Seq(TestFrameworks.JUnit)
 testOptions += Tests.Argument(TestFrameworks.JUnit, "-v")
@@ -73,33 +98,48 @@ releaseProcess := Seq[ReleaseStep](
 
 lazy val githubRepo = "maif/thoth"
 
-lazy val publishCommonsSettings = Seq(
-  homepage := Some(url(s"https://github.com/$githubRepo")),
-  startYear := Some(2018),
-  bintrayOmitLicense := true,
-  crossPaths := false,
-  scmInfo := Some(
-    ScmInfo(
-      url(s"https://github.com/$githubRepo"),
-      s"scm:git:https://github.com/$githubRepo.git",
-      Some(s"scm:git:git@github.com:$githubRepo.git")
-    )
-  ),
-  licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
-  developers := List(
-    Developer("alexandre.delegue", "Alexandre Delègue", "", url(s"https://github.com/larousso")),
-    Developer("benjamin.cavy", "Benjamin Cavy", "", url(s"https://github.com/ptitFicus")),
-    Developer("gregory.bevan", "Grégory Bévan", "", url(s"https://github.com/GregoryBevan")),
-    Developer("georges.ginon", "Georges Ginon", "", url(s"https://github.com/ftoumHub"))
-  ),
-  releaseCrossBuild := true,
-  publishMavenStyle := true,
-  publishArtifact in Test := false,
-  bintrayVcsUrl := Some(s"scm:git:git@github.com:$githubRepo.git"),
-  resolvers ++= res,
-  bintrayOrganization := Some("maif-functional-java"),
-  bintrayRepository := "maven",
-  pomIncludeRepository := { _ =>
-    false
-  }
+inThisBuild(
+  List(
+    homepage := Some(url(s"https://github.com/$githubRepo")),
+    startYear := Some(2018),
+    crossPaths := true,
+    scmInfo := Some(
+      ScmInfo(
+        url(s"https://github.com/$githubRepo"),
+        s"scm:git:https://github.com/$githubRepo.git",
+        Some(s"scm:git:git@github.com:$githubRepo.git")
+      )
+    ),
+    licenses := Seq(
+      ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))
+    ),
+    developers := List(
+      Developer(
+        "alexandre.delegue",
+        "Alexandre Delègue",
+        "",
+        url(s"https://github.com/larousso")
+      ),
+      Developer(
+        "benjamin.cavy",
+        "Benjamin Cavy",
+        "",
+        url(s"https://github.com/ptitFicus")
+      ),
+      Developer(
+        "gregory.bevan",
+        "Grégory Bévan",
+        "",
+        url(s"https://github.com/GregoryBevan")
+      ),
+      Developer(
+        "georges.ginon",
+        "Georges Ginon",
+        "",
+        url(s"https://github.com/ftoumHub")
+      )
+    ),
+    releaseCrossBuild := true,
+    publishArtifact in Test := false
+  )
 )
