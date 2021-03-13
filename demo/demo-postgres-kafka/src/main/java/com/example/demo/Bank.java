@@ -4,9 +4,10 @@ import akka.actor.ActorSystem;
 import akka.kafka.ProducerSettings;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
-import fr.maif.akka.AkkaExecutionContext;
-import fr.maif.eventsourcing.*;
-import fr.maif.eventsourcing.PostgresKafkaEventProcessorBuilder.BuilderWithEventHandler;
+import fr.maif.eventsourcing.EventEnvelope;
+import fr.maif.eventsourcing.EventProcessor;
+import fr.maif.eventsourcing.PostgresKafkaEventProcessor;
+import fr.maif.eventsourcing.ProcessingSuccess;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.eventsourcing.impl.JdbcTransactionManager;
@@ -120,15 +121,12 @@ public class Bank {
                 .withNoContextFormater()
                 .withKafkaSettings(topic, producerSettings)
                 .withEventHandler(eventHandler)
-                .withAggregateStore(builder -> {
-                    var b = (BuilderWithEventHandler<Account, BankEvent, Tuple0, Tuple0>) builder;
-                    return new BankAggregateStore(
-                            b.eventStore,
-                            b.eventHandler,
-                            b.system,
-                            b.transactionManager
-                    );
-                })
+                .withAggregateStore(builder -> new BankAggregateStore(
+                            builder.eventStore,
+                            builder.eventHandler,
+                            builder.system,
+                            builder.transactionManager
+                    ))
                 .withCommandHandler(commandHandler)
                 .withProjections(meanWithdrawProjection)
                 .build();

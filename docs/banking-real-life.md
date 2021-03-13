@@ -266,15 +266,13 @@ public class Bank {
                 .withNoContextFormater()
                 .withKafkaSettings(topic, producerSettings)
                 .withEventHandler(eventHandler)
-                .withAggregateStore(builder -> {
-                    var b = (BuilderWithEventHandler<Account, BankEvent, Tuple0, Tuple0>) builder;
-                    return new BankAggregateStore(
+                .withAggregateStore(b -> new BankAggregateStore(
                             b.eventStore,
                             b.eventHandler,
                             b.system,
                             b.transactionManager
-                    );
-                })
+                    )
+                )
                 .withCommandHandler(commandHandler)
                 .withProjections(meanWithdrawProjection)
                 .build();

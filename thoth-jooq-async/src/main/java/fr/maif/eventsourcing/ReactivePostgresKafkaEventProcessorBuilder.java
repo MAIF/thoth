@@ -158,7 +158,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
                     contextFormat
             );
         }
-        public <S extends State<S>> BuilderWithEventHandler withEventHandler(EventHandler<S, E> eventHandler) {
+        public <S extends State<S>> BuilderWithEventHandler<S, E, Meta, Context> withEventHandler(EventHandler<S, E> eventHandler) {
             return new BuilderWithEventHandler<>(
                     system,
                     pgAsyncPool,
