@@ -39,7 +39,3 @@ public class BankCommandHandler implements CommandHandler<String, Account, BankC
 
 We needed to replace `CommandHandler`'s `Tuple0` parameter by a `List<String>` well suited to represent basic messages.
 This implies to change this `Message` parameter from `Tuple0` to `List<Message>` everywhere in the application.
-
-## Next step
-
-[Custom message ordering](./event-ordering.md)

@@ -1,4 +1,4 @@
-# Example : banking
+# In memory example
 
 This sample explains how to implement event sourcing for a simple use case of bank account.
 
@@ -9,7 +9,7 @@ In this example, we will focus on managing accounts one by one (i.e. no transfer
 
 Here is the process modeling of what happens: 
 
-![](thoth_bank_account.jpg) 
+![](img/thoth_bank_account.jpg) 
 
 ## Model (State) 
 
@@ -351,8 +351,4 @@ bank.createAccount(BigDecimal.valueOf(100))
 
 ## Complete example
 
-See [complete example](../demo/demo-in-memory) of some other commands (withdraw, deposit, close, ...).
-
-## Next step
-
-[Use real Postgres / Kafka instance to store / publish events.](./banking-real-life.md)
+See [complete example](https://github.com/MAIF/thoth/tree/master/demo/demo-in-memory) of some other commands (withdraw, deposit, close, ...).

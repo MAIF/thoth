@@ -19,7 +19,7 @@ It provides capabilities of defining two types of projections:
 * "Transactional" projections, that are updated in the same transaction as the events
 * "Eventually consistent" projections, updated asynchronously by consuming Kafka
 
-![](docs/thoth_event_sourcing.jpg)
+![](thoth-documentation/src/main/paradox/img/thoth_event_sourcing.jpg)
 
 It also allows storing snapshots of the application state, for scenarios that implies lot of events. 
 
@@ -37,37 +37,10 @@ These libs are based on :
  * `thoth-core`: APIs for event-sourcing 
  * `thoth-jooq`: A jooq simple implementation of the `thoth-core` APIs   
  * `thoth-jooq-async`: A jooq implementation of the `thoth-core` APIs using the `jooq-async-api`interface
- 
-## Things to know 
-
-The vavr `Future` is used for async call (java `CompletionStage` is not user-friendly). 
-
-The akka stream `Source` is used for stream processing. 
-
-The vavr `Either` is used to handle business errors. The idea is to have three channels:  
- * it's ok: `Future(Right("Result"))` 
- * it's an error: `Future(Left("Bad request"))`
- * it's a failure: `Future.failed(CrashedException("Crap!"))`
-
-`io.vavr.Tuple0` is used instead of `void` so everything can be an expression: 
-
-```java
-Tuple0 sideEffect() {
-    println("I have done a side effect");
-    return Tuple.empty();
-}
-```
 
 ## Documentation
 
-* [Event sourcing](./docs/banking.md): documentation of the core components, implementing a sample in-memory banking application
-* [Jooq/Kafka](./docs/banking-real-life.md): migration of the sample application from in-memory to Postgres(JDBC) / Kafka
-* [Projections](./docs/projections.md): projections documentation, implementing projection in sample application
-* [Database configuration](./docs/database%20configuration.md): databases index to create
-* [Messages](./docs/message.md): documentation of returning messages/warnings while handling commands
-* [Custom event ordering](./docs/event-ordering.md): documentation on custom event ordering
-* [Aggregate store](./docs/aggregatestore.md): documentation on periodic snapshot storing for performances
-* [Non blocking Postgres / Kafka implementation](./docs/banking-real-life-non-blocking.md): documentation of non blocking postgres / Kafka implementation using reactive postgres vertx driver
+See our [documentation](https://maif.github.io/thoth/manual/).
 
 ## Limits
 

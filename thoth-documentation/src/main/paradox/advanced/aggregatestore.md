@@ -100,8 +100,4 @@ public class Bank {
 *IMPORTANT NOTE*: This aggregate store should only be used when having performance issues on state reading.
 It's a tradeoff where we accept to have slower write to get faster read. 
 
-To implement an alternative read model (i.e. CQRS), [projections](./projections.md) should be used.
-
-## Next step
-
-[Non blocking Postgres / Kafka implementation](./banking-real-life-non-blocking.md)
+To implement an alternative read model (i.e. CQRS), @ref:[projections](../standard/projections.md) should be used.
