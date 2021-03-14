@@ -258,7 +258,7 @@ public class Bank {
         
         this.eventProcessor = PostgresKafkaEventProcessor
                 .withActorSystem(actorSystem)
-                .withPgAsyncPool(dataSource())
+                .withDataSource(dataSource())
                 .withTables(tableNames)
                 .withTransactionManager(transactionManager, executorService)
                 .withEventFormater(eventFormat)
