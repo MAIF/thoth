@@ -25,7 +25,7 @@ public class PostgresKafkaEventProcessorBuilder {
     public static class BuilderWithSystem {
         public final ActorSystem system;
 
-        public BuilderWithPool withPgAsyncPool(DataSource dataSource) {
+        public BuilderWithPool withDataSource(DataSource dataSource) {
             return new BuilderWithPool(system, dataSource);
         }
     }
