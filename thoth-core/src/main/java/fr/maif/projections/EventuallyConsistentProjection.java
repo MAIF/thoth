@@ -21,6 +21,8 @@ import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.kafka.JsonDeserializer;
 import io.vavr.Tuple0;
 import io.vavr.concurrent.Future;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -28,7 +30,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
@@ -39,6 +41,18 @@ import static io.vavr.Tuple.empty;
 @Slf4j
 public abstract class EventuallyConsistentProjection<E extends Event, Meta, Context> {
 
+    @Builder(toBuilder = true)
+    @AllArgsConstructor
+    public static class Config<E extends Event, Meta, Context> {
+        public final String topic;
+        public final String groupId;
+        public final String bootstrapServers;
+        public final Function<ConsumerSettings<String, EventEnvelope<E, Meta, Context>>, ConsumerSettings<String, EventEnvelope<E, Meta, Context>>> completeConfig;
+        public final Duration minBackoff;
+        public final Duration maxBackoff;
+        public final Integer randomFactor;
+        public final Integer commitSize;
+    }
 
     protected final ActorSystem actorSystem;
     protected final Materializer materializer;
@@ -46,18 +60,27 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
     protected final String topic;
     protected final String groupId;
     protected final String bootstrapServers;
+    protected final Duration minBackoff;
+    protected final Duration maxBackoff;
+    protected final double randomFactor;
+    protected final Integer commitSize;
     protected final ConsumerSettings<String, EventEnvelope<E, Meta, Context>> consumerSettings;
 
     protected final AtomicReference<Consumer.Control> controlRef = new AtomicReference<>();
     protected final AtomicReference<Status> innerStatus = new AtomicReference<>(Status.stopped);
 
-    public EventuallyConsistentProjection(ActorSystem actorSystem, String topic, String groupId, String bootstrapServers) {
+    public EventuallyConsistentProjection(ActorSystem actorSystem, Config<E, Meta, Context> config) {
         this.actorSystem = actorSystem;
         this.materializer = Materializer.createMaterializer(actorSystem);
-        this.topic = topic;
-        this.groupId = groupId;
-        this.bootstrapServers = bootstrapServers;
-        this.consumerSettings = completeConfig(ConsumerSettings
+        this.topic = config.topic;
+        this.groupId = config.groupId;
+        this.bootstrapServers = config.bootstrapServers;
+        this.minBackoff = Objects.isNull(config.minBackoff) ? Duration.ofSeconds(30) : config.minBackoff;
+        this.maxBackoff = Objects.isNull(config.maxBackoff) ? Duration.ofMinutes(30) : config.maxBackoff;
+        this.randomFactor = Objects.isNull(config.randomFactor) ? 0.2d : config.randomFactor;
+        this.commitSize = Objects.isNull(config.commitSize) ? 10 : config.commitSize;
+        Function<ConsumerSettings<String, EventEnvelope<E, Meta, Context>>, ConsumerSettings<String, EventEnvelope<E, Meta, Context>>> completeConfig = Objects.isNull(config.completeConfig) ? e -> e : config.completeConfig;
+        this.consumerSettings = completeConfig.apply(ConsumerSettings
                 .create(actorSystem, new StringDeserializer(), deserializer())
                 .withGroupId(groupId)
                 .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
@@ -67,17 +90,24 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
         this.start();
     }
 
+
+
     public static <E extends Event, Meta, Context> EventuallyConsistentProjection<E, Meta, Context> create(ActorSystem actorSystem,
                                                                                                            String name,
-                                                                                                           String topic,
-                                                                                                           String groupId,
-                                                                                                           String bootstrapServers,
-                                                                                                           Function<ConsumerSettings<String, EventEnvelope<E, Meta, Context>>, ConsumerSettings<String, EventEnvelope<E, Meta, Context>>> handleConfig,
+                                                                                                           Config config,
+                                                                                                           JacksonEventFormat<?, E> eventFormat,
+                                                                                                           Flow<ConsumerMessage.CommittableMessage<String, EventEnvelope<E, Meta, Context>>, ConsumerMessage.CommittableOffset, NotUsed> messageHandling) {
+        return create(actorSystem, name, config, eventFormat, JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty(), messageHandling);
+    }
+
+    public static <E extends Event, Meta, Context> EventuallyConsistentProjection<E, Meta, Context> create(ActorSystem actorSystem,
+                                                                                                           String name,
+                                                                                                           Config config,
                                                                                                            JacksonEventFormat<?, E> eventFormat,
                                                                                                            JacksonSimpleFormat<Meta> metaFormat,
                                                                                                            JacksonSimpleFormat<Context> contextFormat,
                                                                                                            Flow<ConsumerMessage.CommittableMessage<String, EventEnvelope<E, Meta, Context>>, ConsumerMessage.CommittableOffset, NotUsed> messageHandling) {
-        return new EventuallyConsistentProjection<E, Meta, Context>(actorSystem, topic, groupId, bootstrapServers) {
+        return new EventuallyConsistentProjection<E, Meta, Context>(actorSystem, config) {
             @Override
             protected String name() {
                 return name;
@@ -105,12 +135,18 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
         };
     }
 
+
     public static <E extends Event, Meta, Context> EventuallyConsistentProjection<E, Meta, Context> create(ActorSystem actorSystem,
                                                                                                            String name,
-                                                                                                           String topic,
-                                                                                                           String groupId,
-                                                                                                           String bootstrapServers,
-                                                                                                           Function<ConsumerSettings<String, EventEnvelope<E, Meta, Context>>, ConsumerSettings<String, EventEnvelope<E, Meta, Context>>> handleConfig,
+                                                                                                           Config config,
+                                                                                                           JacksonEventFormat<?, E> eventFormat,
+                                                                                                           Function<EventEnvelope<E, Meta, Context>, Future<Tuple0>> messageHandling) {
+        return create(actorSystem, name, config, eventFormat, JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty(), messageHandling);
+    }
+
+    public static <E extends Event, Meta, Context> EventuallyConsistentProjection<E, Meta, Context> create(ActorSystem actorSystem,
+                                                                                                           String name,
+                                                                                                           Config config,
                                                                                                            JacksonEventFormat<?, E> eventFormat,
                                                                                                            JacksonSimpleFormat<Meta> metaFormat,
                                                                                                            JacksonSimpleFormat<Context> contextFormat,
@@ -118,10 +154,7 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
         return create(
                 actorSystem,
                 name,
-                topic,
-                groupId,
-                bootstrapServers,
-                handleConfig,
+                config,
                 eventFormat,
                 metaFormat,
                 contextFormat,
@@ -180,9 +213,9 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
         logger().info("Starting {} @{} on topic '{}' with group id '{}'", name(), Integer.toHexString(this.hashCode()), topic, groupId);
 
         RestartSource.onFailuresWithBackoff(
-                Duration.of(10, ChronoUnit.SECONDS),
-                Duration.of(30, ChronoUnit.MINUTES),
-                0d,
+                minBackoff,
+                maxBackoff,
+                randomFactor,
                 () -> {
                     logger().info("Stream for {} is starting", name());
                     return Consumer
