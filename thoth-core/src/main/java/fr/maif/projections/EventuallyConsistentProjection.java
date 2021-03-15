@@ -37,7 +37,7 @@ import java.util.function.Function;
 import static io.vavr.Tuple.empty;
 
 @Slf4j
-public abstract class EventualyConsistentProjection<E extends Event, Meta, Context> {
+public abstract class EventuallyConsistentProjection<E extends Event, Meta, Context> {
 
 
     protected final ActorSystem actorSystem;
@@ -51,7 +51,7 @@ public abstract class EventualyConsistentProjection<E extends Event, Meta, Conte
     protected final AtomicReference<Consumer.Control> controlRef = new AtomicReference<>();
     protected final AtomicReference<Status> innerStatus = new AtomicReference<>(Status.stopped);
 
-    public EventualyConsistentProjection(ActorSystem actorSystem, String topic, String groupId, String bootstrapServers) {
+    public EventuallyConsistentProjection(ActorSystem actorSystem, String topic, String groupId, String bootstrapServers) {
         this.actorSystem = actorSystem;
         this.materializer = Materializer.createMaterializer(actorSystem);
         this.topic = topic;
@@ -67,17 +67,17 @@ public abstract class EventualyConsistentProjection<E extends Event, Meta, Conte
         this.start();
     }
 
-    public static <E extends Event, Meta, Context> EventualyConsistentProjection<E, Meta, Context> create(ActorSystem actorSystem,
-                                                                                                          String name,
-                                                                                                          String topic,
-                                                                                                          String groupId,
-                                                                                                          String bootstrapServers,
-                                                                                                          Function<ConsumerSettings<String, EventEnvelope<E, Meta, Context>>, ConsumerSettings<String, EventEnvelope<E, Meta, Context>>> handleConfig,
-                                                                                                          JacksonEventFormat<?, E> eventFormat,
-                                                                                                          JacksonSimpleFormat<Meta> metaFormat,
-                                                                                                          JacksonSimpleFormat<Context> contextFormat,
-                                                                                                          Flow<ConsumerMessage.CommittableMessage<String, EventEnvelope<E, Meta, Context>>, ConsumerMessage.CommittableOffset, NotUsed> messageHandling) {
-        return new EventualyConsistentProjection<E, Meta, Context>(actorSystem, topic, groupId, bootstrapServers) {
+    public static <E extends Event, Meta, Context> EventuallyConsistentProjection<E, Meta, Context> create(ActorSystem actorSystem,
+                                                                                                           String name,
+                                                                                                           String topic,
+                                                                                                           String groupId,
+                                                                                                           String bootstrapServers,
+                                                                                                           Function<ConsumerSettings<String, EventEnvelope<E, Meta, Context>>, ConsumerSettings<String, EventEnvelope<E, Meta, Context>>> handleConfig,
+                                                                                                           JacksonEventFormat<?, E> eventFormat,
+                                                                                                           JacksonSimpleFormat<Meta> metaFormat,
+                                                                                                           JacksonSimpleFormat<Context> contextFormat,
+                                                                                                           Flow<ConsumerMessage.CommittableMessage<String, EventEnvelope<E, Meta, Context>>, ConsumerMessage.CommittableOffset, NotUsed> messageHandling) {
+        return new EventuallyConsistentProjection<E, Meta, Context>(actorSystem, topic, groupId, bootstrapServers) {
             @Override
             protected String name() {
                 return name;
@@ -105,16 +105,16 @@ public abstract class EventualyConsistentProjection<E extends Event, Meta, Conte
         };
     }
 
-    public static <E extends Event, Meta, Context> EventualyConsistentProjection<E, Meta, Context> create(ActorSystem actorSystem,
-                                                                                                          String name,
-                                                                                                          String topic,
-                                                                                                          String groupId,
-                                                                                                          String bootstrapServers,
-                                                                                                          Function<ConsumerSettings<String, EventEnvelope<E, Meta, Context>>, ConsumerSettings<String, EventEnvelope<E, Meta, Context>>> handleConfig,
-                                                                                                          JacksonEventFormat<?, E> eventFormat,
-                                                                                                          JacksonSimpleFormat<Meta> metaFormat,
-                                                                                                          JacksonSimpleFormat<Context> contextFormat,
-                                                                                                          Function<EventEnvelope<E, Meta, Context>, Future<Tuple0>> messageHandling) {
+    public static <E extends Event, Meta, Context> EventuallyConsistentProjection<E, Meta, Context> create(ActorSystem actorSystem,
+                                                                                                           String name,
+                                                                                                           String topic,
+                                                                                                           String groupId,
+                                                                                                           String bootstrapServers,
+                                                                                                           Function<ConsumerSettings<String, EventEnvelope<E, Meta, Context>>, ConsumerSettings<String, EventEnvelope<E, Meta, Context>>> handleConfig,
+                                                                                                           JacksonEventFormat<?, E> eventFormat,
+                                                                                                           JacksonSimpleFormat<Meta> metaFormat,
+                                                                                                           JacksonSimpleFormat<Context> contextFormat,
+                                                                                                           Function<EventEnvelope<E, Meta, Context>, Future<Tuple0>> messageHandling) {
         return create(
                 actorSystem,
                 name,
