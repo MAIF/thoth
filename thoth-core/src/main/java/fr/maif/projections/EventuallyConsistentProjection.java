@@ -21,6 +21,7 @@ import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.kafka.JsonDeserializer;
 import io.vavr.Tuple0;
 import io.vavr.concurrent.Future;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +43,7 @@ import static io.vavr.Tuple.empty;
 public abstract class EventuallyConsistentProjection<E extends Event, Meta, Context> {
 
     @Builder(toBuilder = true)
-    @AllArgsConstructor
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class Config<E extends Event, Meta, Context> {
         public final String topic;
         public final String groupId;
@@ -52,6 +53,14 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
         public final Duration maxBackoff;
         public final Integer randomFactor;
         public final Integer commitSize;
+
+        public static <E extends Event, Meta, Context> Config<E, Meta, Context> create(String topic, String groupId, String bootstrapServers) {
+            return Config.<E, Meta, Context>builder()
+                    .bootstrapServers(bootstrapServers)
+                    .groupId(groupId)
+                    .topic(topic)
+                    .build();
+        }
     }
 
     protected final ActorSystem actorSystem;
@@ -94,7 +103,7 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
 
     public static <E extends Event, Meta, Context> EventuallyConsistentProjection<E, Meta, Context> create(ActorSystem actorSystem,
                                                                                                            String name,
-                                                                                                           Config config,
+                                                                                                           Config<E, Meta, Context> config,
                                                                                                            JacksonEventFormat<?, E> eventFormat,
                                                                                                            Flow<ConsumerMessage.CommittableMessage<String, EventEnvelope<E, Meta, Context>>, ConsumerMessage.CommittableOffset, NotUsed> messageHandling) {
         return create(actorSystem, name, config, eventFormat, JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty(), messageHandling);
@@ -102,7 +111,7 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
 
     public static <E extends Event, Meta, Context> EventuallyConsistentProjection<E, Meta, Context> create(ActorSystem actorSystem,
                                                                                                            String name,
-                                                                                                           Config config,
+                                                                                                           Config<E, Meta, Context> config,
                                                                                                            JacksonEventFormat<?, E> eventFormat,
                                                                                                            JacksonSimpleFormat<Meta> metaFormat,
                                                                                                            JacksonSimpleFormat<Context> contextFormat,
@@ -138,7 +147,7 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
 
     public static <E extends Event, Meta, Context> EventuallyConsistentProjection<E, Meta, Context> create(ActorSystem actorSystem,
                                                                                                            String name,
-                                                                                                           Config config,
+                                                                                                           Config<E, Meta, Context> config,
                                                                                                            JacksonEventFormat<?, E> eventFormat,
                                                                                                            Function<EventEnvelope<E, Meta, Context>, Future<Tuple0>> messageHandling) {
         return create(actorSystem, name, config, eventFormat, JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty(), messageHandling);
@@ -146,7 +155,7 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
 
     public static <E extends Event, Meta, Context> EventuallyConsistentProjection<E, Meta, Context> create(ActorSystem actorSystem,
                                                                                                            String name,
-                                                                                                           Config config,
+                                                                                                           Config<E, Meta, Context> config,
                                                                                                            JacksonEventFormat<?, E> eventFormat,
                                                                                                            JacksonSimpleFormat<Meta> metaFormat,
                                                                                                            JacksonSimpleFormat<Context> contextFormat,
@@ -176,10 +185,6 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
     protected abstract JacksonSimpleFormat<Meta> metaFormat();
 
     protected abstract JacksonSimpleFormat<Context> contextFormat();
-
-    protected ConsumerSettings<String, EventEnvelope<E, Meta, Context>> completeConfig(ConsumerSettings<String, EventEnvelope<E, Meta, Context>> current) {
-        return current;
-    }
 
     protected Deserializer<EventEnvelope<E, Meta, Context>> deserializer() {
         return JsonDeserializer.of(eventFormat(), metaFormat(), contextFormat());
