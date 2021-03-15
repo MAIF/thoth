@@ -62,13 +62,13 @@ class EventuallyConsistentProjectionTest extends TestcontainersKafkaTest {
                     return Future.successful(Tuple.empty());
                 }
         );
-        Thread.sleep(1000);
+        Thread.sleep(3000);
 
         resultOf(produceString(topic, stringEvent(new VikingEvent.VikingCreated("1", "Lodbrock"))));
         resultOf(produceString(topic, stringEvent(new VikingEvent.VikingCreated("2", "Lagerta"))));
         resultOf(produceString(topic, stringEvent(new VikingEvent.VikingUpdated("1", "Lodbrok"))));
 
-        Thread.sleep(2000);
+        Thread.sleep(1000);
 
         String actual = names.get();
         println(actual);
