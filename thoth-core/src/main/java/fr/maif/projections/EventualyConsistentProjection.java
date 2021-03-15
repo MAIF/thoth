@@ -13,6 +13,7 @@ import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Sink;
+import akka.stream.scaladsl.Source;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
@@ -31,6 +32,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import static io.vavr.Tuple.empty;
 
@@ -70,6 +72,7 @@ public abstract class EventualyConsistentProjection<E extends Event, Meta, Conte
                                                                                                           String topic,
                                                                                                           String groupId,
                                                                                                           String bootstrapServers,
+                                                                                                          Function<ConsumerSettings<String, EventEnvelope<E, Meta, Context>>, ConsumerSettings<String, EventEnvelope<E, Meta, Context>>> handleConfig,
                                                                                                           JacksonEventFormat<?, E> eventFormat,
                                                                                                           JacksonSimpleFormat<Meta> metaFormat,
                                                                                                           JacksonSimpleFormat<Context> contextFormat,
@@ -102,6 +105,36 @@ public abstract class EventualyConsistentProjection<E extends Event, Meta, Conte
         };
     }
 
+    public static <E extends Event, Meta, Context> EventualyConsistentProjection<E, Meta, Context> create(ActorSystem actorSystem,
+                                                                                                          String name,
+                                                                                                          String topic,
+                                                                                                          String groupId,
+                                                                                                          String bootstrapServers,
+                                                                                                          Function<ConsumerSettings<String, EventEnvelope<E, Meta, Context>>, ConsumerSettings<String, EventEnvelope<E, Meta, Context>>> handleConfig,
+                                                                                                          JacksonEventFormat<?, E> eventFormat,
+                                                                                                          JacksonSimpleFormat<Meta> metaFormat,
+                                                                                                          JacksonSimpleFormat<Context> contextFormat,
+                                                                                                          Function<EventEnvelope<E, Meta, Context>, Future<Tuple0>> messageHandling) {
+        return create(
+                actorSystem,
+                name,
+                topic,
+                groupId,
+                bootstrapServers,
+                handleConfig,
+                eventFormat,
+                metaFormat,
+                contextFormat,
+                Flow.<ConsumerMessage.CommittableMessage<String, EventEnvelope<E, Meta, Context>>>create()
+                        .flatMapConcat(message ->
+                                Source.completionStage(messageHandling.apply(message.record().value())
+                                        .map(__ -> message.committableOffset())
+                                        .toCompletableFuture()
+                                )
+                        )
+        );
+
+    }
 
     protected abstract String name();
 
