@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 
 <head>
-<title>Database configuration · Thoth</title>
+<title>Using published events · Thoth</title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content='Thoth'/>
@@ -43,14 +43,14 @@
     <li><a href="standard/banking-real-life.html" class="page">Postgres Kafka event sourcing</a></li>
     <li><a href="standard/projections.html" class="page">Projections</a></li>
   </ul></li>
-  <li><a href="database-configuration.html" class="active page">Database configuration</a></li>
+  <li><a href="database-configuration.html" class="page">Database configuration</a></li>
   <li><a href="advanced/index.html" class="page">Advanced use cases</a>
   <ul>
     <li><a href="advanced/message.html" class="page">Warning / Info messages</a></li>
     <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
   </ul></li>
-  <li><a href="kafka-consumption.html" class="page">Using published events</a></li>
+  <li><a href="kafka-consumption.html" class="active page">Using published events</a></li>
   <li><a href="non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
   <ul>
     <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
@@ -102,14 +102,14 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="standard/banking-real-life.html" class="page">Postgres Kafka event sourcing</a></li>
     <li><a href="standard/projections.html" class="page">Projections</a></li>
   </ul></li>
-  <li><a href="database-configuration.html" class="active page">Database configuration</a></li>
+  <li><a href="database-configuration.html" class="page">Database configuration</a></li>
   <li><a href="advanced/index.html" class="page">Advanced use cases</a>
   <ul>
     <li><a href="advanced/message.html" class="page">Warning / Info messages</a></li>
     <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
   </ul></li>
-  <li><a href="kafka-consumption.html" class="page">Using published events</a></li>
+  <li><a href="kafka-consumption.html" class="active page">Using published events</a></li>
   <li><a href="non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
   <ul>
     <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
@@ -129,7 +129,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="nav-breadcrumbs">
 <ul>
   <li><a href="index.html">Thoth</a></li>
-  <li>Database configuration</li>
+  <li>Using published events</li>
 </ul>
 </div>
 </div>
@@ -137,33 +137,68 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
-<h1><a href="#database-configuration" name="database-configuration" class="anchor"><span class="anchor-link"></span></a>Database configuration</h1>
-<p>There is some important index to create on your database to have correct performance on event read / publication.</p>
-<p>You should at least have indexes on <code>entity_id</code>, <code>published</code> and <code>sequence_num</code> columns: * <code>entity_id</code> because it&rsquo;s used by CommandHandler to compute previous state * <code>published</code> because it&rsquo;s used to load unpublished events before publishing them in Kafka * <code>sequence_num</code> because it&rsquo;s used to sort events when building previous state</p>
-<pre class="prettyprint"><code class="language-sql">CREATE INDEX app_sequence_num_idx ON app_journal (sequence_num);
-CREATE INDEX app_entity_id_idx ON app_journal (entity_id);
-CREATE INDEX app_published_idx ON app_journal(published);
-</code></pre>
-<p>Additionally, <code>PostgresEventStore</code> expose <code>loadEventsByQuery</code> method, that allows to query events based on several fields:</p>
+<h1><a href="#using-published-events" name="using-published-events" class="anchor"><span class="anchor-link"></span></a>Using published events</h1>
+<p>Thoth provides helpers to deserialize published events correctly.</p>
+<h2><a href="#event-format" name="event-format" class="anchor"><span class="anchor-link"></span></a>Event format</h2>
+<p>Published events aren&rsquo;t raw BankEvent, they are wrapped in an &ldquo;Envelope&rdquo; that contains the event and some meta-data.</p>
+<p>Envelope class has the following fields:</p>
 <ul>
-  <li><code>system_id</code></li>
-  <li><code>user_id</code></li>
-  <li><code>emission_date</code></li>
+  <li>id: unique ID of the event (UUID)</li>
+  <li>sequenceNum: incremental sequenceNum (sequence is common to all events)</li>
+  <li>eventType: type of the event (MoneyWithdrawn, AccountOpened, &hellip;)</li>
+  <li>emissionDate: date of event emission</li>
+  <li>metadata: JSON field that could contain additional metadata about the event</li>
+  <li>event: event serialized as JSON</li>
+  <li>context: JSON field that could contain additional context information about the event</li>
+  <li>version: version of the event</li>
+  <li>published: field used internally by thoth to indicate event publication, consumer shouldn&rsquo;t use it</li>
+  <li>transactionId: id of the database transaction that created the event. It can be used to aggregate and consume at once every event of a given transaction (to ensure data consistency for instance).</li>
+  <li>totalMessageInTransaction: number total of messages created during the database transaction, useful to aggregate and consume at once events of a transaction.</li>
+  <li>numMessageInTransaction: indicate position of this event among other events created during the database transaction, useful to consume in the correct order all events created during a transaction.</li>
+  <li>entityId: id of the business entity concerned by this event</li>
+  <li>userId: id of the user that triggered event creation, useful for audit purposes</li>
+  <li>systemId: id of the system that triggered event creation, useful for audit purposes</li>
 </ul>
-<p>If you plan to use this method, you should also index these columns.</p>
-<pre class="prettyprint"><code class="language-sql">CREATE INDEX app_user_id_idx ON app_journal (user_id);
-CREATE INDEX app_system_id_idx ON app_journal (system_id);
-CREATE INDEX app_emission_date_idx ON app_journal (emission_date);
+<h2><a href="#consume-events" name="consume-events" class="anchor"><span class="anchor-link"></span></a>Consume events</h2>
+<p>Thoth provides an helper to deserialize event value.</p>
+<pre class="prettyprint"><code class="language-java">Map&lt;String, Object&gt; props = new HashMap&lt;&gt;();
+
+props.put(
+    ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+    bootstrapAddress);
+props.put(
+    ConsumerConfig.GROUP_ID_CONFIG,
+    groupId);
+
+KafkaConsumer&lt;String, EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; consumer = new KafkaConsumer&lt;&gt;(
+        props,
+        new StringDeserializer(),
+        JsonDeserializer.of(new BankEventFormat())
+);
 </code></pre>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/database-configuration.md">here</a>.
+The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/kafka-consumption.md">here</a>.
 </div>
 
 <div class="nav-next">
-<p><strong>Next:</strong> <a href="advanced/index.html">Advanced use cases</a></p>
+<p><strong>Next:</strong> <a href="non-blocking/index.html">Non blocking JOOQ implementation</a></p>
 </div>
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>
+<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
+<div class="page-nav">
+<div class="nav-title">On this page:</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="kafka-consumption.html#using-published-events" class="header">Using published events</a>
+  <ul>
+    <li><a href="kafka-consumption.html#event-format" class="header">Event format</a></li>
+    <li><a href="kafka-consumption.html#consume-events" class="header">Consume events</a></li>
+  </ul></li>
+</ul>
+</div>
+</div>
+</nav>
 </div>
 </div>
 

@@ -8,8 +8,8 @@
 * [Standard implementation](standard/index.md)
 * [Database configuration](database-configuration.md)
 * [Advanced use cases](advanced/index.md)
+* [Kafka consumption](kafka-consumption.md)
 * [Non blocking implementation](non-blocking/index.md)
-
 @@@
 
 Thoth is a library that provides a way to implement event-sourcing in Java applications.
