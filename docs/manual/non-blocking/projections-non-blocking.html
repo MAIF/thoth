@@ -143,7 +143,13 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>thoth offers tools for building &ldquo;in transaction&rdquo; projections. These projections will be updated in the transaction used to register events in the database, therefore they&rsquo;ll be updated in &ldquo;real time&rdquo;.</p>
 <p>Let&rsquo;s say we want a projection that stores mean withdrawal value by month.</p>
 <p>We could have this table: </p>
-<pre class="prettyprint"><code class="language-sql">CREATE TABLE IF NOT EXISTS WITHDRAW_BY_MONTH( client_id text, month text, year smallint, withdraw numeric);
+<pre class="prettyprint"><code class="language-sql">CREATE TABLE IF NOT EXISTS WITHDRAW_BY_MONTH(
+    client_id text,
+    month text,
+    year smallint,
+    withdraw numeric,
+    count integer
+);
 CREATE UNIQUE INDEX IF NOT EXISTS WITHDRAW_BY_MONTH_UNIQUE_IDX ON WITHDRAW_BY_MONTH(client_id, month, year);
 ALTER TABLE WITHDRAW_BY_MONTH ADD CONSTRAINT WITHDRAW_BY_MONTH_UNIQUE UNIQUE USING INDEX WITHDRAW_BY_MONTH_UNIQUE_IDX;
 </code></pre>
@@ -167,9 +173,9 @@ ALTER TABLE WITHDRAW_BY_MONTH ADD CONSTRAINT WITHDRAW_BY_MONTH_UNIQUE UNIQUE USI
                         ))
                         // Store withdraw by month
                         .map(t -&gt; dsl.query(&quot;&quot;&quot;
-                                        insert into withdraw_by_month (client_id, month, year, withdraw) values ({0}, {1}, {2}, {3}) 
-                                        on conflict on constraint WITHDRAW_BY_MONTH_UNIQUE 
-                                        do update set withdraw = EXCLUDED.withdraw + {3}
+                                        insert into withdraw_by_month (client_id, month, year, withdraw, count) values (?, ?, ?, ?, 1)
+                                        on conflict on constraint WITHDRAW_BY_MONTH_UNIQUE
+                                        do update set withdraw = withdraw_by_month.withdraw + EXCLUDED.withdraw, count=withdraw_by_month.count + 1
                                     &quot;&quot;&quot;,
                                     val(t._2.entityId()),
                                     val(t._1.emissionDate.getMonth().name()),
@@ -182,7 +188,7 @@ ALTER TABLE WITHDRAW_BY_MONTH ADD CONSTRAINT WITHDRAW_BY_MONTH_UNIQUE UNIQUE USI
     public Future&lt;BigDecimal&gt; meanWithdrawByClientAndMonth(String clientId, Integer year, String month) {
         return pgAsyncPool.query(dsl -&gt; dsl.resultQuery(
                 &quot;&quot;&quot;
-                    select withdraw 
+                    select round(withdraw / count::decimal, 2) 
                     from withdraw_by_month 
                     where  client_id = {0} and year = {1} and month = {2}                   
                     &quot;&quot;&quot;,
@@ -196,10 +202,9 @@ ALTER TABLE WITHDRAW_BY_MONTH ADD CONSTRAINT WITHDRAW_BY_MONTH_UNIQUE UNIQUE USI
         return pgAsyncPool.query(dsl -&gt; dsl
                 .resultQuery(
                 &quot;&quot;&quot;
-                    select client_id, sum(withdraw) as sum
+                    select round(sum(withdraw) / sum(count)::decimal, 2) as sum
                     from withdraw_by_month 
-                    where  client_id = {0} 
-                    group by client_id                  
+                    where  client_id = {0}
                     &quot;&quot;&quot;, val(clientId)
                 )
         ).map(r -&gt; r.head().get(&quot;sum&quot;, BigDecimal.class));
@@ -257,7 +262,7 @@ ALTER TABLE WITHDRAW_BY_MONTH ADD CONSTRAINT WITHDRAW_BY_MONTH_UNIQUE UNIQUE USI
 <p>Congratulations ! You&rsquo;ve reached the end of our documentation.</p>
 <p>Please submit an issue to suggest any improvement.</p>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/MAIF/thoth/tree/master/thoth-documentation/src/main/paradox/non-blocking/projections-non-blocking.md">here</a>.
+The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/non-blocking/projections-non-blocking.md">here</a>.
 </div>
 
 </div>

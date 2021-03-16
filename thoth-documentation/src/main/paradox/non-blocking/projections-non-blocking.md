@@ -14,7 +14,13 @@ Let's say we want a projection that stores mean withdrawal value by month.
 We could have this table: 
 
 ```sql
-CREATE TABLE IF NOT EXISTS WITHDRAW_BY_MONTH( client_id text, month text, year smallint, withdraw numeric);
+CREATE TABLE IF NOT EXISTS WITHDRAW_BY_MONTH(
+    client_id text,
+    month text,
+    year smallint,
+    withdraw numeric,
+    count integer
+);
 CREATE UNIQUE INDEX IF NOT EXISTS WITHDRAW_BY_MONTH_UNIQUE_IDX ON WITHDRAW_BY_MONTH(client_id, month, year);
 ALTER TABLE WITHDRAW_BY_MONTH ADD CONSTRAINT WITHDRAW_BY_MONTH_UNIQUE UNIQUE USING INDEX WITHDRAW_BY_MONTH_UNIQUE_IDX;
 ```
@@ -41,9 +47,9 @@ public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction,
                         ))
                         // Store withdraw by month
                         .map(t -> dsl.query("""
-                                        insert into withdraw_by_month (client_id, month, year, withdraw) values ({0}, {1}, {2}, {3}) 
-                                        on conflict on constraint WITHDRAW_BY_MONTH_UNIQUE 
-                                        do update set withdraw = EXCLUDED.withdraw + {3}
+                                        insert into withdraw_by_month (client_id, month, year, withdraw, count) values (?, ?, ?, ?, 1)
+                                        on conflict on constraint WITHDRAW_BY_MONTH_UNIQUE
+                                        do update set withdraw = withdraw_by_month.withdraw + EXCLUDED.withdraw, count=withdraw_by_month.count + 1
                                     """,
                                     val(t._2.entityId()),
                                     val(t._1.emissionDate.getMonth().name()),
@@ -56,7 +62,7 @@ public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction,
     public Future<BigDecimal> meanWithdrawByClientAndMonth(String clientId, Integer year, String month) {
         return pgAsyncPool.query(dsl -> dsl.resultQuery(
                 """
-                    select withdraw 
+                    select round(withdraw / count::decimal, 2) 
                     from withdraw_by_month 
                     where  client_id = {0} and year = {1} and month = {2}                   
                     """,
@@ -70,10 +76,9 @@ public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction,
         return pgAsyncPool.query(dsl -> dsl
                 .resultQuery(
                 """
-                    select client_id, sum(withdraw) as sum
+                    select round(sum(withdraw) / sum(count)::decimal, 2) as sum
                     from withdraw_by_month 
-                    where  client_id = {0} 
-                    group by client_id                  
+                    where  client_id = {0}
                     """, val(clientId)
                 )
         ).map(r -> r.head().get("sum", BigDecimal.class));

@@ -183,7 +183,7 @@ CREATE SEQUENCE if not exists bank_sequence_num;
 <p>First of all let&rsquo;s swap <code>thoth-core-async</code> dependency with <code>thoth-jooq-async</code>. This new dependency provides everything we need to set up postgres / kafka connection.</p>
 <pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
     &lt;groupId&gt;fr.maif&lt;/groupId&gt;
-    &lt;artifactId&gt;thoth-jooq-async&lt;/artifactId&gt;
+    &lt;artifactId&gt;thoth-jooq-async_2.13&lt;/artifactId&gt;
     &lt;version&gt;...&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
@@ -551,7 +551,7 @@ bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
 </ul>
 <p><a href="https://github.com/MAIF/thoth/tree/master/demo/demo-postgres-kafka-reactive">Complete executable example.</a></p>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/MAIF/thoth/tree/master/thoth-documentation/src/main/paradox/non-blocking/banking-real-life-non-blocking.md">here</a>.
+The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/non-blocking/banking-real-life-non-blocking.md">here</a>.
 </div>
 
 <div class="nav-next">
