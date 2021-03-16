@@ -91,3 +91,5 @@ public class DemoApplication {
 Sometimes projections are too costly to be updated in transaction, sometimes we don't need real time update.
 
 In these case we could build "eventually consistent" projections, by connecting to our "bank" topic in Kafka, and consuming events from there.
+
+See @ref:[Kafka consumption section](../kafka-consumption.md) for kafka consumption helpers.

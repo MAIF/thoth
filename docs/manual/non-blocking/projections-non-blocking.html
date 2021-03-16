@@ -260,6 +260,7 @@ ALTER TABLE WITHDRAW_BY_MONTH ADD CONSTRAINT WITHDRAW_BY_MONTH_UNIQUE UNIQUE USI
 <h2><a href="#eventually-consistent-projections" name="eventually-consistent-projections" class="anchor"><span class="anchor-link"></span></a>Eventually consistent projections</h2>
 <p>Sometimes projections are too costly to be updated in transaction, sometimes we don&rsquo;t need real time update.</p>
 <p>In these case we could build &ldquo;eventually consistent&rdquo; projections, by connecting to our &ldquo;bank&rdquo; topic in Kafka, and consuming events from there.</p>
+<p>See <a href="../kafka-consumption.html">Kafka consumption section</a> for kafka consumption helpers.</p>
 <h2><a href="#the-end" name="the-end" class="anchor"><span class="anchor-link"></span></a>The end</h2>
 <p>Congratulations ! You&rsquo;ve reached the end of our documentation.</p>
 <p>Please submit an issue to suggest any improvement.</p>
