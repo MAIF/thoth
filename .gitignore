@@ -1,3 +1,5 @@
 .idea
 .gradle
 target
+.bsp/
+.DS_Store

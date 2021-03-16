@@ -1,0 +1,225 @@
+{
+	"info": {
+		"_postman_id": "96dfb881-9f62-4e5a-922f-58e5b502bcfa",
+		"name": "Thoth",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Consultation",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9999/bank/api/bcavy",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9999",
+					"path": [
+						"bank",
+						"api",
+						"bcavy"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Montant total",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9999/bank/api/balance",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9999",
+					"path": [
+						"bank",
+						"api",
+						"balance"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Retrait moyen mensuel",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9999/bank/api/stats/bcavy?month=march&year=2021",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9999",
+					"path": [
+						"bank",
+						"api",
+						"stats",
+						"bcavy"
+					],
+					"query": [
+						{
+							"key": "month",
+							"value": "march"
+						},
+						{
+							"key": "year",
+							"value": "2021"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Retrait moyen global",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:9999/bank/api/stats/bcavy",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9999",
+					"path": [
+						"bank",
+						"api",
+						"stats",
+						"bcavy"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Création",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": \"bcavy\",\n    \"balance\": 100000\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:9999/bank/api/",
+					"host": [
+						"localhost"
+					],
+					"port": "9999",
+					"path": [
+						"bank",
+						"api",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Retrait",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"amount\": 1000\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:9999/bank/api/bcavy/_action/withdraw",
+					"host": [
+						"localhost"
+					],
+					"port": "9999",
+					"path": [
+						"bank",
+						"api",
+						"bcavy",
+						"_action",
+						"withdraw"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Crédit",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"amount\": 10\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:9999/bank/api/bcavy/_action/deposit",
+					"host": [
+						"localhost"
+					],
+					"port": "9999",
+					"path": [
+						"bank",
+						"api",
+						"bcavy",
+						"_action",
+						"deposit"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Fermeture",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"amount\": 10\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:9999/bank/api/bcavy",
+					"host": [
+						"localhost"
+					],
+					"port": "9999",
+					"path": [
+						"bank",
+						"api",
+						"bcavy"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
