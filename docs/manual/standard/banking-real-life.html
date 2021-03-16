@@ -178,7 +178,7 @@ CREATE SEQUENCE if not exists bank_sequence_num;
 <p>First of all let&rsquo;s swap <code>thoth-core</code> dependency with <code>thoth-jooq</code>. This new dependency provides everything we need to set up postgres / kafka connection.</p>
 <pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
     &lt;groupId&gt;fr.maif&lt;/groupId&gt;
-    &lt;artifactId&gt;thoth-jooq&lt;/artifactId&gt;
+    &lt;artifactId&gt;thoth-jooq_2.13&lt;/artifactId&gt;
     &lt;version&gt;...&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
@@ -328,35 +328,6 @@ CREATE SEQUENCE if not exists bank_sequence_num;
     //...
 }
 </code></pre>
-<h2><a href="#kafka-event-publisher" name="kafka-event-publisher" class="anchor"><span class="anchor-link"></span></a>Kafka event publisher</h2>
-<p>Using above methods, we need to define a <code>KafkaEventPublisher</code>, that will handle publication of events on kafka once they&rsquo;ll be store in the database.</p>
-<pre class="prettyprint"><code class="language-java">public class Bank {
-    //...
-    private KafkaEventPublisher&lt;BankEvent, Tuple0, Tuple0&gt; kafkaEventPublisher(
-            ActorSystem actorSystem,
-            ProducerSettings&lt;String, EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; producerSettings,
-            String topic) {
-        return new KafkaEventPublisher&lt;&gt;(actorSystem, producerSettings, topic);
-    }
-    //...
-}
-</code></pre>
-<h2><a href="#event-store" name="event-store" class="anchor"><span class="anchor-link"></span></a>Event store</h2>
-<p>We need to change our <code>EventStore</code> implementation to <code>PostgresEventStore</code>. This new event store will store event in Postgres instead of in memory.</p>
-<pre class="prettyprint"><code class="language-java">public class Bank {
-    //...
-    private PostgresEventStore&lt;BankEvent, Tuple0, Tuple0&gt; eventStore(
-            ActorSystem actorSystem,
-            KafkaEventPublisher&lt;BankEvent, Tuple0, Tuple0&gt; kafkaEventPublisher,
-            DataSource dataSource,
-            ExecutorService executorService,
-            TableNames tableNames,
-            JacksonEventFormat&lt;String, BankEvent&gt; jacksonEventFormat) {
-        return PostgresEventStore.create(actorSystem, kafkaEventPublisher, dataSource, executorService, tableNames, jacksonEventFormat);
-    }
-    //...
-}
-</code></pre>
 <h2><a href="#event-processor" name="event-processor" class="anchor"><span class="anchor-link"></span></a>Event processor</h2>
 <p>The last step is to swap our <code>EventProcessor</code> with <code>PostgresKafkaEventProcessor</code>.</p>
 <p>To instantiate this new EventProcessor, we&rsquo;ll need everything we defined previously, and additional instances: * </p>
@@ -375,27 +346,27 @@ CREATE SEQUENCE if not exists bank_sequence_num;
 
         ExecutorService executorService = Executors.newFixedThreadPool(5);
         JdbcTransactionManager transactionManager = new JdbcTransactionManager(dataSource(), executorService);
-
-        KafkaEventPublisher&lt;BankEvent, Tuple0, Tuple0&gt; kafkaEventPublisher = kafkaEventPublisher(actorSystem, producerSettings, topic);
-
-        PostgresEventStore&lt;BankEvent, Tuple0, Tuple0&gt; eventStore = eventStore(
-                actorSystem,
-                kafkaEventPublisher,
-                dataSource,
-                executorService,
-                tableNames,
-                eventFormat
-        );
-
-        this.eventProcessor = new PostgresKafkaEventProcessor&lt;&gt;(new PostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig&lt;&gt;(
-                actorSystem,
-                eventStore,
-                transactionManager,
-                commandHandler,
-                eventHandler,
-                List.of(meanWithdrawProjection),
-                kafkaEventPublisher
-        ));
+        
+        this.eventProcessor = PostgresKafkaEventProcessor
+                .withActorSystem(actorSystem)
+                .withDataSource(dataSource())
+                .withTables(tableNames)
+                .withTransactionManager(transactionManager, executorService)
+                .withEventFormater(eventFormat)
+                .withNoMetaFormater()
+                .withNoContextFormater()
+                .withKafkaSettings(topic, producerSettings)
+                .withEventHandler(eventHandler)
+                .withAggregateStore(b -&gt; new BankAggregateStore(
+                            b.eventStore,
+                            b.eventHandler,
+                            b.system,
+                            b.transactionManager
+                    )
+                )
+                .withCommandHandler(commandHandler)
+                .withProjections(meanWithdrawProjection)
+                .build();
     }
     //...
 }
@@ -508,7 +479,7 @@ bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
 </ul>
 <p><a href="https://github.com/MAIF/thoth/tree/master/demo/demo-postgres-kafka">Complete executable example.</a></p>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/MAIF/thoth/tree/master/thoth-documentation/src/main/paradox/standard/banking-real-life.md">here</a>.
+The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/standard/banking-real-life.md">here</a>.
 </div>
 
 <div class="nav-next">
