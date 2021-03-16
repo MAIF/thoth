@@ -13,6 +13,7 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8"     % jacksonVersion,
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310"   % jacksonVersion,
   "fr.maif"                        % "functional-json"           % functionalJsonVersion,
+  "org.projectlombok"              % "lombok"                    % "1.18.18",
   "com.typesafe.akka"             %% "akka-testkit"              % akkaVersion         % Test,
   "com.typesafe.akka"             %% "akka-stream-testkit"       % akkaVersion         % Test,
   "com.typesafe.akka"             %% "akka-stream-kafka-testkit" % alpakkaKafkaVersion % Test,
@@ -25,7 +26,7 @@ libraryDependencies ++= Seq(
   "org.junit.vintage"              % "junit-vintage-engine"      % "5.4.2"             % Test,
   "net.aichler"                    % "jupiter-interface"         % "0.9.1"             % Test,
   "org.scalatest"                 %% "scalatest"                 % "3.0.8"             % Test,
-  "org.testcontainers"             % "kafka"                     % "1.14.3"            % Test
+  "org.testcontainers"             % "kafka"                     % "1.15.1"            % Test
 )
 
 javacOptions in Compile ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")

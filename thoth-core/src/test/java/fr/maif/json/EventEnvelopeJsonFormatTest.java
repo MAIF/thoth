@@ -137,7 +137,7 @@ public class EventEnvelopeJsonFormatTest {
                         )),
                         $$("eventType", Json.obj(
                                 $$("type", "string"),
-                                $$("enum", Json.arr("VikingCreated","VikingUpdated")),
+                                $$("enum", Json.arr("VikingCreated","VikingUpdated","VikingDeleted")),
                                 $$("description", "The schema type of the event"),
                                 $$("exemples", Json.newArray())
                         )),
@@ -161,6 +161,12 @@ public class EventEnvelopeJsonFormatTest {
                                                 $$("type", "object"),
                                                 $$("title", "VikingUpdated"),
                                                 $$("description", "VikingUpdated"),
+                                                $$("exemples", Json.newArray())
+                                        ),
+                                        Json.obj(
+                                                $$("type", "object"),
+                                                $$("title", "VikingDeleted"),
+                                                $$("description", "VikingDeleted"),
                                                 $$("exemples", Json.newArray())
                                         )
                                 )),

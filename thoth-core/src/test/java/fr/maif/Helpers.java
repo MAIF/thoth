@@ -21,6 +21,9 @@ import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static fr.maif.Helpers.VikingEvent.VikingCreatedV1;
+import static fr.maif.Helpers.VikingEvent.VikingDeletedV1;
+import static fr.maif.Helpers.VikingEvent.VikingUpdatedV1;
 import static fr.maif.json.JsonRead._fromClass;
 import static fr.maif.json.JsonRead.ofRead;
 import static io.vavr.API.*;
@@ -224,9 +227,9 @@ public class Helpers {
         @Override
         public Option<Viking> applyEvent(Option<Viking> state, VikingEvent event) {
             return Match(event).of(
-                    Case(VikingEvent.VikingCreatedV1.pattern(), e -> Option.of(new Viking(e.id, e.name))),
-                    Case(VikingEvent.VikingUpdatedV1.pattern(), e -> Option.of(new Viking(e.id, e.name))),
-                    Case(VikingEvent.VikingDeletedV1.pattern(), e -> Option.none())
+                    Case(VikingCreatedV1.pattern(), e -> Option.of(new Viking(e.id, e.name))),
+                    Case(VikingUpdatedV1.pattern(), e -> Option.of(new Viking(e.id, e.name))),
+                    Case(VikingDeletedV1.pattern(), e -> Option.none())
             );
         }
     }
@@ -250,9 +253,9 @@ public class Helpers {
         public Either<String, VikingEvent> read(String type, Long version, JsonNode json) {
             return Match(API.Tuple(type, version))
                     .option(
-                            Case(VikingEvent.VikingCreatedV1.pattern2(), (t, v) -> Json.fromJson(json, VikingEvent.VikingCreated.class)),
-                            Case(VikingEvent.VikingUpdatedV1.pattern2(), (t, v) -> Json.fromJson(json, VikingEvent.VikingUpdated.class)),
-                            Case(VikingEvent.VikingDeletedV1.pattern2(), (t, v) -> Json.fromJson(json, VikingEvent.VikingDeleted.class))
+                            Case(VikingCreatedV1.pattern2(), (t, v) -> Json.fromJson(json, VikingEvent.VikingCreated.class)),
+                            Case(VikingUpdatedV1.pattern2(), (t, v) -> Json.fromJson(json, VikingEvent.VikingUpdated.class)),
+                            Case(VikingDeletedV1.pattern2(), (t, v) -> Json.fromJson(json, VikingEvent.VikingDeleted.class))
                     )
                     .toEither("Not implemented");
         }
@@ -268,8 +271,9 @@ public class Helpers {
         @Override
         public List<Tuple2<Type<? extends VikingEvent>, JsonRead<? extends VikingEvent>>> cases() {
             return List(
-                Tuple(VikingEvent.VikingCreatedV1, ofRead(_fromClass(VikingEvent.VikingCreated.class), JsonSchema.objectSchema()).description("VikingCreated")),
-                Tuple(VikingEvent.VikingUpdatedV1, ofRead(_fromClass(VikingEvent.VikingUpdated.class), JsonSchema.objectSchema()).description("VikingUpdated"))
+                Tuple(VikingCreatedV1, ofRead(_fromClass(VikingEvent.VikingCreated.class), JsonSchema.objectSchema()).description("VikingCreated")),
+                Tuple(VikingUpdatedV1, ofRead(_fromClass(VikingEvent.VikingUpdated.class), JsonSchema.objectSchema()).description("VikingUpdated")),
+                Tuple(VikingDeletedV1, ofRead(_fromClass(VikingEvent.VikingDeleted.class), JsonSchema.objectSchema()).description("VikingDeleted"))
             );
         }
 
