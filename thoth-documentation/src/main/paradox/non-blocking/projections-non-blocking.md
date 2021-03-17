@@ -47,7 +47,7 @@ public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction,
                         ))
                         // Store withdraw by month
                         .map(t -> dsl.query("""
-                                        insert into withdraw_by_month (client_id, month, year, withdraw, count) values (?, ?, ?, ?, 1)
+                                        insert into withdraw_by_month (client_id, month, year, withdraw, count) values ({0}, {1}, {2}, {3}, 1)
                                         on conflict on constraint WITHDRAW_BY_MONTH_UNIQUE
                                         do update set withdraw = withdraw_by_month.withdraw + EXCLUDED.withdraw, count=withdraw_by_month.count + 1
                                     """,
