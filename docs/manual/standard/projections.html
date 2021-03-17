@@ -50,6 +50,7 @@
     <li><a href="../advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="../advanced/aggregatestore.html" class="page">Aggregate store</a></li>
   </ul></li>
+  <li><a href="../eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="../kafka-consumption.html" class="page">Using published events</a></li>
   <li><a href="../non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
   <ul>
@@ -109,6 +110,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="../advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="../advanced/aggregatestore.html" class="page">Aggregate store</a></li>
   </ul></li>
+  <li><a href="../eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="../kafka-consumption.html" class="page">Using published events</a></li>
   <li><a href="../non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
   <ul>
@@ -212,7 +214,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <h2><a href="#eventually-consistent-projections" name="eventually-consistent-projections" class="anchor"><span class="anchor-link"></span></a>Eventually consistent projections</h2>
 <p>Sometimes projections are too costly to be updated in transaction, sometimes we don&rsquo;t need real time update.</p>
 <p>In these case we could build &ldquo;eventually consistent&rdquo; projections, by connecting to our &ldquo;bank&rdquo; topic in Kafka, and consuming events from there.</p>
-<p>See <a href="../kafka-consumption.html">Kafka consumption section</a> for kafka consumption helpers.</p>
+<p><a href="../eventually-consistent-projection.html">Eventually consistent projections</a> show how Thoth can help you to build eventually consistent projections.</p>
+<p>See <a href="../kafka-consumption.html">Kafka consumption section</a> for more information on published events and kafka consumption.</p>
 <div class="source-github">
 The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/standard/projections.md">here</a>.
 </div>

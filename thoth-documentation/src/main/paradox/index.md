@@ -8,6 +8,7 @@
 * [Standard implementation](standard/index.md)
 * [Database configuration](database-configuration.md)
 * [Advanced use cases](advanced/index.md)
+* [Eventually consistent projections](eventually-consistent-projection.md)
 * [Kafka consumption](kafka-consumption.md)
 * [Non blocking implementation](non-blocking/index.md)
 @@@

@@ -92,4 +92,6 @@ Sometimes projections are too costly to be updated in transaction, sometimes we 
 
 In these case we could build "eventually consistent" projections, by connecting to our "bank" topic in Kafka, and consuming events from there.
 
-See @ref:[Kafka consumption section](../kafka-consumption.md) for kafka consumption helpers.
+@ref:[Eventually consistent projections](../eventually-consistent-projection.md) show how Thoth can help you to build eventually consistent projections.
+
+See @ref:[Kafka consumption section](../kafka-consumption.md) for more information on published events and kafka consumption.

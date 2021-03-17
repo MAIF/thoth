@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 
 <head>
-<title>Using published events · Thoth</title>
+<title>Eventually consistent projections · Thoth</title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content='Thoth'/>
@@ -50,8 +50,8 @@
     <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
   </ul></li>
-  <li><a href="eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
-  <li><a href="kafka-consumption.html" class="active page">Using published events</a></li>
+  <li><a href="eventually-consistent-projection.html" class="active page">Eventually consistent projections</a></li>
+  <li><a href="kafka-consumption.html" class="page">Using published events</a></li>
   <li><a href="non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
   <ul>
     <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
@@ -110,8 +110,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
   </ul></li>
-  <li><a href="eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
-  <li><a href="kafka-consumption.html" class="active page">Using published events</a></li>
+  <li><a href="eventually-consistent-projection.html" class="active page">Eventually consistent projections</a></li>
+  <li><a href="kafka-consumption.html" class="page">Using published events</a></li>
   <li><a href="non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
   <ul>
     <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
@@ -131,7 +131,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="nav-breadcrumbs">
 <ul>
   <li><a href="index.html">Thoth</a></li>
-  <li>Using published events</li>
+  <li>Eventually consistent projections</li>
 </ul>
 </div>
 </div>
@@ -139,68 +139,45 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
-<h1><a href="#using-published-events" name="using-published-events" class="anchor"><span class="anchor-link"></span></a>Using published events</h1>
-<p>Thoth provides helpers to deserialize published events correctly.</p>
-<h2><a href="#event-format" name="event-format" class="anchor"><span class="anchor-link"></span></a>Event format</h2>
-<p>Published events aren&rsquo;t raw BankEvent, they are wrapped in an &ldquo;Envelope&rdquo; that contains the event and some meta-data.</p>
-<p>Envelope class has the following fields:</p>
-<ul>
-  <li>id: unique ID of the event (UUID)</li>
-  <li>sequenceNum: incremental sequenceNum (sequence is common to all events)</li>
-  <li>eventType: type of the event (MoneyWithdrawn, AccountOpened, &hellip;)</li>
-  <li>emissionDate: date of event emission</li>
-  <li>metadata: JSON field that could contain additional metadata about the event</li>
-  <li>event: event serialized as JSON</li>
-  <li>context: JSON field that could contain additional context information about the event</li>
-  <li>version: version of the event</li>
-  <li>published: field used internally by thoth to indicate event publication, consumer shouldn&rsquo;t use it</li>
-  <li>transactionId: id of the database transaction that created the event. It can be used to aggregate and consume at once every event of a given transaction (to ensure data consistency for instance).</li>
-  <li>totalMessageInTransaction: number total of messages created during the database transaction, useful to aggregate and consume at once events of a transaction.</li>
-  <li>numMessageInTransaction: indicate position of this event among other events created during the database transaction, useful to consume in the correct order all events created during a transaction.</li>
-  <li>entityId: id of the business entity concerned by this event</li>
-  <li>userId: id of the user that triggered event creation, useful for audit purposes</li>
-  <li>systemId: id of the system that triggered event creation, useful for audit purposes</li>
-</ul>
-<h2><a href="#consume-events" name="consume-events" class="anchor"><span class="anchor-link"></span></a>Consume events</h2>
-<p>Thoth provides an helper to deserialize event value.</p>
-<pre class="prettyprint"><code class="language-java">Map&lt;String, Object&gt; props = new HashMap&lt;&gt;();
+<h1><a href="#eventually-consistent-projections" name="eventually-consistent-projections" class="anchor"><span class="anchor-link"></span></a>Eventually consistent projections</h1>
+<p>Eventually consistent projections are built by consuming kafka events.</p>
+<p>It&rsquo;s possible using any Kafka client, however Thoth provides an helper for such use cases.</p>
+<pre class="prettyprint"><code class="language-java">EventuallyConsistentProjection.create(
+    actorSystem,
+    &quot;MeanWithdrawProjection&quot;,
+    EventuallyConsistentProjection.Config.create(&quot;bank&quot;, &quot;MeanWithdrawProjection&quot;, bootstrapServer),
+    eventFormat,
+    envelope -&gt; {
+        if(envelope.event instanceof BankEvent.MoneyWithdrawn withdraw) {
+            try(final PreparedStatement statement = dataSource.getConnection().prepareStatement(&quot;&quot;&quot;
+                    insert into withdraw_by_month (client_id, month, year, withdraw, count) values (?, ?, ?, ?, 1)
+                        on conflict on constraint WITHDRAW_BY_MONTH_UNIQUE
+                        do update set withdraw = withdraw_by_month.withdraw + EXCLUDED.withdraw, count=withdraw_by_month.count + 1
+                &quot;&quot;&quot;)
+            ) {
+                statement.setString(1, envelope.entityId);
+                statement.setString(2, envelope.emissionDate.getMonth().name().toUpperCase());
+                statement.setInt(3, envelope.emissionDate.getYear());
+                statement.setBigDecimal(4, withdraw.amount);
 
-props.put(
-    ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-    bootstrapAddress);
-props.put(
-    ConsumerConfig.GROUP_ID_CONFIG,
-    groupId);
-
-KafkaConsumer&lt;String, EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; consumer = new KafkaConsumer&lt;&gt;(
-        props,
-        new StringDeserializer(),
-        JsonDeserializer.of(new BankEventFormat())
-);
+                statement.execute();
+            } catch (SQLException ex) {
+                LOGGER.error(&quot;Failed to update stats projection&quot;, ex);
+            }
+        }
+        return Future.successful(Tuple.empty());
+    }
+).start();
 </code></pre>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/kafka-consumption.md">here</a>.
+The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/eventually-consistent-projection.md">here</a>.
 </div>
 
 <div class="nav-next">
-<p><strong>Next:</strong> <a href="non-blocking/index.html">Non blocking JOOQ implementation</a></p>
+<p><strong>Next:</strong> <a href="kafka-consumption.html">Using published events</a></p>
 </div>
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>
-<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
-<div class="page-nav">
-<div class="nav-title">On this page:</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="kafka-consumption.html#using-published-events" class="header">Using published events</a>
-  <ul>
-    <li><a href="kafka-consumption.html#event-format" class="header">Event format</a></li>
-    <li><a href="kafka-consumption.html#consume-events" class="header">Consume events</a></li>
-  </ul></li>
-</ul>
-</div>
-</div>
-</nav>
 </div>
 </div>
 
