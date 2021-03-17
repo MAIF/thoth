@@ -1,5 +1,6 @@
 package fr.maif.thoth.sample.commands;
 
+import static io.vavr.API.*;
 import static io.vavr.API.Left;
 import static io.vavr.API.Right;
 
@@ -10,7 +11,6 @@ import fr.maif.eventsourcing.CommandHandler;
 import fr.maif.eventsourcing.Events;
 import fr.maif.thoth.sample.events.BankEvent;
 import fr.maif.thoth.sample.state.Account;
-import io.vavr.API;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.concurrent.Future;
@@ -49,12 +49,16 @@ public class BankCommandHandler implements CommandHandler<String, Account, BankC
         }
 
         String newId = opening.id;
-        List<BankEvent> events = API.List(new BankEvent.AccountOpened(newId));
+        List<BankEvent> events = List(new BankEvent.AccountOpened(newId));
+
         if(opening.initialBalance.compareTo(BigDecimal.ZERO) > 0) {
             events = events.append(new BankEvent.MoneyDeposited(newId, opening.initialBalance));
         }
 
-        return Right(Events.events(Tuple0.instance(), events));
+        return Right(Events.events(
+                Tuple0.instance(), // Messages (for instance warnings) to be returned
+                events
+        ));
     }
 
     private Either<String, Events<BankEvent, Tuple0>> handleClosing(
