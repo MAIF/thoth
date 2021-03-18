@@ -9,8 +9,7 @@ import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.Type;
 import io.vavr.API.Match.Pattern0;
 
-public abstract sealed class BankEvent implements Event
-        permits BankEvent.MoneyWithdrawn, BankEvent.MoneyDeposited, BankEvent.AccountClosed, BankEvent.AccountOpened {
+public abstract sealed class BankEvent implements Event {
     public static Type<MoneyWithdrawn> MoneyWithdrawnV1 = Type.create(MoneyWithdrawn.class, 1L);
     public static Type<AccountOpened> AccountOpenedV1 = Type.create(AccountOpened.class, 1L);
     public static Type<MoneyDeposited> MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);

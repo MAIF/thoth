@@ -7,8 +7,7 @@ import fr.maif.eventsourcing.Type;
 import io.vavr.API.Match.Pattern0;
 import io.vavr.Lazy;
 
-public sealed interface BankCommand extends SimpleCommand
-        permits BankCommand.Withdraw, BankCommand.CloseAccount, BankCommand.Deposit, BankCommand.OpenAccount {
+public sealed interface BankCommand extends SimpleCommand {
 
     final class Withdraw implements BankCommand {
         public String account;
