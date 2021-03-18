@@ -291,7 +291,7 @@ class ThothSampleApplicationTests {
 
 	private AccountDTO readAccount(String id) {
 		try {
-			return restTemplate.getForEntity("/api/" + id, AccountDTO.class).getBody();
+			return restTemplate.getForEntity("/bank/api/" + id, AccountDTO.class).getBody();
 		} catch(HttpClientErrorException ex) {
 			try {
 				return mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class);
@@ -303,7 +303,7 @@ class ThothSampleApplicationTests {
 
 	private AccountDTO createAccount(AccountDTO account) {
 		try {
-			return restTemplate.postForEntity("/api/", account, AccountDTO.class).getBody();
+			return restTemplate.postForEntity("/bank/api/", account, AccountDTO.class).getBody();
 		} catch(HttpClientErrorException ex) {
 			try {
 				return mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class);
@@ -315,7 +315,7 @@ class ThothSampleApplicationTests {
 
 	private Optional<String> closeAccount(String id) {
 		try {
-			final String body = restTemplate.exchange("/api/" + id, HttpMethod.DELETE, null, String.class).getBody();
+			final String body = restTemplate.exchange("/bank/api/" + id, HttpMethod.DELETE, null, String.class).getBody();
 			if(Objects.isNull(body)) {
 				return Optional.empty();
 			} else {
@@ -338,7 +338,7 @@ class ThothSampleApplicationTests {
 		BalanceDTO request = new BalanceDTO();
 		request.amount = amount;
 		try {
-			return restTemplate.postForEntity("/api/" + id + "/_action/withdraw", request, AccountDTO.class).getBody();
+			return restTemplate.postForEntity("/bank/api/" + id + "/_action/withdraw", request, AccountDTO.class).getBody();
 		} catch(HttpClientErrorException ex) {
 			try {
 				return mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class);
@@ -352,7 +352,7 @@ class ThothSampleApplicationTests {
 		BalanceDTO request = new BalanceDTO();
 		request.amount = amount;
 		try {
-			return restTemplate.postForEntity("/api/" + id + "/_action/deposit", request, AccountDTO.class).getBody();
+			return restTemplate.postForEntity("/bank/api/" + id + "/_action/deposit", request, AccountDTO.class).getBody();
 		} catch(HttpClientErrorException ex) {
 			try {
 				return mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class);
@@ -363,15 +363,15 @@ class ThothSampleApplicationTests {
 	}
 
 	private BalanceDTO globalBalance() {
-		return restTemplate.getForEntity("/api/balance", BalanceDTO.class).getBody();
+		return restTemplate.getForEntity("/bank/api/balance", BalanceDTO.class).getBody();
 	}
 
 	private BalanceDTO meanWithdrawByMonth(String id, String month, int year) {
-		return restTemplate.getForEntity("/api/stats/" + id + "?month=" + month + "&year" + year, BalanceDTO.class).getBody();
+		return restTemplate.getForEntity("/bank/api/stats/" + id + "?month=" + month + "&year" + year, BalanceDTO.class).getBody();
 	}
 
 	private BalanceDTO meanWithdraw(String id) {
-		return restTemplate.getForEntity("/api/stats/" + id, BalanceDTO.class).getBody();
+		return restTemplate.getForEntity("/bank/api/stats/" + id, BalanceDTO.class).getBody();
 	}
 
 	private void accountShouldNotExist(String id) {
