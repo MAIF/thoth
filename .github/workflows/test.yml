@@ -17,4 +17,5 @@ jobs:
         run: sbt publishLocal 
       - name: Run test
         id: test
-        run: sbt test
+        run: JAVA_OPTS="--enable-preview" sbt test
+  
