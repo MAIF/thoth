@@ -11,6 +11,7 @@ import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import io.vavr.collection.List;
 import io.vavr.control.Either;
 import io.vavr.control.Try;
+import lombok.SneakyThrows;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.SQLDialect;
@@ -167,19 +168,30 @@ public class PostgresEventStoreTest {
     }
 
     @Test
+    @SneakyThrows
     public void loadEventsUnpublished() {
         initDatas();
-        List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(postgresEventStore.loadEventsUnpublished().runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
+        List<EventEnvelope<VikingEvent, Void, Void>> events;
+        try (Connection connection = pgSimpleDataSource.getConnection()) {
+            events = List.ofAll(postgresEventStore.loadEventsUnpublished(connection, EventStore.ConcurrentReplayStrategy.WAIT).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
+        }
         assertThat(events).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
     }
     @Test
+    @SneakyThrows
     public void markEventsAsPublished() {
         initDatas();
-        List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(postgresEventStore.loadEventsUnpublished().runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
+        List<EventEnvelope<VikingEvent, Void, Void>> events;
+        try (Connection connection = pgSimpleDataSource.getConnection()) {
+            events = List.ofAll(postgresEventStore.loadEventsUnpublished(connection, EventStore.ConcurrentReplayStrategy.SKIP).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
+        }
         assertThat(events).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
         postgresEventStore.markAsPublished(events).get();
 
-        List<EventEnvelope<VikingEvent, Void, Void>> published = List.ofAll(postgresEventStore.loadEventsUnpublished().runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
+        List<EventEnvelope<VikingEvent, Void, Void>> published;
+        try (Connection connection = pgSimpleDataSource.getConnection()) {
+            published = List.ofAll(postgresEventStore.loadEventsUnpublished(connection, EventStore.ConcurrentReplayStrategy.SKIP).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
+        }
         assertThat(published).isEmpty();
     }
 

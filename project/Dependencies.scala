@@ -3,7 +3,7 @@ object Dependencies {
   val jacksonVersion        = "2.10.5"
   val akkaVersion           = "2.6.6"
   val vavrVersion           = "0.10.0"
-  val jooqVersion           = "3.13.4"
-  val jooqAsyncVersion      = "1.0.1-BETA2"
+  val jooqVersion           = "3.14.3"
+  val jooqAsyncVersion      = "1.0.1-LOCAL"
   val functionalJsonVersion = "1.0.1-BETA2"
 }

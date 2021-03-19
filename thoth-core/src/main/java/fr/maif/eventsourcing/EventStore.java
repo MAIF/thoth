@@ -1,5 +1,6 @@
 package fr.maif.eventsourcing;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.stream.Materializer;
@@ -20,7 +21,8 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
     Future<Tuple0> persist(TxCtx transactionContext, List<EventEnvelope<E, Meta, Context>> events);
 
-    Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished();
+
+    Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished(TxCtx tx, ConcurrentReplayStrategy concurrentReplayStrategy);
 
     Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsByQuery(TxCtx tx, Query query);
 
@@ -39,10 +41,24 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
     Future<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events);
 
 
+    Future<EventEnvelope<E, Meta, Context>> markAsPublished(TxCtx tx, EventEnvelope<E, Meta, Context> eventEnvelope);
+
+    default Future<List<EventEnvelope<E, Meta, Context>>> markAsPublished(TxCtx tx, List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
+        return Future.traverse(eventEnvelopes, evt -> this.markAsPublished(tx, evt)).map(Value::toList);
+    }
+
     Future<EventEnvelope<E, Meta, Context>> markAsPublished(EventEnvelope<E, Meta, Context> eventEnvelope);
 
     default Future<List<EventEnvelope<E, Meta, Context>>> markAsPublished(List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
         return Future.traverse(eventEnvelopes, this::markAsPublished).map(Value::toList);
+    }
+
+    Future<TxCtx> openTransaction();
+
+    Future<Tuple0> commitOrRollback(Option<Throwable> of, TxCtx tx);
+
+    enum ConcurrentReplayStrategy {
+        SKIP, WAIT
     }
 
     class Query {

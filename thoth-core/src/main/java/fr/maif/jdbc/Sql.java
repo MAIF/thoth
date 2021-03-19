@@ -51,7 +51,11 @@ public class Sql {
 	}
 
 	public static Source<Connection, NotUsed> connection(DataSource dataSource, Executor executor, Boolean autocommit) {
-		return Source.fromCompletionStage(CompletableFuture.supplyAsync(() -> {
+		return Source.completionStage(connectionCS(dataSource, executor, autocommit));
+	}
+
+	public static CompletionStage<Connection> connectionCS(DataSource dataSource, Executor executor, Boolean autocommit) {
+		return CompletableFuture.supplyAsync(() -> {
 			try {
 				Connection connection = dataSource.getConnection();
 				try {
@@ -66,7 +70,7 @@ public class Sql {
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
-		}, executor));
+		}, executor);
 	}
 
 	public static CompletionStage<Done> close(Connection connection, JdbcExecutionContext executor) {

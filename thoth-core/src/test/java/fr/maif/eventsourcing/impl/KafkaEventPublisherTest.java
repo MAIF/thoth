@@ -1,5 +1,6 @@
 package fr.maif.eventsourcing.impl;
 
+import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.kafka.ConsumerSettings;
 import akka.kafka.ProducerSettings;
@@ -15,6 +16,7 @@ import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
 import com.fasterxml.jackson.databind.JsonNode;
 import fr.maif.Json;
+import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
@@ -46,11 +48,13 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
 import static io.vavr.API.println;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -95,14 +99,14 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         KafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
 
-        when(eventStore.loadEventsUnpublished()).thenReturn(Source.empty());
+        when(eventStore.loadEventsUnpublished(any(), eq(SKIP))).thenReturn(emptyTxStream());
         when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any())).then(i -> Future.successful(i.getArgument(0)));
 
         EventEnvelope<TestEvent, Void, Void> envelope1 = eventEnvelope("value 1");
         EventEnvelope<TestEvent, Void, Void> envelope2 = eventEnvelope("value 2");
         EventEnvelope<TestEvent, Void, Void> envelope3 = eventEnvelope("value 3");
 
-        publisher.start(eventStore);
+        publisher.start(eventStore, SKIP);
 
         Thread.sleep(200);
 
@@ -134,6 +138,13 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         publisher.close();
     }
 
+    private <T> Source<T, NotUsed> emptyTxStream() {
+        return Source.<T>empty();
+    }
+
+    private <T> Source<T, NotUsed> txStream(T... values) {
+        return Source.<T>from(List.of(values));
+    }
 
 
     @Test
@@ -142,15 +153,15 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         String topic = createTopic(2, 5, 1);
         KafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
-        when(eventStore.loadEventsUnpublished()).thenReturn(Source.from(List.of(
+        when(eventStore.loadEventsUnpublished(any(), eq(SKIP))).thenReturn(txStream(
                 eventEnvelope("value 1"),
                 eventEnvelope("value 2"),
                 eventEnvelope("value 3")
-        )));
+        ));
         when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
                 .then(i -> Future.successful(i.getArgument(0)));
 
-        publisher.start(eventStore);
+        publisher.start(eventStore, SKIP);
 
         CompletionStage<List<String>> results = Consumer.plainSource(consumerDefaults().withGroupId("test2"), Subscriptions.topics(topic))
                 .map(ConsumerRecord::value)
@@ -188,7 +199,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         EventEnvelope<TestEvent, Void, Void> envelope2 = eventEnvelope("value 2");
         EventEnvelope<TestEvent, Void, Void> envelope3 = eventEnvelope("value 3");
 
-        when(eventStore.loadEventsUnpublished()).thenReturn(Source.from(List.of(envelope1, envelope2, envelope3)));
+        when(eventStore.loadEventsUnpublished(any(), eq(SKIP))).thenReturn(txStream(envelope1, envelope2, envelope3));
 
         when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
                 .then(i -> {
@@ -199,7 +210,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
                     }
                 });
 
-        publisher.start(eventStore);
+        publisher.start(eventStore, SKIP);
 
         CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = Consumer.plainSource(consumerDefaults().withGroupId("test3"), Subscriptions.topics(topic))
                 .map(ConsumerRecord::value)

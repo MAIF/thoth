@@ -4,6 +4,7 @@ import akka.actor.ActorSystem;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
@@ -29,6 +30,7 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
 import static io.vavr.API.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.jooq.impl.DSL.table;
@@ -56,6 +58,7 @@ public abstract class AbstractPostgresEventStoreTest {
     private EventEnvelope<VikingEvent, Void, Void> event4 = eventEnvelope(4L, new VikingEvent.VikingCreated("ragnard@gmail.com"), emissionDate2);
     private EventEnvelope<VikingEvent, Void, Void> event5 = eventEnvelope(5L, new VikingEvent.VikingUpdated("ragnard@gmail.com"), emissionDate2);
     private EventEnvelope<VikingEvent, Void, Void> event6 = eventEnvelope(6L, new VikingEvent.VikingDeleted("ragnard@gmail.com"), emissionDate2);
+    private ReactiveTransactionManager reactiveTransactionManager;
 
     private static Date date(int year, int month, int day) {
         return new Date(year, month, day);
@@ -90,7 +93,7 @@ public abstract class AbstractPostgresEventStoreTest {
     @Test
     public void insertAndRollback() {
 
-        ReactiveTransactionManager reactiveTransactionManager = new ReactiveTransactionManager(pgAsyncPool);
+        reactiveTransactionManager = new ReactiveTransactionManager(pgAsyncPool);
         LocalDateTime emissionDate = LocalDateTime.now();
         List<EventEnvelope<VikingEvent, Void, Void>> events = API.List(
                 eventEnvelope(1L, new VikingEvent.VikingCreated("bjorn@gmail.com"), emissionDate),
@@ -98,7 +101,7 @@ public abstract class AbstractPostgresEventStoreTest {
                 eventEnvelope(3L, new VikingEvent.VikingDeleted("bjorn@gmail.com"), emissionDate)
         );
         Try.of(() ->
-                reactiveTransactionManager.withTransaction( connection ->
+                reactiveTransactionManager.withTransaction(connection ->
                         postgresEventStore.persist(connection, events)
                             .map(__ -> {
                                 println("Throwing exception");
@@ -174,17 +177,29 @@ public abstract class AbstractPostgresEventStoreTest {
     @Test
     public void loadEventsUnpublished() {
         initDatas();
-        List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(postgresEventStore.loadEventsUnpublished().runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
+        List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(
+                Source.completionStage(pgAsyncPool.begin().toCompletableFuture()).flatMapConcat(t ->
+                        postgresEventStore.loadEventsUnpublished(t, SKIP).watchTermination((nu, d) -> d.whenComplete((__, e) -> t.commit()))
+                ).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join()
+        );
         assertThat(events).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
     }
     @Test
     public void markEventsAsPublished() {
         initDatas();
-        List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(postgresEventStore.loadEventsUnpublished().runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
+        List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(
+                Source.completionStage(pgAsyncPool.begin().toCompletableFuture()).flatMapConcat(t ->
+                        postgresEventStore.loadEventsUnpublished(t, SKIP).watchTermination((nu, d) -> d.whenComplete((__, e) -> t.commit()))
+                ).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join()
+        );
         assertThat(events).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
         postgresEventStore.markAsPublished(events).get();
 
-        List<EventEnvelope<VikingEvent, Void, Void>> published = List.ofAll(postgresEventStore.loadEventsUnpublished().runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
+        List<EventEnvelope<VikingEvent, Void, Void>> published = List.ofAll(
+                Source.completionStage(pgAsyncPool.begin().toCompletableFuture()).flatMapConcat(t ->
+                        postgresEventStore.loadEventsUnpublished(t, SKIP).watchTermination((nu, d) -> d.whenComplete((__, e) -> t.commit()))
+                ).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join()
+        );
         assertThat(published).isEmpty();
     }
 
