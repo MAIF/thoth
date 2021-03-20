@@ -45,7 +45,7 @@ public class EventProcessorTest {
 
         //Set up
         VikingSnapshot vikingSnapshot = new VikingSnapshot();
-        InMemoryEventStore<Tuple0, VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create(actorSystem);
+        InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create(actorSystem);
         EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0>  vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
 
         //Test
@@ -85,7 +85,7 @@ public class EventProcessorTest {
     public void oneCommandShouldGenerateEventAndPersistProjection() {
 
         //Set up
-        InMemoryEventStore<Tuple0, VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create(actorSystem);
+        InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create(actorSystem);
         VikingProjection projection = new VikingProjection();
         EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessorWithProjection(inMemoryEventStore, List.of(projection));
 
@@ -127,7 +127,7 @@ public class EventProcessorTest {
     @Test
     public void twoCommandShouldGenerateEventAndPersistState() {
         VikingSnapshot vikingSnapshot = new VikingSnapshot();
-        InMemoryEventStore<Tuple0, VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create(actorSystem);
+        InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create(actorSystem);
         EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
 
         vikingEventProcessor.processCommand(new VikingCommand.CreateViking("1", "ragnar")).get();
@@ -180,7 +180,7 @@ public class EventProcessorTest {
     @Test
     public void createAndDeleteShouldGenerateEventAndPersistState() {
         VikingSnapshot vikingSnapshot = new VikingSnapshot();
-        InMemoryEventStore<Tuple0, VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create(actorSystem);
+        InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create(actorSystem);
         EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
 
         vikingEventProcessor.processCommand(new VikingCommand.CreateViking("1", "ragnar")).get();
@@ -230,7 +230,7 @@ public class EventProcessorTest {
     }
 
 
-    private EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor(InMemoryEventStore<Tuple0, VikingEvent, Tuple0, Tuple0> inMemoryEventStore, VikingSnapshot vikingSnapshot) {
+    private EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, VikingSnapshot vikingSnapshot) {
         return new EventProcessor<>(
                 inMemoryEventStore,
                 new FakeTransactionManager(),
@@ -240,7 +240,7 @@ public class EventProcessorTest {
         );
     }
 
-    private EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessorWithProjection(InMemoryEventStore<Tuple0, VikingEvent, Tuple0, Tuple0> inMemoryEventStore, List<Projection<Tuple0, VikingEvent, Tuple0, Tuple0>> projections) {
+    private EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessorWithProjection(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, List<Projection<Tuple0, VikingEvent, Tuple0, Tuple0>> projections) {
         return new EventProcessor<>(
                 actorSystem,
                 inMemoryEventStore,

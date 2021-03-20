@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class InMemoryEventStore<T, E extends Event, Meta, Context> implements EventStore<T, E, Meta, Context> {
+public class InMemoryEventStore<E extends Event, Meta, Context> implements EventStore<Tuple0, E, Meta, Context> {
 
     private final ActorSystem system;
     private final Materializer materializer;
@@ -47,27 +47,27 @@ public class InMemoryEventStore<T, E extends Event, Meta, Context> implements Ev
         this.realTimeEvents.runWith(Sink.ignore(), materializer);
     }
 
-    public static <E extends Event, Meta, Context> InMemoryEventStore<Tuple0, E, Meta, Context> create(ActorSystem system) {
+    public static <E extends Event, Meta, Context> InMemoryEventStore<E, Meta, Context> create(ActorSystem system) {
         return new InMemoryEventStore<>(system);
     }
 
     @Override
-    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished(T tx, ConcurrentReplayStrategy concurrentReplayStrategy) {
+    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished(Tuple0 tx, ConcurrentReplayStrategy concurrentReplayStrategy) {
         return Source.empty();
     }
 
     @Override
-    public Future<EventEnvelope<E, Meta, Context>> markAsPublished(T tx, EventEnvelope<E, Meta, Context> eventEnvelope) {
+    public Future<EventEnvelope<E, Meta, Context>> markAsPublished(Tuple0 tx, EventEnvelope<E, Meta, Context> eventEnvelope) {
         return markAsPublished(eventEnvelope);
     }
 
     @Override
-    public Future<T> openTransaction() {
-        return Future.successful((T) null);
+    public Future<Tuple0> openTransaction() {
+        return Future.successful(Tuple.empty());
     }
 
     @Override
-    public Future<Tuple0> commitOrRollback(Option<Throwable> of, T tx) {
+    public Future<Tuple0> commitOrRollback(Option<Throwable> of, Tuple0 tx) {
         return Future.successful(Tuple.empty());
     }
 
@@ -89,7 +89,7 @@ public class InMemoryEventStore<T, E extends Event, Meta, Context> implements Ev
     }
 
     @Override
-    public Future<Long> nextSequence(T tx) {
+    public Future<Long> nextSequence(Tuple0 tx) {
         return Future.successful(sequence_num.incrementAndGet());
     }
 
@@ -111,7 +111,7 @@ public class InMemoryEventStore<T, E extends Event, Meta, Context> implements Ev
     }
 
     @Override
-    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsByQuery(T tx, Query query) {
+    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsByQuery(Tuple0 tx, Query query) {
         return loadEventsByQuery(query);
     }
 
@@ -124,7 +124,7 @@ public class InMemoryEventStore<T, E extends Event, Meta, Context> implements Ev
     }
 
     @Override
-    public Future<Tuple0> persist(T transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
+    public Future<Tuple0> persist(Tuple0 transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
         eventStore.addAll(events.toJavaList());
         return Future.successful(Tuple.empty());
     }
