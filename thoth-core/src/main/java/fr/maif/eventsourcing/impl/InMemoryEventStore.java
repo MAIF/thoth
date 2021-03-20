@@ -52,8 +52,23 @@ public class InMemoryEventStore<T, E extends Event, Meta, Context> implements Ev
     }
 
     @Override
-    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished() {
+    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished(T tx, ConcurrentReplayStrategy concurrentReplayStrategy) {
         return Source.empty();
+    }
+
+    @Override
+    public Future<EventEnvelope<E, Meta, Context>> markAsPublished(T tx, EventEnvelope<E, Meta, Context> eventEnvelope) {
+        return markAsPublished(eventEnvelope);
+    }
+
+    @Override
+    public Future<T> openTransaction() {
+        return Future.successful((T) null);
+    }
+
+    @Override
+    public Future<Tuple0> commitOrRollback(Option<Throwable> of, T tx) {
+        return Future.successful(Tuple.empty());
     }
 
     @Override

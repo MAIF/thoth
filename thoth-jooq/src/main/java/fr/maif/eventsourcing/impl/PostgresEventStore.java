@@ -83,23 +83,23 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
     private final ObjectMapper objectMapper;
     private final static String SELECT_CLAUSE =
             "SELECT " +
-            "  id," +
-            "  entity_id," +
-            "  sequence_num," +
-            "  event_type," +
-            "  version," +
-            "  transaction_id," +
-            "  event," +
-            "  metadata," +
-            "  emission_date," +
-            "  user_id," +
-            "  system_id," +
-            "  total_message_in_transaction," +
-            "  num_message_in_transaction," +
-            "  context," +
-            "  published ";
+                    "  id," +
+                    "  entity_id," +
+                    "  sequence_num," +
+                    "  event_type," +
+                    "  version," +
+                    "  transaction_id," +
+                    "  event," +
+                    "  metadata," +
+                    "  emission_date," +
+                    "  user_id," +
+                    "  system_id," +
+                    "  total_message_in_transaction," +
+                    "  num_message_in_transaction," +
+                    "  context," +
+                    "  published ";
 
-    public PostgresEventStore(ActorSystem system, EventPublisher<E, Meta, Context> eventPublisher, DataSource dataSource, ExecutorService executor, TableNames tableNames, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta>  metaFormat, JacksonSimpleFormat<Context>  contextFormat) {
+    public PostgresEventStore(ActorSystem system, EventPublisher<E, Meta, Context> eventPublisher, DataSource dataSource, ExecutorService executor, TableNames tableNames, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat) {
         this.system = system;
         this.materializer = Materializer.createMaterializer(system);
         this.dataSource = dataSource;
@@ -174,47 +174,47 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                                         .flatMap(m -> Try.of(() -> objectMapper.writeValueAsString(m)).toOption())
                                         .getOrNull();
 
-                        List<Field<?>> fields = List.of(
-                                ID,
-                                ENTITY_ID,
-                                SEQUENCE_NUM,
-                                EVENT_TYPE,
-                                VERSION,
-                                TRANSACTION_ID,
-                                EVENT,
-                                METADATA,
-                                CONTEXT,
-                                TOTAL_MESSAGE_IN_TRANSACTION,
-                                NUM_MESSAGE_IN_TRANSACTION,
-                                USER_ID,
-                                SYSTEM_ID
-                        );
+                                List<Field<?>> fields = List.of(
+                                        ID,
+                                        ENTITY_ID,
+                                        SEQUENCE_NUM,
+                                        EVENT_TYPE,
+                                        VERSION,
+                                        TRANSACTION_ID,
+                                        EVENT,
+                                        METADATA,
+                                        CONTEXT,
+                                        TOTAL_MESSAGE_IN_TRANSACTION,
+                                        NUM_MESSAGE_IN_TRANSACTION,
+                                        USER_ID,
+                                        SYSTEM_ID
+                                );
 
-                        List<Object> values = List.of(
-                                event.id,
-                                event.entityId,
-                                event.sequenceNum,
-                                event.eventType,
-                                event.version,
-                                event.transactionId,
-                                eventString,
-                                metaString,
-                                contextString,
-                                event.totalMessageInTransaction,
-                                event.numMessageInTransaction,
-                                event.userId,
-                                event.systemId
-                        );
-                        List<Field<?>> finalFields;
-                        List<Object> finalValues;
-                        if (event.emissionDate == null) {
-                            finalFields = fields;
-                            finalValues = values;
-                        } else {
-                            finalFields = fields.append(EMISSION_DATE);
-                            finalValues = values.append(Timestamp.valueOf(event.emissionDate));
-                        }
-                        return create.insertInto(table(this.tableNames.tableName), finalFields.toJavaList()).values(finalValues.toJavaList());
+                                List<Object> values = List.of(
+                                        event.id,
+                                        event.entityId,
+                                        event.sequenceNum,
+                                        event.eventType,
+                                        event.version,
+                                        event.transactionId,
+                                        eventString,
+                                        metaString,
+                                        contextString,
+                                        event.totalMessageInTransaction,
+                                        event.numMessageInTransaction,
+                                        event.userId,
+                                        event.systemId
+                                );
+                                List<Field<?>> finalFields;
+                                List<Object> finalValues;
+                                if (event.emissionDate == null) {
+                                    finalFields = fields;
+                                    finalValues = values;
+                                } else {
+                                    finalFields = fields.append(EMISSION_DATE);
+                                    finalValues = values.append(Timestamp.valueOf(event.emissionDate));
+                                }
+                                return create.insertInto(table(this.tableNames.tableName), finalFields.toJavaList()).values(finalValues.toJavaList());
                             }
                     ).toJavaList()
             ).execute();
@@ -275,18 +275,15 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
 
     @Override
     public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished(Connection c, ConcurrentReplayStrategy concurrentReplayStrategy) {
-        final String strategyClause = SKIP.equals(concurrentReplayStrategy) ? " skip locked " : " "  ;
-        return Sql.connection(dataSource, executor, false)
-                .flatMapConcat(c ->
-                        Sql.of(c, system)
-                                .select(SELECT_CLAUSE +
-                                        " FROM "+this.tableNames.tableName+
-                                        " WHERE published = false " +
-                                        " order by "+this.tableNames.sequenceNumName +
-                                        " for update of "+this.tableNames.tableName+" "+ strategyClause)
-                                .as(this::rsToEnvelope)
-                                .get()
-                );
+        final String strategyClause = SKIP.equals(concurrentReplayStrategy) ? " skip locked " : " ";
+        return Sql.of(c, system)
+                .select(SELECT_CLAUSE +
+                        " FROM " + this.tableNames.tableName +
+                        " WHERE published = false " +
+                        " order by " + this.tableNames.sequenceNumName +
+                        " for update of " + this.tableNames.tableName + " " + strategyClause)
+                .as(this::rsToEnvelope)
+                .get();
     }
 
     @Override
@@ -317,12 +314,12 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
 
         LOGGER.debug("{}", select);
 
-        return  Sql.of(tx, system)
-                    .select(select)
-                    .closeConnection(autoClose)
-                    .params(objects)
-                    .as(this::rsToEnvelope)
-                    .get();
+        return Sql.of(tx, system)
+                .select(select)
+                .closeConnection(autoClose)
+                .params(objects)
+                .as(this::rsToEnvelope)
+                .get();
     }
 
     @Override
