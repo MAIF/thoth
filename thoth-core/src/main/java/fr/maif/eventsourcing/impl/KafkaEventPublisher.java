@@ -9,6 +9,7 @@ import akka.kafka.javadsl.Producer;
 import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.*;
+import fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import fr.maif.akka.AkkaExecutionContext;
@@ -27,7 +28,10 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 import java.util.concurrent.CompletionStage;
+
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRATEGY;
 
 public class KafkaEventPublisher<E extends Event, Meta, Context> implements EventPublisher<E, Meta, Context>, Closeable {
 
@@ -73,7 +77,7 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
         this.eventsSource = pair.second();
     }
 
-    public <TxCtx> void start(EventStore<TxCtx, E, Meta, Context> eventStore, EventStore.ConcurrentReplayStrategy concurrentReplayStrategy) {
+    public <TxCtx> void start(EventStore<TxCtx, E, Meta, Context> eventStore, ConcurrentReplayStrategy concurrentReplayStrategy) {
 
         RestartSource
                 .onFailuresWithBackoff(
@@ -86,8 +90,9 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
                                     .flatMapConcat(tx -> {
 
                                         LOGGER.info("Replaying not published in DB for {}", topic);
+                                        ConcurrentReplayStrategy strategy = Objects.isNull(concurrentReplayStrategy) ? NO_STRATEGY : concurrentReplayStrategy;
                                         return eventStore
-                                                .loadEventsUnpublished(tx, concurrentReplayStrategy)
+                                                .loadEventsUnpublished(tx, strategy)
                                                 .via(publishToKafka(eventStore, Option.some(tx), groupFlow))
                                                 .alsoTo(logProgress(100))
                                                 .watchTermination((nu, cs) ->

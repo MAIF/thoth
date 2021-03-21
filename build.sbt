@@ -34,7 +34,7 @@ lazy val `demo-postgres-kafka` = (project in file("./demo/demo-postgres-kafka"))
   )
 
 lazy val `sample` = project
-  .dependsOn(`thoth-jooq`)
+  .dependsOn(`thoth-core`, `thoth-jooq`)
   .settings(
     skip in publish := true
   )

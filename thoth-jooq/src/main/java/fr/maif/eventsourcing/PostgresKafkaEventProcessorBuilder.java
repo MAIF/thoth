@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRATEGY;
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
 
 public class PostgresKafkaEventProcessorBuilder {
@@ -175,7 +176,7 @@ public class PostgresKafkaEventProcessorBuilder {
             this.metaFormat = metaFormat;
             this.contextFormat = contextFormat;
             this.executor = executor;
-            this.concurrentReplayStrategy = Option.of(concurrentReplayStrategy).getOrElse(SKIP);
+            this.concurrentReplayStrategy = Option.of(concurrentReplayStrategy).getOrElse(NO_STRATEGY);
             this.eventPublisher = new KafkaEventPublisher<>(system, producerSettings, topic, bufferSize);
             this.eventStore = new PostgresEventStore<>(
                     system,
@@ -216,6 +217,22 @@ public class PostgresKafkaEventProcessorBuilder {
                     metaFormat,
                     contextFormat,
                     ConcurrentReplayStrategy.WAIT,
+                    eventPublisher,
+                    eventStore,
+                    executor
+            );
+        }
+
+        public BuilderWithKafkaSettings<E, Meta, Context> withNoConcurrentReplayStrategy() {
+            return new BuilderWithKafkaSettings<>(
+                    system,
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    ConcurrentReplayStrategy.NO_STRATEGY,
                     eventPublisher,
                     eventStore,
                     executor
