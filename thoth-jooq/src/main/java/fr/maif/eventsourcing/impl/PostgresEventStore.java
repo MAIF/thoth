@@ -276,12 +276,23 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
     @Override
     public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished(Connection c, ConcurrentReplayStrategy concurrentReplayStrategy) {
         final String strategyClause = SKIP.equals(concurrentReplayStrategy) ? " skip locked " : " ";
+        String tmpQuery = SELECT_CLAUSE +
+                " FROM " + this.tableNames.tableName +
+                " WHERE published = false " +
+                " order by " + this.tableNames.sequenceNumName;
+        String query;
+        switch (concurrentReplayStrategy) {
+            case WAIT:
+                query = tmpQuery + " for update of " + this.tableNames.tableName;
+                break;
+            case SKIP:
+                query = tmpQuery + " for update of " + this.tableNames.tableName + " skip locked ";
+                break;
+            default:
+                query = tmpQuery;
+        }
         return Sql.of(c, system)
-                .select(SELECT_CLAUSE +
-                        " FROM " + this.tableNames.tableName +
-                        " WHERE published = false " +
-                        " order by " + this.tableNames.sequenceNumName +
-                        " for update of " + this.tableNames.tableName + " " + strategyClause)
+                .select(query)
                 .as(this::rsToEnvelope)
                 .get();
     }

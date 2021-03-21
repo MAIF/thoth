@@ -153,7 +153,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         String topic = createTopic(2, 5, 1);
         KafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
-        when(eventStore.loadEventsUnpublished(any(), eq(SKIP))).thenReturn(txStream(
+        when(eventStore.loadEventsUnpublished(any(), any())).thenReturn(txStream(
                 eventEnvelope("value 1"),
                 eventEnvelope("value 2"),
                 eventEnvelope("value 3")
@@ -199,7 +199,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         EventEnvelope<TestEvent, Void, Void> envelope2 = eventEnvelope("value 2");
         EventEnvelope<TestEvent, Void, Void> envelope3 = eventEnvelope("value 3");
 
-        when(eventStore.loadEventsUnpublished(any(), eq(SKIP))).thenReturn(txStream(envelope1, envelope2, envelope3));
+        when(eventStore.loadEventsUnpublished(any(), any())).thenReturn(txStream(envelope1, envelope2, envelope3));
 
         when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
                 .then(i -> {

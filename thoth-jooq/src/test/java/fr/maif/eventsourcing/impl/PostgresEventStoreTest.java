@@ -177,6 +177,7 @@ public class PostgresEventStoreTest {
         }
         assertThat(events).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
     }
+
     @Test
     @SneakyThrows
     public void markEventsAsPublished() {
@@ -225,6 +226,12 @@ public class PostgresEventStoreTest {
             this.dslContext.deleteFrom(vikings_journal).execute();
             return "";
         });
+
+        try (Connection connection = pgSimpleDataSource.getConnection()) {
+            executeSqlScript(connection);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         this.postgresEventStore = new PostgresEventStore<>(
                 system,
                 eventPublisher,
@@ -235,12 +242,6 @@ public class PostgresEventStoreTest {
                 JacksonSimpleFormat.empty(),
                 JacksonSimpleFormat.empty()
         );
-
-        try (Connection connection = pgSimpleDataSource.getConnection()) {
-            executeSqlScript(connection);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 
     @AfterEach

@@ -186,7 +186,7 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
     @Override
     public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished(PgAsyncTransaction transaction, ConcurrentReplayStrategy concurrentReplayStrategy) {
         return transaction.stream(500, dsl -> {
-            SelectForUpdateWaitStep<Record15<UUID, String, Long, String, Long, String, JsonNode, JsonNode, LocalDateTime, String, String, Integer, Integer, JsonNode, Boolean>> tmpQuery = dsl
+                    SelectSeekStep1<Record15<UUID, String, Long, String, Long, String, JsonNode, JsonNode, LocalDateTime, String, String, Integer, Integer, JsonNode, Boolean>, Long> tmpQuery = dsl
                             .select(
                                     ID,
                                     ENTITY_ID,
@@ -206,12 +206,16 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
                             )
                             .from(table(this.tableNames.tableName))
                             .where(PUBLISHED.isFalse())
-                            .orderBy(SEQUENCE_NUM.asc())
-                            .forUpdate().of(table(this.tableNames.tableName));
-
-                    return SKIP.equals(concurrentReplayStrategy) ? tmpQuery.skipLocked() : tmpQuery;
-                }
-        ).map(this::rsToEnvelope);
+                            .orderBy(SEQUENCE_NUM.asc());
+                    switch (concurrentReplayStrategy) {
+                        case WAIT:
+                            return tmpQuery.forUpdate().of(table(this.tableNames.tableName));
+                        case SKIP:
+                            return tmpQuery.forUpdate().of(table(this.tableNames.tableName)).skipLocked();
+                        default:
+                            return tmpQuery;
+                    }
+            }).map(this::rsToEnvelope);
     }
 
     @Override

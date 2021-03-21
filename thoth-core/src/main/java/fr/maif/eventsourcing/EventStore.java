@@ -21,7 +21,6 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
     Future<Tuple0> persist(TxCtx transactionContext, List<EventEnvelope<E, Meta, Context>> events);
 
-
     Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished(TxCtx tx, ConcurrentReplayStrategy concurrentReplayStrategy);
 
     Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsByQuery(TxCtx tx, Query query);
@@ -57,8 +56,16 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
     Future<Tuple0> commitOrRollback(Option<Throwable> of, TxCtx tx);
 
+    /**
+     * Strategy to choose when replaying journal in case of crash when there is two or more nodes that want to replay concurrently.
+     * <ul>
+     *  <li>SKIP : if two node replay at the same time, the second will not see events to replay. The impact, is that the new events on that node will be sent to kafka before the replay is finished</li>
+     *  <li>NO_STRATEGY : all nodes will replay, so the events will be send multiple times</li>
+     *  <li>WAIT : on node will replay and the other will be block, waiting for the replay to finish. The new events will be kept in memory and will be sent at the end of the replay</li>
+     * </ul>
+     */
     enum ConcurrentReplayStrategy {
-        SKIP, WAIT
+        SKIP, WAIT, NO_STRATEGY
     }
 
     class Query {
