@@ -279,7 +279,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
         String tmpQuery = SELECT_CLAUSE +
                 " FROM " + this.tableNames.tableName +
                 " WHERE published = false " +
-                " order by " + this.tableNames.sequenceNumName;
+                " order by sequence_num ";
         String query;
         switch (concurrentReplayStrategy) {
             case WAIT:
