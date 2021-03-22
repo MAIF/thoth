@@ -223,6 +223,21 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
             );
         }
 
+        public BuilderWithKafkaSettings<E, Meta, Context> withConcurrentReplayStrategy(ConcurrentReplayStrategy concurrentReplayStrategy) {
+            return new BuilderWithKafkaSettings<>(
+                    system,
+                    pgAsyncPool,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    concurrentReplayStrategy,
+                    eventPublisher,
+                    eventStore
+            );
+        }
+
         public <S extends State<S>> BuilderWithEventHandler<S, E, Meta, Context> withEventHandler(EventHandler<S, E> eventHandler) {
             return new BuilderWithEventHandler<>(
                     system,

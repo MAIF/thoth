@@ -188,7 +188,7 @@ public abstract class AbstractPostgresEventStoreTest {
         List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(transactionSource()
                 .flatMapConcat(t -> postgresEventStore
                         .loadEventsUnpublished(t, EventStore.ConcurrentReplayStrategy.NO_STRATEGY)
-                        .watchTermination((nu, d) -> d.whenComplete((__, e) -> t.commit()))
+                        .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
                 )
                 .runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join()
         );
@@ -205,7 +205,7 @@ public abstract class AbstractPostgresEventStoreTest {
                         .flatMapConcat(elt -> Source.tick(Duration.ofMillis(100), Duration.ofMillis(100), elt).take(1))
                         .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
         ).runWith(Sink.seq(), Materializer.createMaterializer(system));
-        Thread.sleep(50);
+        Thread.sleep(100);
         long start = System.currentTimeMillis();
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapConcat(t ->
                 postgresEventStore.loadEventsUnpublished(t, SKIP).watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
@@ -230,7 +230,7 @@ public abstract class AbstractPostgresEventStoreTest {
                         .flatMapConcat(e -> Source.completionStage(postgresEventStore.markAsPublished(t, e).toCompletableFuture()).map(__ -> e))
                         .watchTermination((nu, d) -> d.whenComplete((__, e) -> t.commit()))
         ).runWith(Sink.seq(), Materializer.createMaterializer(system));
-        Thread.sleep(50);
+        Thread.sleep(100);
         long start = System.currentTimeMillis();
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapConcat(t ->
                 postgresEventStore.loadEventsUnpublished(t, WAIT).watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))

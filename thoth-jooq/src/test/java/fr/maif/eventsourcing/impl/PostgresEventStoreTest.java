@@ -216,7 +216,7 @@ public class PostgresEventStoreTest {
                         .flatMapConcat(elt -> Source.tick(Duration.ofMillis(100), Duration.ofMillis(100), elt).take(1))
                         .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
         ).runWith(Sink.seq(), Materializer.createMaterializer(system));
-        Thread.sleep(50);
+        Thread.sleep(100);
         long start = System.currentTimeMillis();
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapConcat(t ->
                 postgresEventStore.loadEventsUnpublished(t, SKIP).watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
@@ -241,7 +241,7 @@ public class PostgresEventStoreTest {
                         .flatMapConcat(e -> Source.completionStage(postgresEventStore.markAsPublished(t, e).toCompletableFuture()).map(__ -> e))
                         .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
         ).runWith(Sink.seq(), Materializer.createMaterializer(system));
-        Thread.sleep(50);
+        Thread.sleep(100);
         long start = System.currentTimeMillis();
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapConcat(t ->
                 postgresEventStore.loadEventsUnpublished(t, WAIT).watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
