@@ -220,6 +220,7 @@ public abstract class AbstractPostgresEventStoreTest {
     }
 
     @Test
+    @SneakyThrows
     public void loadEventsUnpublishedWait() {
         initDatas();
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> first = transactionSource().flatMapConcat(t ->
@@ -228,6 +229,7 @@ public abstract class AbstractPostgresEventStoreTest {
                         .flatMapConcat(e -> Source.completionStage(postgresEventStore.markAsPublished(t, e).toCompletableFuture()).map(__ -> e))
                         .watchTermination((nu, d) -> d.whenComplete((__, e) -> t.commit()))
         ).runWith(Sink.seq(), Materializer.createMaterializer(system));
+        Thread.sleep(50);
         long start = System.currentTimeMillis();
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapConcat(t ->
                 postgresEventStore.loadEventsUnpublished(t, WAIT).watchTermination((nu, d) -> d.whenComplete((__, e) -> t.commit()))
