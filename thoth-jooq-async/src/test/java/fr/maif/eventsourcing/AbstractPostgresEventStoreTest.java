@@ -14,6 +14,7 @@ import fr.maif.jooq.PgAsyncTransaction;
 import io.vavr.API;
 import io.vavr.collection.List;
 import io.vavr.control.Either;
+import io.vavr.control.Option;
 import io.vavr.control.Try;
 import lombok.SneakyThrows;
 import org.jooq.DSLContext;
@@ -202,12 +203,12 @@ public abstract class AbstractPostgresEventStoreTest {
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> first = transactionSource().flatMapConcat(t ->
                 postgresEventStore.loadEventsUnpublished(t, SKIP)
                         .flatMapConcat(elt -> Source.tick(Duration.ofMillis(100), Duration.ofMillis(100), elt).take(1))
-                        .watchTermination((nu, d) -> d.whenComplete((__, e) -> t.commit()))
+                        .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
         ).runWith(Sink.seq(), Materializer.createMaterializer(system));
         Thread.sleep(50);
         long start = System.currentTimeMillis();
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapConcat(t ->
-                postgresEventStore.loadEventsUnpublished(t, SKIP).watchTermination((nu, d) -> d.whenComplete((__, e) -> t.commit()))
+                postgresEventStore.loadEventsUnpublished(t, SKIP).watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
         ).runWith(Sink.seq(), Materializer.createMaterializer(system));
 
         List<EventEnvelope<VikingEvent, Void, Void>> events2 = List.ofAll(second.toCompletableFuture().join());
@@ -232,7 +233,7 @@ public abstract class AbstractPostgresEventStoreTest {
         Thread.sleep(50);
         long start = System.currentTimeMillis();
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapConcat(t ->
-                postgresEventStore.loadEventsUnpublished(t, WAIT).watchTermination((nu, d) -> d.whenComplete((__, e) -> t.commit()))
+                postgresEventStore.loadEventsUnpublished(t, WAIT).watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
         ).runWith(Sink.seq(), Materializer.createMaterializer(system));
 
         List<EventEnvelope<VikingEvent, Void, Void>> events2 = List.ofAll(second.toCompletableFuture().join());
@@ -245,7 +246,7 @@ public abstract class AbstractPostgresEventStoreTest {
     }
 
     private Source<PgAsyncTransaction, NotUsed> transactionSource() {
-        return Source.completionStage(pgAsyncPool.begin().toCompletableFuture());
+        return Source.completionStage(postgresEventStore.openTransaction().toCompletableFuture());
     }
 
     @Test

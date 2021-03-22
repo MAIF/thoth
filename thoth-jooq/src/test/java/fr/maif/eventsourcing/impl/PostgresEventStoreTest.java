@@ -1,8 +1,10 @@
 package fr.maif.eventsourcing.impl;
 
+import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.maif.eventsourcing.*;
@@ -10,6 +12,7 @@ import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import io.vavr.collection.List;
 import io.vavr.control.Either;
+import io.vavr.control.Option;
 import io.vavr.control.Try;
 import lombok.SneakyThrows;
 import org.jooq.DSLContext;
@@ -26,11 +29,16 @@ import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRATEGY;
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.WAIT;
 import static io.vavr.API.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
@@ -167,15 +175,85 @@ public class PostgresEventStoreTest {
         assertThat(events).containsExactlyInAnyOrder(event1Updated);
     }
 
+//    @Test
+//    @SneakyThrows
+//    public void loadEventsUnpublished() {
+//        initDatas();
+//        List<EventEnvelope<VikingEvent, Void, Void>> events;
+//        try (Connection connection = pgSimpleDataSource.getConnection()) {
+//            events = List.ofAll(postgresEventStore.loadEventsUnpublished(connection, EventStore.ConcurrentReplayStrategy.WAIT).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
+//        }
+//        assertThat(events).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
+//    }
+
+
+    private Source<Connection, NotUsed> transactionSource() {
+        return Source.completionStage(postgresEventStore.openTransaction().toCompletableFuture());
+    }
+
+
     @Test
     @SneakyThrows
     public void loadEventsUnpublished() {
         initDatas();
-        List<EventEnvelope<VikingEvent, Void, Void>> events;
-        try (Connection connection = pgSimpleDataSource.getConnection()) {
-            events = List.ofAll(postgresEventStore.loadEventsUnpublished(connection, EventStore.ConcurrentReplayStrategy.WAIT).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
-        }
+        List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(transactionSource()
+                .flatMapConcat(t -> postgresEventStore
+                        .loadEventsUnpublished(t, NO_STRATEGY)
+                        .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
+                )
+                .runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join()
+        );
+
         assertThat(events).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
+    }
+
+    @Test
+    @SneakyThrows
+    public void loadEventsUnpublishedSkip() {
+        initDatas();
+        CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> first = transactionSource().flatMapConcat(t ->
+                postgresEventStore.loadEventsUnpublished(t, SKIP)
+                        .flatMapConcat(elt -> Source.tick(Duration.ofMillis(100), Duration.ofMillis(100), elt).take(1))
+                        .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
+        ).runWith(Sink.seq(), Materializer.createMaterializer(system));
+        Thread.sleep(50);
+        long start = System.currentTimeMillis();
+        CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapConcat(t ->
+                postgresEventStore.loadEventsUnpublished(t, SKIP).watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
+        ).runWith(Sink.seq(), Materializer.createMaterializer(system));
+
+        List<EventEnvelope<VikingEvent, Void, Void>> events2 = List.ofAll(second.toCompletableFuture().join());
+        long took = System.currentTimeMillis() - start;
+
+        List<EventEnvelope<VikingEvent, Void, Void>> events1 = List.ofAll(first.toCompletableFuture().join());
+        assertThat(events1).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
+        assertThat(events2).isEmpty();
+        assertThat(took).isLessThan(500);
+    }
+
+    @Test
+    @SneakyThrows
+    public void loadEventsUnpublishedWait() {
+        initDatas();
+        CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> first = transactionSource().flatMapConcat(t ->
+                postgresEventStore.loadEventsUnpublished(t, WAIT)
+                        .flatMapConcat(elt -> Source.tick(Duration.ofMillis(100), Duration.ofMillis(100), elt).take(1))
+                        .flatMapConcat(e -> Source.completionStage(postgresEventStore.markAsPublished(t, e).toCompletableFuture()).map(__ -> e))
+                        .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
+        ).runWith(Sink.seq(), Materializer.createMaterializer(system));
+        Thread.sleep(50);
+        long start = System.currentTimeMillis();
+        CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapConcat(t ->
+                postgresEventStore.loadEventsUnpublished(t, WAIT).watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
+        ).runWith(Sink.seq(), Materializer.createMaterializer(system));
+
+        List<EventEnvelope<VikingEvent, Void, Void>> events2 = List.ofAll(second.toCompletableFuture().join());
+        long took = System.currentTimeMillis() - start;
+
+        List<EventEnvelope<VikingEvent, Void, Void>> events1 = List.ofAll(first.toCompletableFuture().join());
+        assertThat(events1).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
+        assertThat(events2).isEmpty();
+        assertThat(took).isGreaterThan(600);
     }
 
     @Test
