@@ -27,7 +27,7 @@ public class Bank {
                 BankCommandHandler commandHandler,
                 BankEventHandler eventHandler
                 ) {
-        InMemoryEventStore<Tuple0, BankEvent, Tuple0, Tuple0> eventStore = InMemoryEventStore.create(actorSystem);
+        InMemoryEventStore<BankEvent, Tuple0, Tuple0> eventStore = InMemoryEventStore.create(actorSystem);
         this.eventProcessor = new EventProcessor<>(
                 actorSystem,
                 eventStore,
