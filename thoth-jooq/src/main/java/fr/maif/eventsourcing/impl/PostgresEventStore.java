@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
 import fr.maif.json.MapperSingleton;
+import io.vavr.API;
 import io.vavr.Tuple0;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
@@ -20,6 +21,7 @@ import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.collection.List;
 import io.vavr.collection.Seq;
+import io.vavr.collection.Traversable;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
@@ -40,6 +42,8 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
+import static io.vavr.API.List;
 import static io.vavr.API.Seq;
 import static io.vavr.API.Tuple;
 import static java.util.function.Function.identity;
@@ -79,23 +83,23 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
     private final ObjectMapper objectMapper;
     private final static String SELECT_CLAUSE =
             "SELECT " +
-            "  id," +
-            "  entity_id," +
-            "  sequence_num," +
-            "  event_type," +
-            "  version," +
-            "  transaction_id," +
-            "  event," +
-            "  metadata," +
-            "  emission_date," +
-            "  user_id," +
-            "  system_id," +
-            "  total_message_in_transaction," +
-            "  num_message_in_transaction," +
-            "  context," +
-            "  published ";
+                    "  id," +
+                    "  entity_id," +
+                    "  sequence_num," +
+                    "  event_type," +
+                    "  version," +
+                    "  transaction_id," +
+                    "  event," +
+                    "  metadata," +
+                    "  emission_date," +
+                    "  user_id," +
+                    "  system_id," +
+                    "  total_message_in_transaction," +
+                    "  num_message_in_transaction," +
+                    "  context," +
+                    "  published ";
 
-    public PostgresEventStore(ActorSystem system, EventPublisher<E, Meta, Context> eventPublisher, DataSource dataSource, ExecutorService executor, TableNames tableNames, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta>  metaFormat, JacksonSimpleFormat<Context>  contextFormat) {
+    public PostgresEventStore(ActorSystem system, EventPublisher<E, Meta, Context> eventPublisher, DataSource dataSource, ExecutorService executor, TableNames tableNames, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat) {
         this.system = system;
         this.materializer = Materializer.createMaterializer(system);
         this.dataSource = dataSource;
@@ -134,6 +138,32 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
         return this.materializer;
     }
 
+
+    @Override
+    public Future<Connection> openTransaction() {
+        return Future.of(executor, () -> {
+            Connection connection = dataSource.getConnection();
+            connection.setAutoCommit(false);
+            return connection;
+        });
+    }
+
+    @Override
+    public Future<Tuple0> commitOrRollback(Option<Throwable> mayBeCrash, Connection connection) {
+        return mayBeCrash.fold(
+                () -> Future.of(executor, () -> {
+                    connection.commit();
+                    connection.close();
+                    return Tuple.empty();
+                }),
+                e -> Future.of(executor, () -> {
+                    connection.rollback();
+                    connection.close();
+                    return Tuple.empty();
+                })
+        );
+    }
+
     @Override
     public Future<Tuple0> persist(Connection connection, List<EventEnvelope<E, Meta, Context>> events) {
 
@@ -150,47 +180,47 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                                         .flatMap(m -> Try.of(() -> objectMapper.writeValueAsString(m)).toOption())
                                         .getOrNull();
 
-                        List<Field<?>> fields = List.of(
-                                ID,
-                                ENTITY_ID,
-                                SEQUENCE_NUM,
-                                EVENT_TYPE,
-                                VERSION,
-                                TRANSACTION_ID,
-                                EVENT,
-                                METADATA,
-                                CONTEXT,
-                                TOTAL_MESSAGE_IN_TRANSACTION,
-                                NUM_MESSAGE_IN_TRANSACTION,
-                                USER_ID,
-                                SYSTEM_ID
-                        );
+                                List<Field<?>> fields = List.of(
+                                        ID,
+                                        ENTITY_ID,
+                                        SEQUENCE_NUM,
+                                        EVENT_TYPE,
+                                        VERSION,
+                                        TRANSACTION_ID,
+                                        EVENT,
+                                        METADATA,
+                                        CONTEXT,
+                                        TOTAL_MESSAGE_IN_TRANSACTION,
+                                        NUM_MESSAGE_IN_TRANSACTION,
+                                        USER_ID,
+                                        SYSTEM_ID
+                                );
 
-                        List<Object> values = List.of(
-                                event.id,
-                                event.entityId,
-                                event.sequenceNum,
-                                event.eventType,
-                                event.version,
-                                event.transactionId,
-                                eventString,
-                                metaString,
-                                contextString,
-                                event.totalMessageInTransaction,
-                                event.numMessageInTransaction,
-                                event.userId,
-                                event.systemId
-                        );
-                        List<Field<?>> finalFields;
-                        List<Object> finalValues;
-                        if (event.emissionDate == null) {
-                            finalFields = fields;
-                            finalValues = values;
-                        } else {
-                            finalFields = fields.append(EMISSION_DATE);
-                            finalValues = values.append(Timestamp.valueOf(event.emissionDate));
-                        }
-                        return create.insertInto(table(this.tableNames.tableName), finalFields.toJavaList()).values(finalValues.toJavaList());
+                                List<Object> values = List.of(
+                                        event.id,
+                                        event.entityId,
+                                        event.sequenceNum,
+                                        event.eventType,
+                                        event.version,
+                                        event.transactionId,
+                                        eventString,
+                                        metaString,
+                                        contextString,
+                                        event.totalMessageInTransaction,
+                                        event.numMessageInTransaction,
+                                        event.userId,
+                                        event.systemId
+                                );
+                                List<Field<?>> finalFields;
+                                List<Object> finalValues;
+                                if (event.emissionDate == null) {
+                                    finalFields = fields;
+                                    finalValues = values;
+                                } else {
+                                    finalFields = fields.append(EMISSION_DATE);
+                                    finalValues = values.append(Timestamp.valueOf(event.emissionDate));
+                                }
+                                return create.insertInto(table(this.tableNames.tableName), finalFields.toJavaList()).values(finalValues.toJavaList());
                             }
                     ).toJavaList()
             ).execute();
@@ -210,6 +240,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
         return this.eventPublisher.publish(events);
     }
 
+
     @Override
     public Future<EventEnvelope<E, Meta, Context>> markAsPublished(EventEnvelope<E, Meta, Context> eventEnvelope) {
         return Future.fromCompletableFuture(sql.update(table(this.tableNames.tableName))
@@ -223,23 +254,53 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
     @Override
     public Future<List<EventEnvelope<E, Meta, Context>>> markAsPublished(List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
         return Future.fromCompletableFuture(
-            sql.update(table(this.tableNames.tableName))
-                .set(PUBLISHED, true)
-                .where(ID.in(eventEnvelopes.map(evt -> evt.id).toJavaArray(UUID[]::new)))
-                .executeAsync(executor)
-                .toCompletableFuture()
+                sql.update(table(this.tableNames.tableName))
+                        .set(PUBLISHED, true)
+                        .where(ID.in(eventEnvelopes.map(evt -> evt.id).toJavaArray(UUID[]::new)))
+                        .executeAsync(executor)
+                        .toCompletableFuture()
         ).map(__ -> eventEnvelopes.map(eventEnvelope -> eventEnvelope.copy().withPublished(true).build()));
     }
 
     @Override
-    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished() {
-        return Sql.connection(dataSource, executor, false)
-                .flatMapConcat(c ->
-                        Sql.of(c, system)
-                                .select(SELECT_CLAUSE + " FROM "+this.tableNames.tableName+" WHERE published = false ")
-                                .as(this::rsToEnvelope)
-                                .get()
-                );
+    public Future<List<EventEnvelope<E, Meta, Context>>> markAsPublished(Connection tx, List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
+        return Future.fromCompletableFuture(
+                DSL.using(tx, SQLDialect.POSTGRES)
+                        .update(table(this.tableNames.tableName))
+                        .set(PUBLISHED, true)
+                        .where(ID.in(eventEnvelopes.map(evt -> evt.id).toJavaArray(UUID[]::new)))
+                        .executeAsync(executor)
+                        .toCompletableFuture()
+        ).map(__ -> eventEnvelopes.map(eventEnvelope -> eventEnvelope.copy().withPublished(true).build()));
+    }
+
+    @Override
+    public Future<EventEnvelope<E, Meta, Context>> markAsPublished(Connection tx, EventEnvelope<E, Meta, Context> eventEnvelope) {
+        return markAsPublished(tx, List(eventEnvelope)).map(Traversable::head);
+    }
+
+    @Override
+    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished(Connection c, ConcurrentReplayStrategy concurrentReplayStrategy) {
+        String tmpQuery = SELECT_CLAUSE +
+                " FROM " + this.tableNames.tableName +
+                " WHERE published = false " +
+                " order by sequence_num ";
+        String query;
+        switch (concurrentReplayStrategy) {
+            case WAIT:
+                query = tmpQuery + " for update of " + this.tableNames.tableName;
+                break;
+            case SKIP:
+                query = tmpQuery + " for update of " + this.tableNames.tableName + " skip locked ";
+                break;
+            default:
+                query = tmpQuery;
+        }
+        return Sql.of(c, system)
+                .select(query)
+                .closeConnection(false)
+                .as(this::rsToEnvelope)
+                .get();
     }
 
     @Override
@@ -270,12 +331,12 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
 
         LOGGER.debug("{}", select);
 
-        return  Sql.of(tx, system)
-                    .select(select)
-                    .closeConnection(autoClose)
-                    .params(objects)
-                    .as(this::rsToEnvelope)
-                    .get();
+        return Sql.of(tx, system)
+                .select(select)
+                .closeConnection(autoClose)
+                .params(objects)
+                .as(this::rsToEnvelope)
+                .get();
     }
 
     @Override

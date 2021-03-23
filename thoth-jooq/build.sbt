@@ -14,6 +14,7 @@ libraryDependencies ++= Seq(
   "javax.annotation"   % "jsr250-api"              % "1.0",
   "com.typesafe.akka" %% "akka-testkit"            % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-stream-testkit"     % akkaVersion % Test,
+  "com.zaxxer"         % "HikariCP"                % "4.0.3"     % Test,
   "org.assertj"        % "assertj-core"            % "3.10.0"    % Test,
   "com.h2database"     % "h2"                      % "1.4.197"   % Test,
   "org.junit.platform" % "junit-platform-launcher" % "1.4.2"     % Test,

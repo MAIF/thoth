@@ -1,5 +1,6 @@
 package fr.maif.eventsourcing.impl;
 
+import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.kafka.ConsumerSettings;
 import akka.kafka.ProducerSettings;
@@ -15,6 +16,8 @@ import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
 import com.fasterxml.jackson.databind.JsonNode;
 import fr.maif.Json;
+import io.vavr.API;
+import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
@@ -28,6 +31,7 @@ import fr.maif.kafka.JsonSerializer;
 import io.vavr.collection.List;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
+import lombok.SneakyThrows;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -42,15 +46,21 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRATEGY;
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
+import static io.vavr.API.Try;
 import static io.vavr.API.println;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -66,11 +76,14 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
     }
 
     @BeforeEach
-    void cleanUpInit() throws ExecutionException, InterruptedException {
+    @SneakyThrows
+    void cleanUpInit() {
         setUpAdminClient();
-        Set<String> topics = adminClient().listTopics().names().get();
-        println("Deleting "+ String.join(",", topics));
-        adminClient().deleteTopics(topics).all().get();
+        Set<String> topics = adminClient().listTopics().names().get(5, TimeUnit.SECONDS);
+        if (!topics.isEmpty()) {
+            println("Deleting "+ String.join(",", topics));
+            adminClient().deleteTopics(topics).all().get();
+        }
     }
 
     @AfterEach
@@ -95,14 +108,16 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         KafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
 
-        when(eventStore.loadEventsUnpublished()).thenReturn(Source.empty());
+        when(eventStore.openTransaction()).thenReturn(Future.successful(Tuple.empty()));
+        when(eventStore.commitOrRollback(any(), any())).thenReturn(Future.successful(Tuple.empty()));
+        when(eventStore.loadEventsUnpublished(any(), any())).thenReturn(emptyTxStream());
         when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any())).then(i -> Future.successful(i.getArgument(0)));
 
         EventEnvelope<TestEvent, Void, Void> envelope1 = eventEnvelope("value 1");
         EventEnvelope<TestEvent, Void, Void> envelope2 = eventEnvelope("value 2");
         EventEnvelope<TestEvent, Void, Void> envelope3 = eventEnvelope("value 3");
 
-        publisher.start(eventStore);
+        publisher.start(eventStore, NO_STRATEGY);
 
         Thread.sleep(200);
 
@@ -134,6 +149,13 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         publisher.close();
     }
 
+    private <T> Source<T, NotUsed> emptyTxStream() {
+        return Source.<T>empty();
+    }
+
+    private <T> Source<T, NotUsed> txStream(T... values) {
+        return Source.<T>from(List.of(values));
+    }
 
 
     @Test
@@ -142,15 +164,19 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         String topic = createTopic(2, 5, 1);
         KafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
-        when(eventStore.loadEventsUnpublished()).thenReturn(Source.from(List.of(
+        when(eventStore.openTransaction()).thenReturn(Future.successful(Tuple.empty()));
+        when(eventStore.commitOrRollback(any(), any())).thenReturn(Future.successful(Tuple.empty()));
+        when(eventStore.loadEventsUnpublished(any(), any())).thenReturn(txStream(
                 eventEnvelope("value 1"),
                 eventEnvelope("value 2"),
                 eventEnvelope("value 3")
-        )));
+        ));
+        when(eventStore.markAsPublished(eq(Tuple.empty()), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
+                .then(i -> Future.successful(i.getArgument(1)));
         when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
                 .then(i -> Future.successful(i.getArgument(0)));
 
-        publisher.start(eventStore);
+        publisher.start(eventStore, NO_STRATEGY);
 
         CompletionStage<List<String>> results = Consumer.plainSource(consumerDefaults().withGroupId("test2"), Subscriptions.topics(topic))
                 .map(ConsumerRecord::value)
@@ -169,7 +195,8 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
 
         assertThat(events).hasSize(6);
 
-        verify(eventStore, times(2)).markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
+        verify(eventStore, times(1)).markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
+        verify(eventStore, times(1)).markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
 
         publisher.close();
     }
@@ -183,23 +210,25 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         String topic = createTopic(3, 5, 1);
         KafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
+        when(eventStore.openTransaction()).thenReturn(Future.successful(Tuple.empty()));
+        when(eventStore.commitOrRollback(any(), any())).thenReturn(Future.successful(Tuple.empty()));
 
         EventEnvelope<TestEvent, Void, Void> envelope1 = eventEnvelope("value 1");
         EventEnvelope<TestEvent, Void, Void> envelope2 = eventEnvelope("value 2");
         EventEnvelope<TestEvent, Void, Void> envelope3 = eventEnvelope("value 3");
 
-        when(eventStore.loadEventsUnpublished()).thenReturn(Source.from(List.of(envelope1, envelope2, envelope3)));
-
-        when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
+        when(eventStore.loadEventsUnpublished(any(), any())).thenReturn(txStream(envelope1, envelope2, envelope3));
+        when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any())).thenAnswer(in -> Future.successful(in.getArgument(0)));
+        when(eventStore.markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
                 .then(i -> {
                     if (failed.getAndSet(true)) {
-                        return Future.successful(i.getArgument(0));
+                        return Future.successful(i.getArgument(1));
                     } else {
                         throw new RuntimeException("Oups");
                     }
                 });
 
-        publisher.start(eventStore);
+        publisher.start(eventStore, SKIP);
 
         CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = Consumer.plainSource(consumerDefaults().withGroupId("test3"), Subscriptions.topics(topic))
                 .map(ConsumerRecord::value)
@@ -217,7 +246,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
 
         assertThat(events).containsExactly(envelope1, envelope2, envelope3, envelope1, envelope2, envelope3);
 
-        verify(eventStore, times(2)).markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
+        verify(eventStore, times(2)).markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
 
         publisher.close();
     }

@@ -29,6 +29,7 @@ import org.jooq.Field;
 import org.jooq.JSON;
 import org.jooq.JSONB;
 import org.jooq.Record15;
+import org.jooq.SelectForUpdateWaitStep;
 import org.jooq.SelectSeekStep1;
 import org.jooq.impl.SQLDataType;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
 import static java.util.function.Function.identity;
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.table;
@@ -115,6 +117,19 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
     }
 
     @Override
+    public Future<PgAsyncTransaction> openTransaction() {
+        return this.pgAsyncPool.begin();
+    }
+
+    @Override
+    public Future<Tuple0> commitOrRollback(Option<Throwable> mayBeCrash, PgAsyncTransaction pgAsyncTransaction) {
+        return mayBeCrash.fold(
+                pgAsyncTransaction::commit,
+                e -> pgAsyncTransaction.rollback()
+        );
+    }
+
+    @Override
     public Future<Tuple0> persist(PgAsyncTransaction transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
         List<Field<?>> fields = List.of(
                 ID,
@@ -169,26 +184,38 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
     }
 
     @Override
-    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished() {
-        return pgAsyncPool.stream(500, dsl ->
-                dsl.select(
-                        ID,
-                        ENTITY_ID,
-                        SEQUENCE_NUM,
-                        EVENT_TYPE,
-                        VERSION,
-                        TRANSACTION_ID,
-                        EVENT,
-                        METADATA,
-                        EMISSION_DATE,
-                        USER_ID,
-                        SYSTEM_ID,
-                        TOTAL_MESSAGE_IN_TRANSACTION,
-                        NUM_MESSAGE_IN_TRANSACTION,
-                        CONTEXT,
-                        PUBLISHED
-                ).from(table(this.tableNames.tableName)).where(PUBLISHED.isFalse())
-        ).map(this::rsToEnvelope);
+    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished(PgAsyncTransaction transaction, ConcurrentReplayStrategy concurrentReplayStrategy) {
+        return transaction.stream(500, dsl -> {
+                    SelectSeekStep1<Record15<UUID, String, Long, String, Long, String, JsonNode, JsonNode, LocalDateTime, String, String, Integer, Integer, JsonNode, Boolean>, Long> tmpQuery = dsl
+                            .select(
+                                    ID,
+                                    ENTITY_ID,
+                                    SEQUENCE_NUM,
+                                    EVENT_TYPE,
+                                    VERSION,
+                                    TRANSACTION_ID,
+                                    EVENT,
+                                    METADATA,
+                                    EMISSION_DATE,
+                                    USER_ID,
+                                    SYSTEM_ID,
+                                    TOTAL_MESSAGE_IN_TRANSACTION,
+                                    NUM_MESSAGE_IN_TRANSACTION,
+                                    CONTEXT,
+                                    PUBLISHED
+                            )
+                            .from(table(this.tableNames.tableName))
+                            .where(PUBLISHED.isFalse())
+                            .orderBy(SEQUENCE_NUM.asc());
+                    switch (concurrentReplayStrategy) {
+                        case WAIT:
+                            return tmpQuery.forUpdate().of(table(this.tableNames.tableName));
+                        case SKIP:
+                            return tmpQuery.forUpdate().of(table(this.tableNames.tableName)).skipLocked();
+                        default:
+                            return tmpQuery;
+                    }
+            }).map(this::rsToEnvelope);
     }
 
     @Override
@@ -207,25 +234,25 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
 
         return tx.stream(500, dsl -> {
             SelectSeekStep1<Record15<UUID, String, Long, String, Long, String, JsonNode, JsonNode, LocalDateTime, String, String, Integer, Integer, JsonNode, Boolean>, Long> queryBuilder = dsl
-                            .select(
-                                    ID,
-                                    ENTITY_ID,
-                                    SEQUENCE_NUM,
-                                    EVENT_TYPE,
-                                    VERSION,
-                                    TRANSACTION_ID,
-                                    EVENT,
-                                    METADATA,
-                                    EMISSION_DATE,
-                                    USER_ID,
-                                    SYSTEM_ID,
-                                    TOTAL_MESSAGE_IN_TRANSACTION,
-                                    NUM_MESSAGE_IN_TRANSACTION,
-                                    CONTEXT,
-                                    PUBLISHED)
-                            .from(table(this.tableNames.tableName))
-                            .where(clauses.toJavaList())
-                            .orderBy(SEQUENCE_NUM);
+                    .select(
+                            ID,
+                            ENTITY_ID,
+                            SEQUENCE_NUM,
+                            EVENT_TYPE,
+                            VERSION,
+                            TRANSACTION_ID,
+                            EVENT,
+                            METADATA,
+                            EMISSION_DATE,
+                            USER_ID,
+                            SYSTEM_ID,
+                            TOTAL_MESSAGE_IN_TRANSACTION,
+                            NUM_MESSAGE_IN_TRANSACTION,
+                            CONTEXT,
+                            PUBLISHED)
+                    .from(table(this.tableNames.tableName))
+                    .where(clauses.toJavaList())
+                    .orderBy(SEQUENCE_NUM);
             if (Objects.nonNull(query.size)) {
                 return queryBuilder.limit(query.size);
             }
@@ -274,8 +301,17 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
     }
 
     @Override
-    public Future<List<EventEnvelope<E, Meta, Context>>> markAsPublished(List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
-        return pgAsyncPool.execute(dsl -> dsl
+    public Future<EventEnvelope<E, Meta, Context>> markAsPublished(PgAsyncTransaction transaction, EventEnvelope<E, Meta, Context> eventEnvelope) {
+        return transaction.execute(dsl -> dsl
+                .update(table(this.tableNames.tableName))
+                .set(PUBLISHED, true)
+                .where(ID.eq(eventEnvelope.id))
+        ).map(__ -> eventEnvelope.copy().withPublished(true).build());
+    }
+
+    @Override
+    public Future<List<EventEnvelope<E, Meta, Context>>> markAsPublished(PgAsyncTransaction transaction, List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
+        return transaction.execute(dsl -> dsl
                 .update(table(this.tableNames.tableName))
                 .set(PUBLISHED, true)
                 .where(ID.in(eventEnvelopes.map(evt -> evt.id).toJavaArray(UUID[]::new)))

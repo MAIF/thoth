@@ -9,6 +9,7 @@ import akka.kafka.javadsl.Producer;
 import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.*;
+import fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import fr.maif.akka.AkkaExecutionContext;
@@ -18,6 +19,7 @@ import fr.maif.eventsourcing.EventPublisher;
 import fr.maif.eventsourcing.EventStore;
 import io.vavr.collection.List;
 import io.vavr.concurrent.Future;
+import io.vavr.control.Option;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +28,11 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
+import java.util.concurrent.CompletionStage;
+
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRATEGY;
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.WAIT;
 
 public class KafkaEventPublisher<E extends Event, Meta, Context> implements EventPublisher<E, Meta, Context>, Closeable {
 
@@ -39,9 +46,10 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
     private final Source<EventEnvelope<E, Meta, Context>, NotUsed> eventsSource;
     private final Duration restartInterval;
     private final Duration maxRestartInterval;
+    private final Flow<ProducerMessage.Results<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>, List<ProducerMessage.Results<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>>, NotUsed> groupFlow = Flow.<ProducerMessage.Results<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>>create().grouped(1000).map(List::ofAll);
 
     public KafkaEventPublisher(ActorSystem system, ProducerSettings<String, EventEnvelope<E, Meta, Context>> producerSettings, String topic) {
-        this(system, producerSettings, topic,  null);
+        this(system, producerSettings, topic, null);
     }
 
     public KafkaEventPublisher(ActorSystem system, ProducerSettings<String, EventEnvelope<E, Meta, Context>> producerSettings, String topic, Integer queueBufferSize) {
@@ -51,7 +59,7 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
     public KafkaEventPublisher(ActorSystem system, ProducerSettings<String, EventEnvelope<E, Meta, Context>> producerSettings, String topic, Integer queueBufferSize, Duration restartInterval, Duration maxRestartInterval) {
         this.materializer = Materializer.createMaterializer(system);
         this.topic = topic;
-        Integer queueBufferSize1 = queueBufferSize == null ? 10000 : queueBufferSize;
+        int queueBufferSize1 = queueBufferSize == null ? 10000 : queueBufferSize;
         this.restartInterval = restartInterval == null ? Duration.of(10, ChronoUnit.SECONDS) : restartInterval;
         this.maxRestartInterval = maxRestartInterval == null ? Duration.of(30, ChronoUnit.MINUTES) : maxRestartInterval;
 
@@ -60,18 +68,18 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
         Source<EventEnvelope<E, Meta, Context>, SourceQueueWithComplete<EventEnvelope<E, Meta, Context>>> queue = Source.queue(queueBufferSize1, OverflowStrategy.backpressure());
 
         RunnableGraph<Pair<SourceQueueWithComplete<EventEnvelope<E, Meta, Context>>, Source<EventEnvelope<E, Meta, Context>, NotUsed>>> tmpVar = queue
-                .toMat(BroadcastHub.of((Class<EventEnvelope<E, Meta, Context>>)e.getClass(), 256), Keep.both());
+                .toMat(BroadcastHub.of((Class<EventEnvelope<E, Meta, Context>>) e.getClass(), 256), Keep.both());
 
         Pair<SourceQueueWithComplete<EventEnvelope<E, Meta, Context>>, Source<EventEnvelope<E, Meta, Context>, NotUsed>> pair = tmpVar
                 .run(materializer);
-
         this.kafkaProducer = producerSettings.createKafkaProducer();
         this.producerSettings = producerSettings.withProducer(this.kafkaProducer);
         this.queue = pair.first();
         this.eventsSource = pair.second();
     }
 
-    public void start(EventStore<?, E, Meta, Context> eventStore) {
+    public <TxCtx> void start(EventStore<TxCtx, E, Meta, Context> eventStore, ConcurrentReplayStrategy concurrentReplayStrategy) {
+
         RestartSource
                 .onFailuresWithBackoff(
                         restartInterval,
@@ -79,11 +87,30 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
                         0,
                         () -> {
                             LOGGER.info("Starting/Restarting publishing event to kafka on topic {}", topic);
-                            return eventStore.loadEventsUnpublished()
-                                    .via(publishToKafka(eventStore, Flow.<ProducerMessage.Results<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>>create().grouped(1000).map(List::ofAll)))
+                            return Source.completionStage(eventStore.openTransaction().toCompletableFuture())
+                                    .flatMapConcat(tx -> {
+
+                                        LOGGER.info("Replaying not published in DB for {}", topic);
+                                        ConcurrentReplayStrategy strategy = Objects.isNull(concurrentReplayStrategy) ? WAIT : concurrentReplayStrategy;
+                                        return eventStore
+                                                .loadEventsUnpublished(tx, strategy)
+                                                .via(publishToKafka(eventStore, Option.some(tx), groupFlow))
+                                                .alsoTo(logProgress(100))
+                                                .watchTermination((nu, cs) ->
+                                                        cs.whenComplete((d, e) -> {
+                                                            eventStore.commitOrRollback(Option.of(e), tx);
+                                                            if (e != null) {
+                                                                LOGGER.error("Error replaying non published events to kafka for "+topic, e);
+                                                            } else {
+                                                                LOGGER.info("Replaying events not published in DB is finished for {}", topic);
+                                                            }
+                                                        })
+                                                );
+                                    })
                                     .concat(
                                             this.eventsSource.via(publishToKafka(
                                                     eventStore,
+                                                    Option.none(),
                                                     Flow.<ProducerMessage.Results<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>>create()
                                                             .groupedWithin(50, Duration.ofMillis(20))
                                                             .map(List::ofAll)
@@ -106,13 +133,19 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
     }
 
 
-    private Flow<EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>, NotUsed> publishToKafka(EventStore<?, E, Meta, Context> eventStore, Flow<ProducerMessage.Results<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>, List<ProducerMessage.Results<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>>, NotUsed> groupFlow) {
+    private <TxCtx> Flow<EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>, NotUsed> publishToKafka(EventStore<TxCtx, E, Meta, Context> eventStore, Option<TxCtx> tx, Flow<ProducerMessage.Results<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>, List<ProducerMessage.Results<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>>, NotUsed> groupFlow) {
         Flow<ProducerMessage.Envelope<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>, ProducerMessage.Results<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>, NotUsed> publishToKafkaFlow = Producer.<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>flexiFlow(producerSettings);
         return Flow.<EventEnvelope<E, Meta, Context>>create()
                 .map(this::toKafkaMessage)
                 .via(publishToKafkaFlow)
                 .via(groupFlow)
-                .mapAsync(1, m -> eventStore.markAsPublished(m.map(ProducerMessage.Results::passThrough)).toCompletableFuture())
+                .mapAsync(1, m ->
+                        tx.fold(
+                                () -> eventStore.markAsPublished(m.map(ProducerMessage.Results::passThrough)).toCompletableFuture(),
+                                txCtx -> eventStore.markAsPublished(txCtx, m.map(ProducerMessage.Results::passThrough)).toCompletableFuture()
+                        )
+
+                )
                 .mapConcat(e -> e);
     }
 
@@ -145,4 +178,16 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
                 eventEnvelope
         );
     }
+
+
+    private <Any> Sink<Any, NotUsed> logProgress(int every) {
+        return Flow.<Any>create()
+                .scan(0, (acc, elt) -> acc + 1)
+                .to(Sink.foreach(count -> {
+                    if (count % every == 0) {
+                        LOGGER.info("Replayed {} events on {}", count, topic);
+                    }
+                }));
+    }
+
 }

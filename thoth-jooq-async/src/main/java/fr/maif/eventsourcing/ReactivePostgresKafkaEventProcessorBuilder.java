@@ -2,6 +2,7 @@ package fr.maif.eventsourcing;
 
 import akka.actor.ActorSystem;
 import akka.kafka.ProducerSettings;
+import fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.eventsourcing.impl.DefaultAggregateStore;
@@ -10,6 +11,7 @@ import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
+import io.vavr.control.Option;
 import lombok.AllArgsConstructor;
 
 import java.util.function.Function;
@@ -119,7 +121,8 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
                     contextFormat,
                     topic,
                     producerSettings,
-                    bufferSize);
+                    bufferSize,
+                    null);
         }
 
         public BuilderWithKafkaSettings<E, Meta, Context> withKafkaSettings(String topic, ProducerSettings<String, EventEnvelope<E, Meta, Context>> producerSettings) {
@@ -136,10 +139,24 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
         public final JacksonEventFormat<?, E> eventFormat;
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
+        public final ConcurrentReplayStrategy concurrentReplayStrategy;
         public final KafkaEventPublisher<E, Meta, Context> eventPublisher;
         public final ReactivePostgresEventStore<E, Meta, Context> eventStore;
 
-        public BuilderWithKafkaSettings(ActorSystem system, PgAsyncPool pgAsyncPool, TableNames tableNames, TransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, String topic, ProducerSettings<String, EventEnvelope<E, Meta, Context>> producerSettings, Integer bufferSize) {
+        private BuilderWithKafkaSettings(ActorSystem system, PgAsyncPool pgAsyncPool, TableNames tableNames, TransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, ConcurrentReplayStrategy concurrentReplayStrategy, KafkaEventPublisher<E, Meta, Context> eventPublisher, ReactivePostgresEventStore<E, Meta, Context> eventStore) {
+            this.system = system;
+            this.pgAsyncPool = pgAsyncPool;
+            this.tableNames = tableNames;
+            this.transactionManager = transactionManager;
+            this.eventFormat = eventFormat;
+            this.metaFormat = metaFormat;
+            this.contextFormat = contextFormat;
+            this.concurrentReplayStrategy = concurrentReplayStrategy;
+            this.eventPublisher = eventPublisher;
+            this.eventStore = eventStore;
+        }
+
+        BuilderWithKafkaSettings(ActorSystem system, PgAsyncPool pgAsyncPool, TableNames tableNames, TransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, String topic, ProducerSettings<String, EventEnvelope<E, Meta, Context>> producerSettings, Integer bufferSize, ConcurrentReplayStrategy concurrentReplayStrategy) {
             this.system = system;
             this.pgAsyncPool = pgAsyncPool;
             this.tableNames = tableNames;
@@ -148,6 +165,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
             this.metaFormat = metaFormat;
             this.contextFormat = contextFormat;
             this.eventPublisher = new KafkaEventPublisher<>(system, producerSettings, topic, bufferSize);
+            this.concurrentReplayStrategy = Option.of(concurrentReplayStrategy).getOrElse(ConcurrentReplayStrategy.WAIT);
             this.eventStore = new ReactivePostgresEventStore<>(
                     system,
                     eventPublisher,
@@ -158,6 +176,68 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
                     contextFormat
             );
         }
+
+        public BuilderWithKafkaSettings<E, Meta, Context> withSkipConcurrentReplayStrategy() {
+            return new BuilderWithKafkaSettings<>(
+                    system,
+                    pgAsyncPool,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    ConcurrentReplayStrategy.SKIP,
+                    eventPublisher,
+                    eventStore
+            );
+        }
+
+
+        public BuilderWithKafkaSettings<E, Meta, Context> withNoConcurrentReplayStrategy() {
+            return new BuilderWithKafkaSettings<>(
+                    system,
+                    pgAsyncPool,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    ConcurrentReplayStrategy.NO_STRATEGY,
+                    eventPublisher,
+                    eventStore
+            );
+        }
+
+        public BuilderWithKafkaSettings<E, Meta, Context> withWaitConcurrentReplayStrategy() {
+            return new BuilderWithKafkaSettings<>(
+                    system,
+                    pgAsyncPool,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    ConcurrentReplayStrategy.WAIT,
+                    eventPublisher,
+                    eventStore
+            );
+        }
+
+        public BuilderWithKafkaSettings<E, Meta, Context> withConcurrentReplayStrategy(ConcurrentReplayStrategy concurrentReplayStrategy) {
+            return new BuilderWithKafkaSettings<>(
+                    system,
+                    pgAsyncPool,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    concurrentReplayStrategy,
+                    eventPublisher,
+                    eventStore
+            );
+        }
+
         public <S extends State<S>> BuilderWithEventHandler<S, E, Meta, Context> withEventHandler(EventHandler<S, E> eventHandler) {
             return new BuilderWithEventHandler<>(
                     system,
@@ -168,6 +248,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
                     metaFormat,
                     contextFormat,
                     eventPublisher,
+                    concurrentReplayStrategy,
                     eventStore,
                     eventHandler
             );
@@ -184,6 +265,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
             public final JacksonSimpleFormat<Meta> metaFormat;
             public final JacksonSimpleFormat<Context> contextFormat;
             public final KafkaEventPublisher<E, Meta, Context> eventPublisher;
+            public final ConcurrentReplayStrategy concurrentReplayStrategy;
             public final ReactivePostgresEventStore<E, Meta, Context> eventStore;
             public final EventHandler<S, E> eventHandler;
 
@@ -197,6 +279,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
                     metaFormat,
                     contextFormat,
                     eventPublisher,
+                    concurrentReplayStrategy,
                     eventStore,
                     eventHandler,
                     builder.apply(this));
@@ -212,6 +295,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
                     metaFormat,
                     contextFormat,
                     eventPublisher,
+                    concurrentReplayStrategy,
                     eventStore,
                     eventHandler,
                     aggregateStore);
@@ -227,6 +311,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
                     metaFormat,
                     contextFormat,
                     eventPublisher,
+                    concurrentReplayStrategy,
                     eventStore,
                     eventHandler,
                     new DefaultAggregateStore<>(eventStore, eventHandler, system, transactionManager));
@@ -244,6 +329,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
         public final KafkaEventPublisher<E, Meta, Context> eventPublisher;
+        public final ConcurrentReplayStrategy concurrentReplayStrategy;
         public final ReactivePostgresEventStore<E, Meta, Context> eventStore;
         public final EventHandler<S, E> eventHandler;
         public final AggregateStore<S, String, PgAsyncTransaction> aggregateStore;
@@ -258,6 +344,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
                     metaFormat,
                     contextFormat,
                     eventPublisher,
+                    concurrentReplayStrategy,
                     eventStore,
                     aggregateStore,
                     eventHandler,
@@ -275,6 +362,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
                     metaFormat,
                     contextFormat,
                     eventPublisher,
+                    concurrentReplayStrategy,
                     eventStore,
                     aggregateStore,
                     eventHandler,
@@ -296,6 +384,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
         public final KafkaEventPublisher<E, Meta, Context> eventPublisher;
+        public final ConcurrentReplayStrategy concurrentReplayStrategy;
         public final ReactivePostgresEventStore<E, Meta, Context> eventStore;
         public final AggregateStore<S, String, PgAsyncTransaction> aggregateStore;
         public final EventHandler<S, E> eventHandler;
@@ -311,6 +400,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
                     metaFormat,
                     contextFormat,
                     eventPublisher,
+                    concurrentReplayStrategy,
                     eventStore,
                     aggregateStore,
                     eventHandler,
@@ -329,6 +419,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
                     metaFormat,
                     contextFormat,
                     eventPublisher,
+                    concurrentReplayStrategy,
                     eventStore,
                     aggregateStore,
                     eventHandler,
@@ -357,6 +448,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
         public final KafkaEventPublisher<E, Meta, Context> eventPublisher;
+        public final ConcurrentReplayStrategy concurrentReplayStrategy;
         public final ReactivePostgresEventStore<E, Meta, Context> eventStore;
         public final AggregateStore<S, String, PgAsyncTransaction> aggregateStore;
         public final EventHandler<S, E> eventHandler;
@@ -366,6 +458,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
         public ReactivePostgresKafkaEventProcessor<Error, S, C, E, Message, Meta, Context> build() {
             return new ReactivePostgresKafkaEventProcessor<Error, S, C, E, Message, Meta, Context>(
                     new ReactivePostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<Error, S, C, E, Message, Meta, Context>(
+                            concurrentReplayStrategy,
                             eventStore,
                             transactionManager,
                             aggregateStore,

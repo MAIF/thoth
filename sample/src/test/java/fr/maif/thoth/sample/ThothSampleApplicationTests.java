@@ -66,6 +66,7 @@ import fr.maif.thoth.sample.events.BankEventFormat;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.Tuple2;
+import org.testcontainers.utility.DockerImageName;
 
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -81,9 +82,9 @@ class ThothSampleApplicationTests {
 	private BankEventFormat eventFormat;
 
 	@Container
-	private static PostgreSQLContainer postgres = new PostgreSQLContainer();
+	private static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres").withTag("11.2"));
 	@Container
-	private static KafkaContainer kafka = new KafkaContainer();
+	private static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka").withTag("6.0.1"));
 	private PGSimpleDataSource pgDataSource;
 
 	static {

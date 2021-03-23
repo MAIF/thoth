@@ -5,6 +5,7 @@
 * [Returning messages](message.md)
 * [Custom event ordering](event-ordering.md)
 * [Read speed optimisation](aggregatestore.md)
+* [Event replay](event-replay.md)
 
 @@@
 
