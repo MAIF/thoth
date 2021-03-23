@@ -144,8 +144,18 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#event-replay" name="event-replay" class="anchor"><span class="anchor-link"></span></a>Event replay</h1>
 <p>In the case where kafka is not available, event can&rsquo;t be sent. In that case the module in charge to deliver events to kafka will crash and restart with an exponential backoff.</p>
-<p>During the restart, in order to keep the order of the events, the new / current events are kept in memory while messages from the database are sent to kafka :  1. read events from DB where published is false  2. send the events to kafka  3. send current events that were kept in a queue</p>
-<p>If your application has more than 1 node and each node perform the same work, there is a problem because events will probably be sent twice or more. In that case you have to choose a strategy :  * <code>NO_STRATEGY</code> : you don&rsquo;t care and each node do the work  * <code>SKIP</code> : one node replay the events and others ignore events from DB. The issue with this strategy is that events which are newer than the replayed events can be sent from the other node. The order is not preserved.  * <code>WAIT</code> : one node replay the events and others wait and keep events in memory. The issue with this strategy is that if there a lot of write, the process will crash and retry a lot because the in memory queue will be full. </p>
+<p>During the restart, in order to keep the order of the events, the new / current events are kept in memory while messages from the database are sent to kafka : </p>
+<ol>
+  <li>read events from DB where published is false</li>
+  <li>send the events to kafka</li>
+  <li>send current events that were kept in a queue</li>
+</ol>
+<p>If your application has more than 1 node and each node perform the same work, there is a problem because events will probably be sent twice or more. In that case you have to choose a strategy : </p>
+<ul>
+  <li><code>NO_STRATEGY</code> : you don&rsquo;t care and each node do the work</li>
+  <li><code>SKIP</code> : one node replay the events and others ignore events from DB. The issue with this strategy is that events which are newer than the replayed events can be sent from the other node. The order is not preserved.</li>
+  <li><code>WAIT</code> : one node replay the events and others wait and keep events in memory. The issue with this strategy is that if there a lot of write, the process will crash and retry a lot because the in memory queue will be full.</li>
+</ul>
 <p>You can configure this with the builder: </p>
 <pre class="prettyprint"><code class="language-java">this.eventProcessor = ReactivePostgresKafkaEventProcessor
         .withSystem(actorSystem)
