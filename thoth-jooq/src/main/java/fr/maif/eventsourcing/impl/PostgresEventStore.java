@@ -141,7 +141,11 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
 
     @Override
     public Future<Connection> openTransaction() {
-        return Future.of(executor, dataSource::getConnection);
+        return Future.of(executor, () -> {
+            Connection connection = dataSource.getConnection();
+            connection.setAutoCommit(false);
+            return connection;
+        });
     }
 
     @Override
@@ -149,10 +153,12 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
         return mayBeCrash.fold(
                 () -> Future.of(executor, () -> {
                     connection.commit();
+                    connection.close();
                     return Tuple.empty();
                 }),
                 e -> Future.of(executor, () -> {
                     connection.rollback();
+                    connection.close();
                     return Tuple.empty();
                 })
         );

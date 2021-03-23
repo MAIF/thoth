@@ -7,6 +7,8 @@ import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import fr.maif.eventsourcing.*;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
@@ -23,7 +25,6 @@ import org.jooq.impl.DSL;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.postgresql.ds.PGSimpleDataSource;
 
 import java.io.InputStream;
 import java.sql.Connection;
@@ -49,7 +50,7 @@ public class PostgresEventStoreTest {
 
     private ActorSystem system;
     private PostgresEventStore<VikingEvent, Void, Void> postgresEventStore;
-    private PGSimpleDataSource pgSimpleDataSource;
+    private HikariDataSource dataSource;
     private DSLContext dslContext;
     private Table<Record> vikings_journal = table("vikings_journal");
     private LocalDateTime emissionDate = LocalDateTime.of(2019, 2, 1, 0, 0);
@@ -63,7 +64,7 @@ public class PostgresEventStoreTest {
 
     @Test
     public void insertAndRead() {
-        try (Connection connection = pgSimpleDataSource.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
             LocalDateTime emissionDate = LocalDateTime.now().withNano(0);
             List<EventEnvelope<VikingEvent, Void, Void>> events = List(
                     eventEnvelope(1L, new VikingEvent.VikingCreated("bjorn@gmail.com"), emissionDate),
@@ -88,7 +89,7 @@ public class PostgresEventStoreTest {
 
     @Test
     public void insertAndRollback() {
-        JdbcTransactionManager jdbcTransactionManager = new JdbcTransactionManager(pgSimpleDataSource, Executors.newSingleThreadExecutor());
+        JdbcTransactionManager jdbcTransactionManager = new JdbcTransactionManager(dataSource, Executors.newSingleThreadExecutor());
 
         Try.of(() ->
             jdbcTransactionManager.withTransaction( connection -> {
@@ -112,7 +113,7 @@ public class PostgresEventStoreTest {
 
     @Test
     public void nextSequence() {
-        try (Connection connection = pgSimpleDataSource.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             Long seq = postgresEventStore.nextSequence(connection).get();
 
@@ -125,7 +126,7 @@ public class PostgresEventStoreTest {
 
     @Test
     public void insertDateNull() {
-        try (Connection connection = pgSimpleDataSource.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
             List<EventEnvelope<VikingEvent, Void, Void>> events = List(
                     eventEnvelope(1L, new VikingEvent.VikingCreated("bjorn@gmail.com"), null)
             );
@@ -175,18 +176,6 @@ public class PostgresEventStoreTest {
         assertThat(events).containsExactlyInAnyOrder(event1Updated);
     }
 
-//    @Test
-//    @SneakyThrows
-//    public void loadEventsUnpublished() {
-//        initDatas();
-//        List<EventEnvelope<VikingEvent, Void, Void>> events;
-//        try (Connection connection = pgSimpleDataSource.getConnection()) {
-//            events = List.ofAll(postgresEventStore.loadEventsUnpublished(connection, EventStore.ConcurrentReplayStrategy.WAIT).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
-//        }
-//        assertThat(events).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
-//    }
-
-
     private Source<Connection, NotUsed> transactionSource() {
         return Source.completionStage(postgresEventStore.openTransaction().toCompletableFuture());
     }
@@ -211,24 +200,29 @@ public class PostgresEventStoreTest {
     @SneakyThrows
     public void loadEventsUnpublishedSkip() {
         initDatas();
+        Duration initialDelay = Duration.ofMillis(100);
+        System.out.println("Running first query");
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> first = transactionSource().flatMapConcat(t ->
                 postgresEventStore.loadEventsUnpublished(t, SKIP)
-                        .flatMapConcat(elt -> Source.tick(Duration.ofMillis(100), Duration.ofMillis(100), elt).take(1))
+                        .flatMapConcat(elt -> Source.tick(initialDelay, initialDelay, elt).take(1))
+
                         .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
         ).runWith(Sink.seq(), Materializer.createMaterializer(system));
-        Thread.sleep(100);
+        Thread.sleep(50);
         long start = System.currentTimeMillis();
+        System.out.println("Running second query");
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapConcat(t ->
                 postgresEventStore.loadEventsUnpublished(t, SKIP).watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
         ).runWith(Sink.seq(), Materializer.createMaterializer(system));
 
         List<EventEnvelope<VikingEvent, Void, Void>> events2 = List.ofAll(second.toCompletableFuture().join());
         long took = System.currentTimeMillis() - start;
+        System.out.println("Second query took "+took);
 
         List<EventEnvelope<VikingEvent, Void, Void>> events1 = List.ofAll(first.toCompletableFuture().join());
         assertThat(events1).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
         assertThat(events2).isEmpty();
-        assertThat(took).isLessThan(500);
+        assertThat(took).isLessThan(200);
     }
 
     @Test
@@ -241,7 +235,7 @@ public class PostgresEventStoreTest {
                         .flatMapConcat(e -> Source.completionStage(postgresEventStore.markAsPublished(t, e).toCompletableFuture()).map(__ -> e))
                         .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
         ).runWith(Sink.seq(), Materializer.createMaterializer(system));
-        Thread.sleep(100);
+        Thread.sleep(50);
         long start = System.currentTimeMillis();
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapConcat(t ->
                 postgresEventStore.loadEventsUnpublished(t, WAIT).watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
@@ -261,14 +255,14 @@ public class PostgresEventStoreTest {
     public void markEventsAsPublished() {
         initDatas();
         List<EventEnvelope<VikingEvent, Void, Void>> events;
-        try (Connection connection = pgSimpleDataSource.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
             events = List.ofAll(postgresEventStore.loadEventsUnpublished(connection, EventStore.ConcurrentReplayStrategy.SKIP).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
         }
         assertThat(events).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
         postgresEventStore.markAsPublished(events).get();
 
         List<EventEnvelope<VikingEvent, Void, Void>> published;
-        try (Connection connection = pgSimpleDataSource.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
             published = List.ofAll(postgresEventStore.loadEventsUnpublished(connection, EventStore.ConcurrentReplayStrategy.SKIP).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
         }
         assertThat(published).isEmpty();
@@ -279,7 +273,7 @@ public class PostgresEventStoreTest {
     }
 
     private void initDatas() {
-        try (Connection connection = pgSimpleDataSource.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             List<EventEnvelope<VikingEvent, Void, Void>> events = List(event1, event2, event3, event4, event5, event6);
             postgresEventStore.persist(connection, events).get();
@@ -291,21 +285,32 @@ public class PostgresEventStoreTest {
     @BeforeEach
     public void setUp() {
 
-        ExecutorService executorService = Executors.newFixedThreadPool(4);
+        ExecutorService executorService = Executors.newFixedThreadPool(20);
         EventPublisher<VikingEvent, Void, Void> eventPublisher = mock(EventPublisher.class);
 
         this.system = ActorSystem.create();
-        this.pgSimpleDataSource = new PGSimpleDataSource();
-        pgSimpleDataSource.setUrl("jdbc:postgresql://localhost:5557/eventsourcing");
-        pgSimpleDataSource.setUser("eventsourcing");
-        pgSimpleDataSource.setPassword("eventsourcing");
-        this.dslContext = DSL.using(pgSimpleDataSource, SQLDialect.POSTGRES);
+        Properties props = new Properties();
+        props.setProperty("dataSourceClassName", "org.postgresql.ds.PGSimpleDataSource");
+        props.setProperty("dataSource.serverName", "localhost");
+        props.setProperty("dataSource.portNumber", "5557");
+        props.setProperty("dataSource.user", "eventsourcing");
+        props.setProperty("dataSource.password", "eventsourcing");
+        props.setProperty("dataSource.databaseName", "eventsourcing");
+        props.setProperty("maximumPoolSize", "20");
+        HikariConfig config = new HikariConfig(props);
+        this.dataSource = new HikariDataSource(config);
+//        this.dataSource.setJdbcUrl("jdbc:postgresql://localhost:5557/eventsourcing");
+//        this.dataSource.setUsername("eventsourcing");
+//        this.dataSource.setPassword("eventsourcing");
+//        this.dataSource.setDataSourceClassName("org.postgresql.ds.PGSimpleDataSource");
+
+        this.dslContext = DSL.using(dataSource, SQLDialect.POSTGRES);
         Try.of(() -> {
             this.dslContext.deleteFrom(vikings_journal).execute();
             return "";
         });
 
-        try (Connection connection = pgSimpleDataSource.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
             executeSqlScript(connection);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -313,7 +318,7 @@ public class PostgresEventStoreTest {
         this.postgresEventStore = new PostgresEventStore<>(
                 system,
                 eventPublisher,
-                pgSimpleDataSource,
+                dataSource,
                 executorService,
                 new TableNames("vikings_journal", "vikings_sequence_num"),
                 jacksonEventFormat,
@@ -328,6 +333,7 @@ public class PostgresEventStoreTest {
             this.dslContext.deleteFrom(vikings_journal).execute();
             return "";
         });
+        dataSource.close();
     }
 
     private static final JacksonEventFormat<String, VikingEvent> jacksonEventFormat = new JacksonEventFormat<String, VikingEvent>() {
