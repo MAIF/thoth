@@ -165,7 +165,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
             this.metaFormat = metaFormat;
             this.contextFormat = contextFormat;
             this.eventPublisher = new KafkaEventPublisher<>(system, producerSettings, topic, bufferSize);
-            this.concurrentReplayStrategy = Option.of(concurrentReplayStrategy).getOrElse(ConcurrentReplayStrategy.NO_STRATEGY);
+            this.concurrentReplayStrategy = Option.of(concurrentReplayStrategy).getOrElse(ConcurrentReplayStrategy.WAIT);
             this.eventStore = new ReactivePostgresEventStore<>(
                     system,
                     eventPublisher,

@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRATEGY;
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.WAIT;
 
 public class KafkaEventPublisher<E extends Event, Meta, Context> implements EventPublisher<E, Meta, Context>, Closeable {
 
@@ -90,7 +91,7 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
                                     .flatMapConcat(tx -> {
 
                                         LOGGER.info("Replaying not published in DB for {}", topic);
-                                        ConcurrentReplayStrategy strategy = Objects.isNull(concurrentReplayStrategy) ? NO_STRATEGY : concurrentReplayStrategy;
+                                        ConcurrentReplayStrategy strategy = Objects.isNull(concurrentReplayStrategy) ? WAIT : concurrentReplayStrategy;
                                         return eventStore
                                                 .loadEventsUnpublished(tx, strategy)
                                                 .via(publishToKafka(eventStore, Option.some(tx), groupFlow))

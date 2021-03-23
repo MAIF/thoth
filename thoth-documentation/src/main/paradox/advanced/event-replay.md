@@ -8,11 +8,11 @@ During the restart, in order to keep the order of the events, the new / current 
  2. send the events to kafka 
  3. send current events that were kept in a queue
 
-If your application has more than 1 node and each nodes perform the same work, there is a problem because events will probably be sent twice or more. 
+If your application has more than 1 node and each node perform the same work, there is a problem because events will probably be sent twice or more. 
 In that case you have to choose a strategy : 
  * `NO_STRATEGY` : you don't care and each node do the work
- * `SKIP` : one node replay the events and the others ignore events from DB. The issue with this strategy is that events which are newer than the replayed events can be sent from the other node. The order is not preserved.
- * `WAIT` : one node replay the events and the others wait and keep events in memory. The issue with this strategy is that if there a lot of write, the process will crash et retry a lot because the in memory queue will be full. 
+ * `SKIP` : one node replay the events and others ignore events from DB. The issue with this strategy is that events which are newer than the replayed events can be sent from the other node. The order is not preserved.
+ * `WAIT` : one node replay the events and others wait and keep events in memory. The issue with this strategy is that if there a lot of write, the process will crash and retry a lot because the in memory queue will be full. 
 
 You can configure this with the builder: 
 
