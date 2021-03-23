@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 
 <head>
-<title>Projections · Thoth</title>
+<title>Event replay · Thoth</title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content='Thoth doc'/>
@@ -41,7 +41,7 @@
   <li><a href="../standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
   <ul>
     <li><a href="../standard/banking-real-life.html" class="page">Postgres Kafka event sourcing</a></li>
-    <li><a href="../standard/projections.html" class="active page">Projections</a></li>
+    <li><a href="../standard/projections.html" class="page">Projections</a></li>
   </ul></li>
   <li><a href="../database-configuration.html" class="page">Database configuration</a></li>
   <li><a href="../advanced/index.html" class="page">Advanced use cases</a>
@@ -49,7 +49,7 @@
     <li><a href="../advanced/message.html" class="page">Warning / Info messages</a></li>
     <li><a href="../advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="../advanced/aggregatestore.html" class="page">Aggregate store</a></li>
-    <li><a href="../advanced/event-replay.html" class="page">Event replay</a></li>
+    <li><a href="../advanced/event-replay.html" class="active page">Event replay</a></li>
   </ul></li>
   <li><a href="../eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="../kafka-consumption.html" class="page">Using published events</a></li>
@@ -102,7 +102,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <li><a href="../standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
   <ul>
     <li><a href="../standard/banking-real-life.html" class="page">Postgres Kafka event sourcing</a></li>
-    <li><a href="../standard/projections.html" class="active page">Projections</a></li>
+    <li><a href="../standard/projections.html" class="page">Projections</a></li>
   </ul></li>
   <li><a href="../database-configuration.html" class="page">Database configuration</a></li>
   <li><a href="../advanced/index.html" class="page">Advanced use cases</a>
@@ -110,7 +110,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="../advanced/message.html" class="page">Warning / Info messages</a></li>
     <li><a href="../advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="../advanced/aggregatestore.html" class="page">Aggregate store</a></li>
-    <li><a href="../advanced/event-replay.html" class="page">Event replay</a></li>
+    <li><a href="../advanced/event-replay.html" class="active page">Event replay</a></li>
   </ul></li>
   <li><a href="../eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="../kafka-consumption.html" class="page">Using published events</a></li>
@@ -133,8 +133,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="nav-breadcrumbs">
 <ul>
   <li><a href="../index.html">Thoth</a></li>
-  <li><a href="../standard/index.html">Standard JOOQ/Kafka implementation</a></li>
-  <li>Projections</li>
+  <li><a href="../advanced/index.html">Advanced use cases</a></li>
+  <li>Event replay</li>
 </ul>
 </div>
 </div>
@@ -142,105 +142,37 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
-<h1><a href="#projections" name="projections" class="anchor"><span class="anchor-link"></span></a>Projections</h1>
-<p>Out account management system is limited in consultation : all we can do is read accounts by id, one by one.</p>
-<p>Projections help us to implement different read scenario. They are built / updated by consuming events.</p>
-<h2><a href="#in-transaction-projection" name="in-transaction-projection" class="anchor"><span class="anchor-link"></span></a>In transaction projection</h2>
-<p>thoth offers tools for building &ldquo;in transaction&rdquo; projections. These projections will be updated in the transaction used to register events in the database, therefore they&rsquo;ll be updated in &ldquo;real time&rdquo;.</p>
-<p>Let&rsquo;s say we want a projection that stores mean withdrawal value.</p>
-<pre class="prettyprint"><code class="language-java">public class MeanBalanceProjection implements Projection&lt;Connection, BankEvent, Tuple0, Tuple0&gt; {
-    private BigDecimal withDrawTotal = BigDecimal.ZERO;
-    private long withdrawCount = 0L;
-
-    @Override
-    public Future&lt;Tuple0&gt; storeProjection(Connection connection, List&lt;EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; envelopes) {
-        return Future.of(() -&gt; {
-            envelopes.forEach(envelope -&gt; {
-                BankEvent bankEvent = envelope.event;
-                if(envelope.event instanceof BankEvent.MoneyWithdrawn) {
-                    withDrawTotal = withDrawTotal.add(((BankEvent.MoneyWithdrawn)bankEvent).amount);
-                    withdrawCount ++;
-                }
-            });
-            
-            return Tuple.empty();
-        });
-    }
-    
-    public BigDecimal meanWithdraw() {
-        return withDrawTotal.divide(BigDecimal.valueOf(withdrawCount));
-    }
-}
+<h1><a href="#event-replay" name="event-replay" class="anchor"><span class="anchor-link"></span></a>Event replay</h1>
+<p>In the case where kafka is not available, event can&rsquo;t be sent. In that case the module in charge to deliver events to kafka will crash and restart with an exponential backoff.</p>
+<p>During the restart, in order to keep the order of the events, the new / current events are kept in memory while messages from the database are sent to kafka :  1. read events from DB where published is false  2. send the events to kafka  3. send current events that were kept in a queue</p>
+<p>If your application has more than 1 node and each node perform the same work, there is a problem because events will probably be sent twice or more. In that case you have to choose a strategy :  * <code>NO_STRATEGY</code> : you don&rsquo;t care and each node do the work  * <code>SKIP</code> : one node replay the events and others ignore events from DB. The issue with this strategy is that events which are newer than the replayed events can be sent from the other node. The order is not preserved.  * <code>WAIT</code> : one node replay the events and others wait and keep events in memory. The issue with this strategy is that if there a lot of write, the process will crash and retry a lot because the in memory queue will be full. </p>
+<p>You can configure this with the builder: </p>
+<pre class="prettyprint"><code class="language-java">this.eventProcessor = ReactivePostgresKafkaEventProcessor
+        .withSystem(actorSystem)
+        .withPgAsyncPool(pgAsyncPool)
+        .withTables(tableNames())
+        .withTransactionManager()
+        .withEventFormater(BankEventFormat.bankEventFormat.jacksonEventFormat())
+        .withNoMetaFormater()
+        .withNoContextFormater()
+        .withKafkaSettings(&quot;bank&quot;, producerSettings(settings()))
+        // Here you can choose withWaitConcurrentReplayStrategy, withSkipConcurrentReplayStrategy, withNoConcurrentReplayStrategy
+        .withWaitConcurrentReplayStrategy()
+        .withEventHandler(eventHandler)
+        .withDefaultAggregateStore()
+        .withCommandHandler(commandHandler)
+        .withProjections(this.withdrawByMonthProjection)
+        .build();
 </code></pre>
-<p>In the above example, we implemented an in memory projection, however in a real use case we should store values somewhere (e.g. in a database).</p>
-<p>Next step is to declare the projection in our EventProcessor implementation.</p>
-<pre class="prettyprint"><code class="language-java">public class Bank {
-    private final MeanWithdrawProjection meanWithdrawProjection;
-    //...
-    public Bank() {
-        //...
-        this.meanWithdrawProjection = new MeanWithdrawProjection();
-        this.eventProcessor = PostgresKafkaEventProcessor.create(
-            actorSystem,
-            eventStore(actorSystem, producerSettings, &quot;bank&quot;, dataSource, executorService, new TableNames(&quot;bank_journal&quot;, &quot;bank_sequence_num&quot;) ,eventFormat),
-            new JdbcTransactionManager(dataSource(), Executors.newFixedThreadPool(5)),
-            commandHandler,
-            eventHandler,
-            List.of(meanWithdrawProjection)
-        );
-    }
-    //...
-    public BigDecimal meanWithdrawValue() {
-        return meanWithdrawProjection.meanWithdraw();
-    }
-}
-</code></pre>
-<h3><a href="#usage" name="usage" class="anchor"><span class="anchor-link"></span></a>Usage</h3>
-<pre class="prettyprint"><code class="language-java">public class DemoApplication {
-
-	public static void main(String[] args) throws SQLException {
-		ActorSystem actorSystem = ActorSystem.create();
-		BankCommandHandler commandHandler = new BankCommandHandler();
-		BankEventHandler eventHandler = new BankEventHandler();
-		Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
-
-		String id = bank.createAccount(BigDecimal.valueOf(100)).get().get().currentState.get().id;
-
-		bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
-		bank.withdraw(id, BigDecimal.valueOf(10)).get().get().currentState.get();
-
-		System.out.println(bank.meanWithdrawValue()); // 30
-	}
-}
-</code></pre>
-<h2><a href="#eventually-consistent-projections" name="eventually-consistent-projections" class="anchor"><span class="anchor-link"></span></a>Eventually consistent projections</h2>
-<p>Sometimes projections are too costly to be updated in transaction, sometimes we don&rsquo;t need real time update.</p>
-<p>In these case we could build &ldquo;eventually consistent&rdquo; projections, by connecting to our &ldquo;bank&rdquo; topic in Kafka, and consuming events from there.</p>
-<p><a href="../eventually-consistent-projection.html">Eventually consistent projections</a> show how Thoth can help you to build eventually consistent projections.</p>
-<p>See <a href="../kafka-consumption.html">Kafka consumption section</a> for more information on published events and kafka consumption.</p>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/standard/projections.md">here</a>.
+The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/advanced/event-replay.md">here</a>.
 </div>
 
 <div class="nav-next">
-<p><strong>Next:</strong> <a href="../database-configuration.html">Database configuration</a></p>
+<p><strong>Next:</strong> <a href="../eventually-consistent-projection.html">Eventually consistent projections</a></p>
 </div>
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>
-<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
-<div class="page-nav">
-<div class="nav-title">On this page:</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="../standard/projections.html#projections" class="header">Projections</a>
-  <ul>
-    <li><a href="../standard/projections.html#in-transaction-projection" class="header">In transaction projection</a></li>
-    <li><a href="../standard/projections.html#eventually-consistent-projections" class="header">Eventually consistent projections</a></li>
-  </ul></li>
-</ul>
-</div>
-</div>
-</nav>
 </div>
 </div>
 
