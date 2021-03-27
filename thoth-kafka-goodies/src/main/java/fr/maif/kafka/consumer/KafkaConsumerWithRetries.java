@@ -92,6 +92,7 @@ public abstract class KafkaConsumerWithRetries<K, V> {
         this.onStopped = defaultIfNull(config.onStopped, () -> {});
         this.onStopping = defaultIfNull(config.onStopping, (__) -> {});
         this.onFailed = defaultIfNull(config.onFailed, (__) -> {});
+        this.start();
     }
 
     public static <K, V> KafkaConsumerWithRetries<K, V> create(ActorSystem actorSystem,
