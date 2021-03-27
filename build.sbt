@@ -15,6 +15,7 @@ sonatypeCredentialHost := "s01.oss.sonatype.org"
 lazy val root = (project in file("."))
   .aggregate(
     `commons-events`,
+    `thoth-kafka-goodies`,
     `thoth-core`,
     `thoth-jooq`,
     `thoth-jooq-async`,
@@ -63,6 +64,14 @@ lazy val `commons-events` = project
     crossPaths := false
   )
 
+lazy val `thoth-kafka-goodies` = project
+  .settings(
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    scalaVersion := "2.12.13",
+    crossPaths := true
+  )
+
 lazy val `thoth-jooq-async` = project
   .dependsOn(`thoth-core`)
   .settings(
@@ -74,7 +83,7 @@ lazy val `thoth-jooq-async` = project
   )
 
 lazy val `thoth-core` = project
-  .dependsOn(`commons-events`)
+  .dependsOn(`commons-events`, `thoth-kafka-goodies`)
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
     sonatypeCredentialHost := "s01.oss.sonatype.org",
