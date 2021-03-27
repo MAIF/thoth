@@ -1,76 +1,33 @@
 package fr.maif.kafka.consumer;
 
-import lombok.ToString;
 
-public interface Status {
+public enum Status {
+    Started("Started"),
+    Starting("Starting"),
+    Stopped("Stopped"),
+    Stopping("Stopping"),
+    Failed("Failed");
 
-    Started started = new Started();
+    public final String name;
 
-    Starting starting = new Starting();
-
-    Failed failed = new Failed();
-
-    Stopping stopping = new Stopping();
-
-    Stopped stopped = new Stopped();
+    Status(String name) {
+        this.name = name;
+    }
 
     static Status fromString(String status) {
         switch(status) {
             case "Started":
-                return started;
+                return Started;
             case "Starting":
-                return starting;
+                return Starting;
             case "Failed":
-                return failed;
+                return Failed;
             case "Stopping":
-                return stopping;
+                return Stopping;
             case "Stopped":
-                return stopped;
+                return Stopped;
             default:
-                return stopped;
+                return Stopped;
         }
     }
-
-    String name();
-
-    @ToString
-    class Started implements Status {
-        @Override
-        public String name() {
-            return "Started";
-        }
-    }
-
-    @ToString
-    class Starting implements Status {
-        @Override
-        public String name() {
-            return "Starting";
-        }
-    }
-
-    @ToString
-    class Failed implements Status {
-        @Override
-        public String name() {
-            return "Failed";
-        }
-    }
-
-    @ToString
-    class Stopped implements Status {
-        @Override
-        public String name() {
-            return "Stopped";
-        }
-    }
-
-    @ToString
-    class Stopping implements Status {
-        @Override
-        public String name() {
-            return "Stopping";
-        }
-    }
-
 }

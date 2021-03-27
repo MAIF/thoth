@@ -65,7 +65,7 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
                                 .create(actorSystem, new StringDeserializer(), JsonDeserializer.of(eventFormat, metaFormat, contextFormat))
                                 .withGroupId(config.groupId)
                                 .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
-                                .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true")
+                                .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
                                 .withBootstrapServers(config.bootstrapServers)
                         ))
                         .subscription(Subscriptions.topics(config.topic))

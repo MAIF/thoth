@@ -17,7 +17,9 @@ import akka.stream.javadsl.Source;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.With;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.slf4j.Logger;
 
 import java.time.Duration;
@@ -28,14 +30,17 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static akka.Done.done;
+import static java.util.function.Function.identity;
 
 @Slf4j
 public abstract class KafkaConsumerWithRetries<K, V> {
 
     @Builder(toBuilder = true)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    @With
     public static class Config<K, V> {
         public final AutoSubscription subscription;
         public final String groupId;
@@ -44,11 +49,11 @@ public abstract class KafkaConsumerWithRetries<K, V> {
         public final Duration maxBackoff;
         public final Integer randomFactor;
         public final Integer commitSize;
-        public final java.util.function.Consumer<Consumer.Control> onStarted;
-        public final Runnable onStarting;
-        public final Runnable onStopped;
-        public final java.util.function.Consumer<Consumer.Control> onStopping;
-        public final java.util.function.Consumer<Throwable> onFailed;
+        public final Function<Consumer.Control, CompletionStage<Done>> onStarted;
+        public final Supplier<CompletionStage<Done>> onStarting;
+        public final Supplier<CompletionStage<Done>> onStopped;
+        public final Function<Consumer.Control, CompletionStage<Done>> onStopping;
+        public final Function<Throwable, CompletionStage<Done>> onFailed;
 
         public static <K, V> Config<K, V> create(AutoSubscription subscription, String groupId, ConsumerSettings<K, V> consumerSettings) {
             return Config.<K, V>builder()
@@ -68,14 +73,14 @@ public abstract class KafkaConsumerWithRetries<K, V> {
     protected final double randomFactor;
     protected final Integer commitSize;
     protected final ConsumerSettings<K, V> consumerSettings;
-    protected final java.util.function.Consumer<Consumer.Control> onStarted;
-    protected final Runnable onStarting;
-    protected final Runnable onStopped;
-    protected final java.util.function.Consumer<Consumer.Control> onStopping;
-    protected final java.util.function.Consumer<Throwable> onFailed;
+    protected final Function<Consumer.Control, CompletionStage<Done>> onStarted;
+    protected final Supplier<CompletionStage<Done>> onStarting;
+    protected final Supplier<CompletionStage<Done>> onStopped;
+    protected final Function<Consumer.Control, CompletionStage<Done>> onStopping;
+    protected final Function<Throwable, CompletionStage<Done>> onFailed;
 
     protected final AtomicReference<Consumer.Control> controlRef = new AtomicReference<>();
-    protected final AtomicReference<Status> innerStatus = new AtomicReference<>(Status.stopped);
+    protected final AtomicReference<Status> innerStatus = new AtomicReference<>(Status.Stopped);
 
     public KafkaConsumerWithRetries(ActorSystem actorSystem, Config<K, V> config) {
         this.actorSystem = actorSystem;
@@ -86,12 +91,14 @@ public abstract class KafkaConsumerWithRetries<K, V> {
         this.maxBackoff = Objects.isNull(config.maxBackoff) ? Duration.ofMinutes(30) : config.maxBackoff;
         this.randomFactor = Objects.isNull(config.randomFactor) ? 0.2d : config.randomFactor;
         this.commitSize = Objects.isNull(config.commitSize) ? 10 : config.commitSize;
-        this.consumerSettings = config.consumerSettings;
-        this.onStarted = defaultIfNull(config.onStarted, (__) -> {});
-        this.onStarting = defaultIfNull(config.onStarting, () -> {});
-        this.onStopped = defaultIfNull(config.onStopped, () -> {});
-        this.onStopping = defaultIfNull(config.onStopping, (__) -> {});
-        this.onFailed = defaultIfNull(config.onFailed, (__) -> {});
+        this.consumerSettings = config.consumerSettings
+                .withGroupId(config.groupId)
+                .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        this.onStarted = defaultIfNull(config.onStarted, (__) -> CompletableFuture.completedFuture(done()));
+        this.onStarting = defaultIfNull(config.onStarting, () -> CompletableFuture.completedFuture(done()));
+        this.onStopped = defaultIfNull(config.onStopped, () -> CompletableFuture.completedFuture(done()));
+        this.onStopping = defaultIfNull(config.onStopping, (__) -> CompletableFuture.completedFuture(done()));
+        this.onFailed = defaultIfNull(config.onFailed, (__) -> CompletableFuture.completedFuture(done()));
         this.start();
     }
 
@@ -150,7 +157,7 @@ public abstract class KafkaConsumerWithRetries<K, V> {
                         .flatMapConcat(m ->
                                 Source.completionStage(CompletableFuture.supplyAsync(() -> {
                                     handleMessage.accept(m);
-                                    return Done.done();
+                                    return done();
                                 }, executor))
                                 .map(__ -> m.committableOffset())
                         );
@@ -192,11 +199,11 @@ public abstract class KafkaConsumerWithRetries<K, V> {
 
     public Status start() {
         Status currentStatus = status();
-        if (Status.starting.equals(currentStatus) || Status.started.equals(currentStatus)) {
+        if (Status.Starting.equals(currentStatus) || Status.Started.equals(currentStatus)) {
             logger().info("{} already started", name());
             return currentStatus;
         }
-        updateStatus(Status.starting);
+        updateStatus(Status.Starting);
         CommitterSettings committerSettings = CommitterSettings.create(actorSystem);
 
         logger().info("Starting {} {} on topic '{}' with group id '{}'", name(), Integer.toHexString(this.hashCode()), subscription, groupId);
@@ -206,18 +213,18 @@ public abstract class KafkaConsumerWithRetries<K, V> {
                 maxBackoff,
                 randomFactor,
                 () -> {
-                    this.onStarting.run();
+                    this.onStarting.get();
                     logger().info("Stream for {} is starting", name());
                     return Consumer
                             .committablePartitionedSource(consumerSettings, subscription)
                             .flatMapMerge(100, tuple ->
                                     tuple.second()
                                             .via(messageHandling())
-                                            .via(Committer.flow(committerSettings.withMaxBatch(100)))
+                                            .via(Committer.flow(committerSettings.withMaxBatch(commitSize)))
                             )
                             .mapMaterializedValue(control -> {
-                                updateStatus(Status.started);
-                                this.onStarted.accept(control);
+                                updateStatus(Status.Started);
+                                this.onStarted.apply(control);
                                 logger().info("Stream for {} has started", name());
                                 controlRef.set(control);
                                 return control;
@@ -226,33 +233,43 @@ public abstract class KafkaConsumerWithRetries<K, V> {
                 })
                 .watchTermination((___, done) -> handleTerminaison(done))
                 .runWith(Sink.ignore(), this.materializer);
-        return Status.starting;
+        return Status.Starting;
     }
 
     public CompletionStage<Done> stop() {
-        updateStatus(Status.stopping);
-        this.onStopping.accept(controlRef.get());
-        return stopConsumingKafka()
+        updateStatus(Status.Stopping);
+        return this.onStopping.apply(controlRef.get())
+                .exceptionally(__ -> done())
+                .thenCompose(__ -> stopConsumingKafka())
+                .exceptionally(__ -> done())
                 .whenComplete((__, ___) -> {
-                    this.onStopped.run();
-                    updateStatus(Status.stopped);
-                });
+                    updateStatus(Status.Stopped);
+                })
+                .thenCompose(__ -> this.onStopped.get())
+                .exceptionally(__ -> done());
     }
 
     protected CompletionStage<Status> handleTerminaison(CompletionStage<Done> done) {
-        return done.toCompletableFuture()
+        return done
                 .thenApply(any -> {
                     logger().info("Stopping {}", name());
-                    this.onStopped.run();
-                    return updateStatus(Status.stopped);
+                    updateStatus(Status.Stopped);
+                    return stopConsumingKafka()
+                            .exceptionally(__ -> done())
+                            .thenCompose(__ -> this.onStopped.get())
+                            .<Status>thenApply(__ -> Status.Stopped)
+                            .exceptionally(__ -> Status.Stopped);
                 })
                 .exceptionally(e -> {
                     logger().error("Error during " + name(), e);
-                    this.onFailed.accept(e);
-                    return updateStatus(Status.failed);
+                    updateStatus(Status.Failed);
+                    return stopConsumingKafka()
+                            .exceptionally(__ -> done())
+                            .thenCompose(__ -> this.onFailed.apply(e))
+                            .<Status>thenApply(__ -> Status.Failed)
+                            .exceptionally(__ -> Status.Failed);
                 })
-                .thenCompose(status -> stopConsumingKafka().thenApply(any -> status))
-                .toCompletableFuture();
+                .thenCompose(identity());
     }
 
 
