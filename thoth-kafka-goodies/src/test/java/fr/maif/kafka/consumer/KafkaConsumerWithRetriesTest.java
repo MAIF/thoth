@@ -106,7 +106,7 @@ class KafkaConsumerWithRetriesTest extends TestcontainersKafkaTest {
                             }
                         })
         );
-        Thread.sleep(3000);
+        Thread.sleep(4000);
 
         resultOf(produceString(topic, "event-1"));
         resultOf(produceString(topic, "event-2"));
