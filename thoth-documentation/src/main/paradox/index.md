@@ -51,10 +51,10 @@ This documentation focuses on implementing event-sourcing on a simple use case :
     symbol="ThothVersion"
     value="$project.version.short$"
     group="fr.maif" artifact="common-events" version="ThothVersion"
-    group2="fr.maif" artifact2="thoth-core_2.13" version2="ThothVersion"
-    group3="fr.maif" artifact3="thoth-jooq_2.13" version3="ThothVersion"
-    group4="fr.maif" artifact4="thoth-jooq-async_2.13" version4="ThothVersion"
-    group5="fr.maif" artifact5="thoth-kafka-goodies_2.13" version5="ThothVersion"
+    group2="fr.maif" artifact2="thoth-core_$scala.binary.version$" version2="ThothVersion"
+    group3="fr.maif" artifact3="thoth-jooq_$scala.binary.version$" version3="ThothVersion"
+    group4="fr.maif" artifact4="thoth-jooq-async_$scala.binary.version$" version4="ThothVersion"
+    group5="fr.maif" artifact5="thoth-kafka-goodies_$scala.binary.version$" version5="ThothVersion"
 }
 
 

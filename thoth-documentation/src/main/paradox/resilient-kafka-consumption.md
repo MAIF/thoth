@@ -7,7 +7,7 @@ Thoth provides a resilient kafka consumer.
 @@dependency[sbt,Maven,Gradle] {
     symbol="ThothVersion"
     value="$project.version.short$"
-    group="fr.maif" artifact="thoth-kafka-goodies_2.13" version="ThothVersion"
+    group="fr.maif" artifact="thoth-kafka-goodies_$scala.binary.version$" version="ThothVersion"
 }
 
 ## Usage 
