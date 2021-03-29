@@ -12,7 +12,7 @@ import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.kafka.JsonDeserializer;
-import fr.maif.kafka.consumer.KafkaConsumerWithRetries;
+import fr.maif.kafka.consumer.ResilientKafkaConsumer;
 import io.vavr.Tuple0;
 import io.vavr.concurrent.Future;
 import lombok.AccessLevel;
@@ -26,7 +26,7 @@ import java.time.Duration;
 import java.util.function.Function;
 
 @Slf4j
-public abstract class EventuallyConsistentProjection<E extends Event, Meta, Context> extends KafkaConsumerWithRetries<String, EventEnvelope<E, Meta, Context>> {
+public abstract class EventuallyConsistentProjection<E extends Event, Meta, Context> extends ResilientKafkaConsumer<String, EventEnvelope<E, Meta, Context>> {
 
     @Builder(toBuilder = true)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -37,7 +37,7 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
         public final Function<ConsumerSettings<String, EventEnvelope<E, Meta, Context>>, ConsumerSettings<String, EventEnvelope<E, Meta, Context>>> completeConfig;
         public final Duration minBackoff;
         public final Duration maxBackoff;
-        public final Integer randomFactor;
+        public final Double randomFactor;
         public final Integer commitSize;
 
         public static <E extends Event, Meta, Context> Config<E, Meta, Context> create(String topic, String groupId, String bootstrapServers) {
@@ -56,10 +56,10 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
                                           Config<E, Meta, Context> config) {
         super(
                 actorSystem,
-                KafkaConsumerWithRetries.Config.<String, EventEnvelope<E, Meta, Context>>builder()
+                ResilientKafkaConsumer.Config.<String, EventEnvelope<E, Meta, Context>>builder()
                         .minBackoff(config.minBackoff)
                         .maxBackoff(config.maxBackoff)
-                        .randomFactor(config.randomFactor)
+                        .randomFactor(defaultIfNull(config.randomFactor, 0.0d))
                         .commitSize(config.commitSize)
                         .consumerSettings(defaultIfNull(config.completeConfig, e -> e).apply(ConsumerSettings
                                 .create(actorSystem, new StringDeserializer(), JsonDeserializer.of(eventFormat, metaFormat, contextFormat))
