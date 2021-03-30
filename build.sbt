@@ -69,6 +69,7 @@ lazy val `thoth-kafka-goodies` = project
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
     sonatypeCredentialHost := "s01.oss.sonatype.org",
     scalaVersion := "2.12.13",
+    crossScalaVersions := List("2.13.5", "2.12.13"),
     crossPaths := true
   )
 
