@@ -11,7 +11,8 @@
 * [Eventually consistent projections](eventually-consistent-projection.md)
 * [Kafka consumption](kafka-consumption.md)
 * [Non blocking implementation](non-blocking/index.md)
-@@@
+* [Resilient kafka consumption](resilient-kafka-consumption.md)
+@@@ 
 
 Thoth is a library that provides a way to implement event-sourcing in Java applications.
 
@@ -43,4 +44,18 @@ It provides capabilities of defining two types of projections :
 
 This documentation focuses on implementing event-sourcing on a simple use case : a banking application.
 
-@@toc { depth=2 } 
+
+## Installation 
+
+@@dependency[sbt,Maven,Gradle] {
+    symbol="ThothVersion"
+    value="$project.version.short$"
+    group="fr.maif" artifact="common-events" version="ThothVersion"
+    group2="fr.maif" artifact2="thoth-core_$scala.binary.version$" version2="ThothVersion"
+    group3="fr.maif" artifact3="thoth-jooq_$scala.binary.version$" version3="ThothVersion"
+    group4="fr.maif" artifact4="thoth-jooq-async_$scala.binary.version$" version4="ThothVersion"
+    group5="fr.maif" artifact5="thoth-kafka-goodies_$scala.binary.version$" version5="ThothVersion"
+}
+
+
+@@toc { depth=2 }
