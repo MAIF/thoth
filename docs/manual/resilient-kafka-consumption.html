@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+
+<head>
+<title>Resilient kafka consumption · Thoth</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content='Thoth doc'/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="lib/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="js/page.js"></script>
+<script type="text/javascript" src="js/groups.js"></script>
+<link rel="stylesheet" type="text/css" href="lib/normalize.css/normalize.css"/>
+<link rel="stylesheet" type="text/css" href="lib/foundation/dist/foundation.min.css"/>
+<link rel="stylesheet" type="text/css" href="css/page.css"/>
+
+<!--
+<link rel="shortcut icon" href="images/favicon.ico" />
+-->
+</head>
+
+<body>
+<div class="off-canvas-wrapper">
+<div class="off-canvas-wrapper-inner" data-off-canvas-wrapper>
+
+<div class="off-canvas position-left" id="off-canvas-menu" data-off-canvas>
+<nav class="off-canvas-nav">
+<div class="nav-home">
+<a href="index.html" >
+<span class="home-icon">⌂</span>Thoth
+</a>
+<div class="version-number">
+1.1.1*
+</div>
+</div>
+<select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
+<div class="nav-toc">
+<ul>
+  <li><a href="technical-considerations.html" class="page">Technical considerations</a></li>
+  <li><a href="banking.html" class="page">In memory example</a></li>
+  <li><a href="standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
+  <ul>
+    <li><a href="standard/banking-real-life.html" class="page">Postgres Kafka event sourcing</a></li>
+    <li><a href="standard/projections.html" class="page">Projections</a></li>
+  </ul></li>
+  <li><a href="database-configuration.html" class="page">Database configuration</a></li>
+  <li><a href="advanced/index.html" class="page">Advanced use cases</a>
+  <ul>
+    <li><a href="advanced/message.html" class="page">Warning / Info messages</a></li>
+    <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
+    <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
+    <li><a href="advanced/event-replay.html" class="page">Event replay</a></li>
+  </ul></li>
+  <li><a href="eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
+  <li><a href="kafka-consumption.html" class="page">Using published events</a></li>
+  <li><a href="non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
+  <ul>
+    <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
+    <li><a href="non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
+  </ul></li>
+  <li><a href="resilient-kafka-consumption.html" class="active page">Resilient kafka consumption</a></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="off-canvas-content" data-off-canvas-content>
+
+<header class="site-header expanded row">
+<div class="small-12 column">
+<a href="#" class="off-canvas-toggle hide-for-medium" data-toggle="off-canvas-menu"><svg class="svg-icon svg-icon-menu" version="1.1" id="Menu" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve"> <path class="svg-icon-menu-path" fill="#53CDEC" d="M16.4,9H3.6C3.048,9,3,9.447,3,10c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,9.447,16.952,9,16.4,9z M16.4,13
+H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
+C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
+</a>
+<div class="title-wrapper">
+<div class="title-logo"></div>
+<div class="title"><a href="index.html">Thoth</a></div>
+</div>
+<!--
+<a href="https://www.example.com" class="logo show-for-medium">logo</a>
+-->
+</div>
+</header>
+
+<div class="expanded row">
+
+<div class="medium-3 large-2 show-for-medium column">
+<nav class="site-nav">
+<div class="nav-home">
+<a href="index.html" >
+<span class="home-icon">⌂</span>Thoth
+</a>
+<div class="version-number">
+1.1.1*
+</div>
+</div>
+<select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
+<div class="nav-toc">
+<ul>
+  <li><a href="technical-considerations.html" class="page">Technical considerations</a></li>
+  <li><a href="banking.html" class="page">In memory example</a></li>
+  <li><a href="standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
+  <ul>
+    <li><a href="standard/banking-real-life.html" class="page">Postgres Kafka event sourcing</a></li>
+    <li><a href="standard/projections.html" class="page">Projections</a></li>
+  </ul></li>
+  <li><a href="database-configuration.html" class="page">Database configuration</a></li>
+  <li><a href="advanced/index.html" class="page">Advanced use cases</a>
+  <ul>
+    <li><a href="advanced/message.html" class="page">Warning / Info messages</a></li>
+    <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
+    <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
+    <li><a href="advanced/event-replay.html" class="page">Event replay</a></li>
+  </ul></li>
+  <li><a href="eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
+  <li><a href="kafka-consumption.html" class="page">Using published events</a></li>
+  <li><a href="non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
+  <ul>
+    <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
+    <li><a href="non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
+  </ul></li>
+  <li><a href="resilient-kafka-consumption.html" class="active page">Resilient kafka consumption</a></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="small-12 medium-9 large-10 column">
+<section class="site-content">
+
+<div class="page-header row">
+<div class="medium-12 show-for-medium column">
+<div class="nav-breadcrumbs">
+<ul>
+  <li><a href="index.html">Thoth</a></li>
+  <li>Resilient kafka consumption</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="page-content row">
+<div class="small-12 large-9 column" id="docs">
+<h1><a href="#resilient-kafka-consumption" name="resilient-kafka-consumption" class="anchor"><span class="anchor-link"></span></a>Resilient kafka consumption</h1>
+<p>Thoth provides a resilient kafka consumer. </p>
+<h2><a href="#installation" name="installation" class="anchor"><span class="anchor-link"></span></a>Installation</h2><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "1.1.1*"
+libraryDependencies += "fr.maif" %% "thoth-kafka-goodies" % ThothVersion</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
+  &lt;thoth.version&gt;1.1.1*&lt;/thoth.version&gt;
+&lt;/properties&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+  &lt;artifactId&gt;thoth-kafka-goodies_2.12&lt;/artifactId&gt;
+  &lt;version&gt;${thoth.version}&lt;/version&gt;
+&lt;/dependency&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">versions += [
+  ThothVersion: "1.1.1*"
+]
+dependencies {
+  compile group: 'fr.maif', name: 'thoth-kafka-goodies_2.12', version: versions.ThothVersion
+}</code></pre></dd></dl>
+<h2><a href="#usage" name="usage" class="anchor"><span class="anchor-link"></span></a>Usage</h2>
+<pre class="prettyprint"><code class="language-java"><br/>ResilientKafkaConsumer&lt;String, String&gt; resilientKafkaConsumer = ResilientKafkaConsumer.create(
+        // Actor system
+        system,
+        // Name of the consumer (for logs etc ...)
+        &quot;MyConsumer&quot;,
+        // Config 
+        ResilientKafkaConsumer.Config.create(
+                // Kafka subscription 
+                Subscriptions.topics(topic),
+                // Kafka group id 
+                groupId,
+                // The alpakka kafka consumer settings  
+                ConsumerSettings
+                        .create(system, new StringDeserializer(), new StringDeserializer())
+                        .withBootstrapServers(bootstrapServers())
+        ),
+        // The event consumer, in that case the consumer print the events 
+        event -&gt; {
+            System.out.println(event.record().value());
+        }
+);
+</code></pre>
+<h2><a href="#consuming-event" name="consuming-event" class="anchor"><span class="anchor-link"></span></a>Consuming event</h2>
+<p>There 3 way to consume events : blocking, non-blocking, streams </p>
+<h3><a href="#blocking" name="blocking" class="anchor"><span class="anchor-link"></span></a>Blocking</h3>
+<p>You don&rsquo;t need to perform IO or you have blocking IO e.g. JDBC. </p>
+<pre class="prettyprint"><code class="language-java">ResilientKafkaConsumer&lt;String, String&gt; resilientKafkaConsumer = ResilientKafkaConsumer.create(
+                system,
+                &quot;test&quot;,
+                ResilientKafkaConsumer.Config.create(
+                        Subscriptions.topics(topic),
+                        groupId,
+                        ConsumerSettings
+                                .create(system, new StringDeserializer(), new StringDeserializer())
+                                .withBootstrapServers(bootstrapServers())
+                ),
+                // Provide an executor 
+                Executors.newCachedThreadPool(),
+                // Blocking handling ! 
+                event -&gt; {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+        );
+</code></pre>
+<h3><a href="#non-blocking" name="non-blocking" class="anchor"><span class="anchor-link"></span></a>Non Blocking</h3>
+<pre class="prettyprint"><code class="language-java">ResilientKafkaConsumer&lt;String, String&gt; resilientKafkaConsumer = ResilientKafkaConsumer.create(
+                system,
+                &quot;test&quot;,
+                ResilientKafkaConsumer.Config.create(
+                        Subscriptions.topics(topic),
+                        groupId,
+                        ConsumerSettings
+                                .create(system, new StringDeserializer(), new StringDeserializer())
+                                .withBootstrapServers(bootstrapServers())
+                ),
+                // Non blocking handling 
+                (CommittableMessage&lt;String, String&gt; event) -&gt; CompletableFuture.supplyAsync(() -&gt; {
+                    System.out.println(event.record().value());
+                    return Done.done();
+                })
+        );
+</code></pre>
+<h3><a href="#streams" name="streams" class="anchor"><span class="anchor-link"></span></a>Streams</h3>
+<p>Stream handling is done using akka stream <code>Flow</code> which is a pipe that take a <code>ConsumerMessage.CommittableMessage&lt;K, K&gt;</code> in and should return a <code>ConsumerMessage.CommittableOffset</code>. </p>
+<p>In that stream you can, skip, group etc do whatever you want but at the end you have to provide the offset to commit. In order to have a better developer experience, you could use the <code>FlowWithContext</code> akka stream api if you don&rsquo;t want to have to handle the commit offset. </p>
+<p>With the classic flow api, you have to return the committable offset : </p>
+<pre class="prettyprint"><code class="language-java">        ResilientKafkaConsumer.createFromFlow(
+                system,
+                &quot;test&quot;,
+                ResilientKafkaConsumer.Config.create(
+                        Subscriptions.topics(topic),
+                        groupId,
+                        ConsumerSettings
+                                .create(system, new StringDeserializer(), new StringDeserializer())
+                                .withBootstrapServers(bootstrapServers())
+                ),
+                Flow.&lt;CommittableMessage&lt;String, String&gt;&gt;create()
+                        .zipWithIndex()
+                        .mapAsync(1, messageAndIndex -&gt; {
+                            Long index = messageAndIndex.second();
+                            System.out.println(&quot;Message number &quot; + index);
+                            CommittableOffset committableOffset = messageAndIndex.first().committableOffset();
+                            CompletionStage&lt;Done&gt; asyncApiCall = asyncApiCall();
+                            return asyncApiCall.thenApply(__ -&gt; committableOffset);
+                        })
+        );
+</code></pre>
+<p>With the <code>FlowWithContext</code> you don&rsquo;t : </p>
+<pre class="prettyprint"><code class="language-java">ResilientKafkaConsumer.createFromFlowCtxAgg(
+                system,
+                &quot;test&quot;,
+                ResilientKafkaConsumer.Config.create(
+                        Subscriptions.topics(topic),
+                        groupId,
+                        ConsumerSettings
+                                .create(system, new StringDeserializer(), new StringDeserializer())
+                                .withBootstrapServers(bootstrapServers())
+                ),
+                FlowWithContext.&lt;CommittableMessage&lt;String, String&gt;, CommittableOffset&gt;create()
+                        .grouped(3)
+                        .map(messages -&gt; {
+                            String collectedMessages = messages.stream().map(m -&gt; m.record().value()).collect(Collectors.joining(&quot; &quot;));
+                            names.set(collectedMessages);
+                            return Done.done();
+                        })
+        );
+</code></pre>
+<p>If your <code>FlowWithContext</code> is doing aggregations like in this example (the <code>group</code> operator), you have to use <code>createFromFlowCtxAgg</code> instead of <code>createFromFlowCtx</code>. </p>
+<p>You&rsquo;ll find more information on the akka stream documentation <a href="https://doc.akka.io/docs/akka/current/stream/index.html">https://doc.akka.io/docs/akka/current/stream/index.html</a>. </p>
+<h2><a href="#handling-crash" name="handling-crash" class="anchor"><span class="anchor-link"></span></a>Handling crash</h2>
+<p>The goal of this consumer is to handle crashes by retrying the failed event consumption. There two types of errors :</p>
+<ul>
+  <li>Parsing / Business errors : in that case, you should push the failing event in a dead letter queue to analyse the issue and move to the next event.</li>
+  <li>Technical errors : e.g. a database or an API that is not available at time, in that case, you have to let it crash.  The consumer will let the event uncommitted, will disconnect from kafka and restart later, reading the message again.</li>
+</ul>
+<p>You can configure the consumer to set appropriate values for restart interval &hellip; </p>
+<pre class="prettyprint"><code class="language-java ">ResilientKafkaConsumer.Config.create(
+                        Subscriptions.topics(topic),
+                        groupId,
+                        ConsumerSettings
+                                .create(system, new StringDeserializer(), new StringDeserializer())
+                                .withBootstrapServers(bootstrapServers())
+                )
+                        // Nb events before commit 
+                        .withCommitSize(5)
+                        // First delay for restart, it increase exponentially (200ms then 400ms then 800ms then 1600ms ...)                        
+                        .withMinBackoff(Duration.ofMillis(200))
+                        // Maximum restart delay
+                        .withMaxBackoff(Duration.ofMinutes(10))
+                        // Noise to restart non linearly 
+                        .withRandomFactor(0.2d)
+</code></pre>
+<h2><a href="#status-and-lifecycles" name="status-and-lifecycles" class="anchor"><span class="anchor-link"></span></a>Status and lifecycles</h2>
+<p>The resilient kafka consumer has a lifecycle and will have the following states : </p>
+<ul>
+  <li><code>Starting</code>: The consumer is starting</li>
+  <li><code>Started</code>: The consumer has started and a <code>Control</code> object is available to &ldquo;interact&rdquo; with the kafka client</li>
+  <li><code>Failed</code>: The consumer has crashed and will restart, the kafka client is no longer connected to the cluster.</li>
+  <li><code>Stopping</code> : The consumer is stopping</li>
+  <li><code>Stopped</code> : The consumer is stopped, the kafka client is no longer connected to the cluster.</li>
+</ul>
+<p>The status is exposed by the <code>ResilientKafkaConsumer</code> using the <code>status</code> method. </p>
+<pre class="prettyprint"><code class="language-java">ResilientKafkaConsumer&lt;String, String&gt; resilientKafkaConsumer = ResilientKafkaConsumer.create(...);
+
+Status status = resilientKafkaConsumer.status();
+</code></pre>
+<p>You can also register callbacks : </p>
+<pre class="prettyprint"><code class="language-java">    ResilientKafkaConsumer&lt;String, String&gt; resilientKafkaConsumer = ResilientKafkaConsumer.create(
+            system,
+            &quot;test&quot;,
+            ResilientKafkaConsumer.Config
+                    .create(
+                            Subscriptions.topics(topic),
+                            groupId,
+                            ConsumerSettings
+                                    .create(system, new StringDeserializer(), new StringDeserializer())
+                                    .withBootstrapServers(bootstrapServers())
+                    )
+                    .withOnStarting(() -&gt; CompletableFuture.supplyAsync(() -&gt; {
+                        isStarting.set(true);
+                        return Done.done();
+                    }))
+                    .withOnStarted((c, time) -&gt; CompletableFuture.supplyAsync(() -&gt; {
+                        isStarted.set(true);
+                        return Done.done();
+                    }))
+                    .withOnStopping(c -&gt; CompletableFuture.supplyAsync(() -&gt; {
+                        isStopping.set(true);
+                        return Done.done();
+                    }))
+                    .withOnStopped(() -&gt; CompletableFuture.supplyAsync(() -&gt; {
+                        isStopped.set(true);
+                        return Done.done();
+                    }))
+                    .withOnFailed(e -&gt; CompletableFuture.supplyAsync(() -&gt; {
+                        isFailed.set(true);
+                        return Done.done();
+                    }))
+            , event -&gt; {
+                names.set(names.get() + &quot; &quot; + event.record().value());
+            }
+    );
+</code></pre>
+<div class="source-github">
+The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/resilient-kafka-consumption.md">here</a>.
+</div>
+
+</div>
+<div class="large-3 show-for-large column" data-sticky-container>
+<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
+<div class="page-nav">
+<div class="nav-title">On this page:</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="resilient-kafka-consumption.html#resilient-kafka-consumption" class="header">Resilient kafka consumption</a>
+  <ul>
+    <li><a href="resilient-kafka-consumption.html#installation" class="header">Installation</a></li>
+    <li><a href="resilient-kafka-consumption.html#usage" class="header">Usage</a></li>
+    <li><a href="resilient-kafka-consumption.html#consuming-event" class="header">Consuming event</a></li>
+    <li><a href="resilient-kafka-consumption.html#handling-crash" class="header">Handling crash</a></li>
+    <li><a href="resilient-kafka-consumption.html#status-and-lifecycles" class="header">Status and lifecycles</a></li>
+  </ul></li>
+</ul>
+</div>
+</div>
+</nav>
+</div>
+</div>
+
+</section>
+</div>
+
+</div>
+
+<footer class="site-footer">
+
+<section class="site-footer-nav">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 medium-4 large-3 text-center column">
+<div class="nav-links">
+<ul>
+<!-- <li><a href="https://www.example.com/products/">Products</a> -->
+</ul>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</section>
+
+<section class="site-footer-base">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 text-center large-9 column">
+
+<!--
+<div class="copyright">
+<span class="text">&copy; 2021</span>
+<a href="https://www.example.com" class="logo">logo</a>
+</div>
+-->
+</div>
+
+</div>
+</div>
+</div>
+</section>
+</footer>
+
+</div>
+</div>
+</div>
+</body>
+
+<script type="text/javascript" src="lib/foundation/dist/foundation.min.js"></script>
+<script type="text/javascript">jQuery(document).foundation();</script>
+<script type="text/javascript" src="js/magellan.js"></script>
+
+<style type="text/css">@import "lib/prettify/prettify.css";</style>
+<script type="text/javascript" src="lib/prettify/prettify.js"></script>
+<script type="text/javascript" src="lib/prettify/lang-scala.js"></script>
+<script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-112498312-1"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+
+gtag('config', 'UA-112498312-1');
+</script>
+</html>
+
+
+
+

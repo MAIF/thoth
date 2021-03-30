@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.0.2*
+1.1.1*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -58,6 +58,7 @@
     <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
     <li><a href="non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
   </ul></li>
+  <li><a href="resilient-kafka-consumption.html" class="page">Resilient kafka consumption</a></li>
 </ul>
 </div>
 
@@ -91,7 +92,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.0.2*
+1.1.1*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -119,6 +120,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
     <li><a href="non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
   </ul></li>
+  <li><a href="resilient-kafka-consumption.html" class="page">Resilient kafka consumption</a></li>
 </ul>
 </div>
 
@@ -156,6 +158,50 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p><img src="img/thoth_event_sourcing.jpg" /></p>
 <h2><a href="#documentation" name="documentation" class="anchor"><span class="anchor-link"></span></a>Documentation</h2>
 <p>This documentation focuses on implementing event-sourcing on a simple use case : a banking application.</p>
+<h2><a href="#installation" name="installation" class="anchor"><span class="anchor-link"></span></a>Installation</h2><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "1.1.1*"
+libraryDependencies ++= Seq(
+  "fr.maif" % "common-events" % ThothVersion,
+  "fr.maif" %% "thoth-core" % ThothVersion,
+  "fr.maif" %% "thoth-jooq" % ThothVersion,
+  "fr.maif" %% "thoth-jooq-async" % ThothVersion,
+  "fr.maif" %% "thoth-kafka-goodies" % ThothVersion
+)</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
+  &lt;thoth.version&gt;1.1.1*&lt;/thoth.version&gt;
+&lt;/properties&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+  &lt;artifactId&gt;common-events&lt;/artifactId&gt;
+  &lt;version&gt;${thoth.version}&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+  &lt;artifactId&gt;thoth-core_2.12&lt;/artifactId&gt;
+  &lt;version&gt;${thoth.version}&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+  &lt;artifactId&gt;thoth-jooq_2.12&lt;/artifactId&gt;
+  &lt;version&gt;${thoth.version}&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+  &lt;artifactId&gt;thoth-jooq-async_2.12&lt;/artifactId&gt;
+  &lt;version&gt;${thoth.version}&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+  &lt;artifactId&gt;thoth-kafka-goodies_2.12&lt;/artifactId&gt;
+  &lt;version&gt;${thoth.version}&lt;/version&gt;
+&lt;/dependency&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">versions += [
+  ThothVersion: "1.1.1*"
+]
+dependencies {
+  compile group: 'fr.maif', name: 'common-events', version: versions.ThothVersion,
+  compile group: 'fr.maif', name: 'thoth-core_2.12', version: versions.ThothVersion,
+  compile group: 'fr.maif', name: 'thoth-jooq_2.12', version: versions.ThothVersion,
+  compile group: 'fr.maif', name: 'thoth-jooq-async_2.12', version: versions.ThothVersion,
+  compile group: 'fr.maif', name: 'thoth-kafka-goodies_2.12', version: versions.ThothVersion
+}</code></pre></dd></dl>
 <div class="toc ">
 <ul>
   <li><a href="technical-considerations.html" class="page">Technical considerations</a></li>
@@ -194,6 +240,14 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
     <li><a href="non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
   </ul></li>
+  <li><a href="resilient-kafka-consumption.html" class="page">Resilient kafka consumption</a>
+  <ul>
+    <li><a href="resilient-kafka-consumption.html#installation" class="header">Installation</a></li>
+    <li><a href="resilient-kafka-consumption.html#usage" class="header">Usage</a></li>
+    <li><a href="resilient-kafka-consumption.html#consuming-event" class="header">Consuming event</a></li>
+    <li><a href="resilient-kafka-consumption.html#handling-crash" class="header">Handling crash</a></li>
+    <li><a href="resilient-kafka-consumption.html#status-and-lifecycles" class="header">Status and lifecycles</a></li>
+  </ul></li>
 </ul>
 </div>
 <div class="source-github">
@@ -215,6 +269,7 @@ The source code for this page can be found <a href="https://github.com/maif/thot
     <li><a href="index.html#event-sourcing" class="header">Event sourcing</a></li>
     <li><a href="index.html#thoth" class="header">Thoth</a></li>
     <li><a href="index.html#documentation" class="header">Documentation</a></li>
+    <li><a href="index.html#installation" class="header">Installation</a></li>
   </ul></li>
 </ul>
 </div>
