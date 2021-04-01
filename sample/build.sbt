@@ -9,9 +9,8 @@ scalaVersion := "2.12.12"
 Compile / compileOrder := CompileOrder.JavaThenScala
 
 libraryDependencies ++= Seq(
-  "org.springframework.boot"  % "spring-boot-starter"      % "2.4.3",
+"org.springframework.boot"  % "spring-boot-starter"      % "2.4.3",
 "org.springframework.boot"  % "spring-boot-starter-web"  % "2.4.3",
-"org.springframework.kafka" % "spring-kafka"             % "2.6.6",
 "org.testcontainers"        % "postgresql"               % "1.15.2" % Test,
 "org.testcontainers"        % "kafka"                    % "1.15.2" % Test,
 "org.testcontainers"        % "junit-jupiter"            % "1.15.2" % Test,

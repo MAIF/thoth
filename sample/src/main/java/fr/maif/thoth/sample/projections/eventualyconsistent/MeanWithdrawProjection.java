@@ -34,7 +34,8 @@ public class MeanWithdrawProjection  {
             ActorSystem actorSystem,
             @Value("${kafka.port}") int port,
             @Value("${kafka.host}") String host,
-            BankEventFormat eventFormat, DataSource dataSource) {
+            BankEventFormat eventFormat,
+            DataSource dataSource) {
         this.actorSystem = actorSystem;
         this.eventFormat = eventFormat;
         this.dataSource = dataSource;
@@ -49,24 +50,26 @@ public class MeanWithdrawProjection  {
                 EventuallyConsistentProjection.Config.create("bank", "MeanWithdrawProjection", bootstrapServer),
                 eventFormat,
                 envelope -> {
-                    if(envelope.event instanceof BankEvent.MoneyWithdrawn withdraw) {
-                        try(final PreparedStatement statement = dataSource.getConnection().prepareStatement("""
+                    return Future.of(() -> {
+                        if(envelope.event instanceof BankEvent.MoneyWithdrawn withdraw) {
+                            try(final PreparedStatement statement = dataSource.getConnection().prepareStatement("""
                                 insert into withdraw_by_month (client_id, month, year, withdraw, count) values (?, ?, ?, ?, 1)
                                     on conflict on constraint WITHDRAW_BY_MONTH_UNIQUE
                                     do update set withdraw = withdraw_by_month.withdraw + EXCLUDED.withdraw, count=withdraw_by_month.count + 1
                             """)
-                        ) {
-                            statement.setString(1, envelope.entityId);
-                            statement.setString(2, envelope.emissionDate.getMonth().name().toUpperCase());
-                            statement.setInt(3, envelope.emissionDate.getYear());
-                            statement.setBigDecimal(4, withdraw.amount);
+                            ) {
+                                statement.setString(1, envelope.entityId);
+                                statement.setString(2, envelope.emissionDate.getMonth().name().toUpperCase());
+                                statement.setInt(3, envelope.emissionDate.getYear());
+                                statement.setBigDecimal(4, withdraw.amount);
 
-                            statement.execute();
-                        } catch (SQLException ex) {
-                            LOGGER.error("Failed to update stats projection", ex);
+                                statement.execute();
+                            } catch (SQLException ex) {
+                                LOGGER.error("Failed to update stats projection", ex);
+                            }
                         }
-                    }
-                    return Future.successful(Tuple.empty());
+                        return Tuple.empty();
+                    });
                 }
         ).start();
     }
