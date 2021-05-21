@@ -1,6 +1,5 @@
 package fr.maif.eventsourcing;
 
-import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.stream.Materializer;

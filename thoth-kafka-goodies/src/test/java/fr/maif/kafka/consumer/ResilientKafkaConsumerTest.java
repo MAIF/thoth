@@ -238,8 +238,8 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
         assertThat(actual).isEqualTo(" event-1 event-2 event-3");
         CompletionStage<Done> stop = resilientKafkaConsumer.stop();
         assertThat(resilientKafkaConsumer.status()).isIn(Status.Stopping, Status.Stopped);
-        assertThat(isStopping.get()).isTrue();
         stop.toCompletableFuture().join();
+        assertThat(isStopping.get()).isTrue();
         assertThat(resilientKafkaConsumer.status()).isIn(Status.Stopped);
         assertThat(isStopped.get()).isTrue();
     }

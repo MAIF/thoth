@@ -17,7 +17,7 @@ jobs:
         run: sbt publishLocal 
       - name: Run test
         id: test
-        run: JAVA_OPTS="--enable-preview" sbt test
+        run: JAVA_OPTS="--enable-preview" sbt "project thoth-core" test && sbt "project thoth-jooq" test && sbt "project thoth-jooq-async" test && sbt "project thoth-kafka-goodies" test && sbt "project thoth-tck" test
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()

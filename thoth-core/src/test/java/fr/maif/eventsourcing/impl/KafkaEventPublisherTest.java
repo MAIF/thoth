@@ -196,7 +196,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         assertThat(events).hasSize(6);
 
         verify(eventStore, times(1)).markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
-        verify(eventStore, times(1)).markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
+        verify(eventStore, atLeastOnce()).markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
 
         publisher.close();
     }
