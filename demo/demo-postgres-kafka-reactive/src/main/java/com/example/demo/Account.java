@@ -1,17 +1,34 @@
 package com.example.demo;
 
 import fr.maif.eventsourcing.State;
-import lombok.Getter;
-import lombok.ToString;
 
 import java.math.BigDecimal;
 
-@Getter
-@ToString
 public class Account implements State<Account> {
     public String id;
     public BigDecimal balance;
     public long sequenceNum;
+
+    public String getId() {
+        return id;
+    }
+
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public long getSequenceNum() {
+        return sequenceNum;
+    }
+
+    @Override
+    public String toString() {
+        return "Account{" +
+                "id='" + id + '\'' +
+                ", balance=" + balance +
+                ", sequenceNum=" + sequenceNum +
+                '}';
+    }
 
     @Override
     public Long sequenceNum() {

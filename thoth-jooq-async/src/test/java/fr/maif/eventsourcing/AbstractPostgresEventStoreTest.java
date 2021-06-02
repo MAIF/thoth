@@ -16,7 +16,6 @@ import io.vavr.collection.List;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
-import lombok.SneakyThrows;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.SQLDialect;
@@ -182,7 +181,6 @@ public abstract class AbstractPostgresEventStoreTest {
 
 
     @Test
-    @SneakyThrows
     public void loadEventsUnpublished() {
         initDatas();
         List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(transactionSource()
@@ -197,8 +195,7 @@ public abstract class AbstractPostgresEventStoreTest {
     }
 
     @Test
-    @SneakyThrows
-    public void loadEventsUnpublishedSkip() {
+    public void loadEventsUnpublishedSkip() throws InterruptedException {
         initDatas();
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> first = transactionSource().flatMapConcat(t ->
                 postgresEventStore.loadEventsUnpublished(t, SKIP)
@@ -221,8 +218,7 @@ public abstract class AbstractPostgresEventStoreTest {
     }
 
     @Test
-    @SneakyThrows
-    public void loadEventsUnpublishedWait() {
+    public void loadEventsUnpublishedWait() throws InterruptedException {
         initDatas();
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> first = transactionSource().flatMapConcat(t ->
                 postgresEventStore.loadEventsUnpublished(t, WAIT)

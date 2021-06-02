@@ -11,7 +11,6 @@ import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.FlowWithContext;
 import akka.testkit.javadsl.TestKit;
-import lombok.SneakyThrows;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -36,8 +35,7 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
 
 
     @Test
-    @SneakyThrows
-    void consumer() {
+    void consumer() throws Exception {
 
         String topic = createTopic();
         String groupId = "test-group-id-1";
@@ -76,8 +74,7 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
     }
 
     @Test
-    @SneakyThrows
-    void contexteAkkastreamApi() {
+    void contexteAkkastreamApi() throws Exception {
 
         String topic = createTopic();
         String groupId = "test-group-id-3";
@@ -118,8 +115,7 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
 
 
     @Test
-    @SneakyThrows
-    void crash() {
+    void crash() throws Exception {
 
         String topic = createTopic();
         String groupId = "test-group-id-3";
@@ -170,8 +166,7 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
     }
 
     @Test
-    @SneakyThrows
-    void consumerLifecycle() {
+    void consumerLifecycle() throws Exception {
 
         String topic = createTopic();
         String groupId = "test-group-id-4";

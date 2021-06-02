@@ -16,13 +16,9 @@ import akka.stream.javadsl.FlowWithContext;
 import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.With;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.List;
@@ -40,32 +36,191 @@ import java.util.function.Supplier;
 import static akka.Done.done;
 import static java.util.function.Function.identity;
 
-@Slf4j
 public abstract class ResilientKafkaConsumer<K, V> {
 
-    @Builder(toBuilder = true)
-    @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    @With
+    private static final Logger LOGGER = LoggerFactory.getLogger(ResilientKafkaConsumer.class);
+    
     public static class Config<K, V> {
         public final AutoSubscription subscription;
         public final String groupId;
         public final ConsumerSettings<K, V> consumerSettings;
-        public final Duration minBackoff;
-        public final Duration maxBackoff;
-        public final Double randomFactor;
-        public final Integer commitSize;
-        public final BiFunction<Consumer.Control, Integer, CompletionStage<Done>> onStarted;
-        public final Supplier<CompletionStage<Done>> onStarting;
-        public final Supplier<CompletionStage<Done>> onStopped;
-        public final Function<Consumer.Control, CompletionStage<Done>> onStopping;
-        public final Function<Throwable, CompletionStage<Done>> onFailed;
+        public Duration minBackoff;
+        public Duration maxBackoff;
+        public Double randomFactor;
+        public Integer commitSize;
+        public BiFunction<Consumer.Control, Integer, CompletionStage<Done>> onStarted;
+        public Supplier<CompletionStage<Done>> onStarting;
+        public Supplier<CompletionStage<Done>> onStopped;
+        public Function<Consumer.Control, CompletionStage<Done>> onStopping;
+        public Function<Throwable, CompletionStage<Done>> onFailed;
+
+        private Config(AutoSubscription subscription, String groupId, ConsumerSettings<K, V> consumerSettings, Duration minBackoff,
+                Duration maxBackoff, Double randomFactor, Integer commitSize,
+                BiFunction<Consumer.Control, Integer, CompletionStage<Done>> onStarted,
+                Supplier<CompletionStage<Done>> onStarting, Supplier<CompletionStage<Done>> onStopped,
+                Function<Consumer.Control, CompletionStage<Done>> onStopping,
+                Function<Throwable, CompletionStage<Done>> onFailed) {
+            this.subscription = subscription;
+            this.groupId = groupId;
+            this.consumerSettings = consumerSettings;
+            this.minBackoff = minBackoff;
+            this.maxBackoff = maxBackoff;
+            this.randomFactor = randomFactor;
+            this.commitSize = commitSize;
+            this.onStarted = onStarted;
+            this.onStarting = onStarting;
+            this.onStopped = onStopped;
+            this.onStopping = onStopping;
+            this.onFailed = onFailed;
+        }
+
+        public static class ConfigBuilder<K, V> {
+            AutoSubscription subscription;
+            String groupId;
+            ConsumerSettings<K, V> consumerSettings;
+            Duration minBackoff;
+            Duration maxBackoff;
+            Double randomFactor;
+            Integer commitSize;
+            BiFunction<Consumer.Control, Integer, CompletionStage<Done>> onStarted;
+            Supplier<CompletionStage<Done>> onStarting;
+            Supplier<CompletionStage<Done>> onStopped;
+            Function<Consumer.Control, CompletionStage<Done>> onStopping;
+            Function<Throwable, CompletionStage<Done>> onFailed;
+
+            public ConfigBuilder<K, V> subscription(AutoSubscription subscription) {
+                this.subscription = subscription;
+                return this;
+            }
+
+            public ConfigBuilder<K, V> groupId(String groupId) {
+                this.groupId = groupId;
+                return this;
+            }
+
+            public ConfigBuilder<K, V> consumerSettings(ConsumerSettings<K, V> consumerSettings) {
+                this.consumerSettings = consumerSettings;
+                return this;
+            }
+
+            public ConfigBuilder<K,V> minBackoff(Duration minBackoff) {
+                this.minBackoff = minBackoff;
+                return this;
+            }
+
+            public ConfigBuilder<K,V> maxBackoff(Duration maxBackoff) {
+                this.maxBackoff = maxBackoff;
+                return this;
+            }
+
+            public ConfigBuilder<K,V> randomFactor(Double randomFactor) {
+                this.randomFactor = randomFactor;
+                return this;
+            }
+
+            public ConfigBuilder<K,V> commitSize(Integer commitSize) {
+                this.commitSize = commitSize;
+                return this;
+            }
+
+            public ConfigBuilder<K,V> onStarted(
+                    BiFunction<Consumer.Control, Integer, CompletionStage<Done>> onStarted) {
+                this.onStarted = onStarted;
+                return this;
+            }
+
+            public ConfigBuilder<K,V> onStarting(Supplier<CompletionStage<Done>> onStarting) {
+                this.onStarting = onStarting;
+                return this;
+            }
+
+            public ConfigBuilder<K,V> onStopped(Supplier<CompletionStage<Done>> onStopped) {
+                this.onStopped = onStopped;
+                return this;
+            }
+
+            public ConfigBuilder<K,V> onStopping(
+                    Function<Consumer.Control, CompletionStage<Done>> onStopping) {
+                this.onStopping = onStopping;
+                return this;
+            }
+
+            public ConfigBuilder<K,V> onFailed(Function<Throwable, CompletionStage<Done>> onFailed) {
+                this.onFailed = onFailed;
+                return this;
+            }
+
+            public Config<K,V> build(){
+                return new Config<>(this.subscription, this.groupId, this.consumerSettings, this.minBackoff,
+                        this.maxBackoff, this.randomFactor, this.commitSize, this.onStarted,
+                        this.onStarting, this.onStopped, this.onStopping, this.onFailed);
+            }
+        }
 
         public static <K, V> Config<K, V> create(AutoSubscription subscription, String groupId, ConsumerSettings<K, V> consumerSettings) {
-            return Config.<K, V>builder()
+            return Config.<K,V>builder()
                     .consumerSettings(consumerSettings)
                     .groupId(groupId)
                     .subscription(subscription)
                     .build();
+        }
+        
+        public static <K,V> ConfigBuilder<K, V> builder(){
+            return new ConfigBuilder<>();
+        }
+
+        public ConfigBuilder<K, V> toBuilder(){
+            return Config.<K,V>builder()
+                    .subscription(this.subscription)
+                    .groupId(this.groupId)
+                    .consumerSettings(this.consumerSettings)
+                    .minBackoff(this.minBackoff)
+                    .maxBackoff(this.maxBackoff)
+                    .randomFactor(this.randomFactor)
+                    .commitSize(this.commitSize)
+                    .onStarted(this.onStarted)
+                    .onStarting(this.onStarting)
+                    .onStopped(this.onStopped)
+                    .onStopping(this.onStopping)
+                    .onFailed(this.onFailed);
+        }
+
+        public Config<K,V> withMinBackoff(Duration minBackoff) {
+            return this.toBuilder().minBackoff(minBackoff).build();
+        }
+
+        public Config<K,V> withMaxBackoff(Duration maxBackoff) {
+            return this.toBuilder().maxBackoff(maxBackoff).build();
+        }
+
+        public Config<K,V> withRandomFactor(Double randomFactor) {
+            return this.toBuilder().randomFactor(randomFactor).build();
+        }
+
+        public Config<K,V> withCommitSize(Integer commitSize) {
+            return this.toBuilder().commitSize(commitSize).build();
+        }
+
+        public Config<K,V> withOnStarted(
+                BiFunction<Consumer.Control, Integer, CompletionStage<Done>> onStarted) {
+            return this.toBuilder().onStarted(onStarted).build();
+        }
+
+        public Config<K,V> withOnStarting(Supplier<CompletionStage<Done>> onStarting) {
+            return this.toBuilder().onStarting(onStarting).build();
+        }
+
+        public Config<K,V> withOnStopped(Supplier<CompletionStage<Done>> onStopped) {
+            return this.toBuilder().onStopped(onStopped).build();
+        }
+
+        public Config<K,V> withOnStopping(
+                Function<Consumer.Control, CompletionStage<Done>> onStopping) {
+            return this.toBuilder().onStopping(onStopping).build();
+        }
+
+        public Config<K,V> withOnFailed(Function<Throwable, CompletionStage<Done>> onFailed) {
+            return this.toBuilder().onFailed(onFailed).build();
         }
     }
     protected final ActorSystem actorSystem;
@@ -228,11 +383,6 @@ public abstract class ResilientKafkaConsumer<K, V> {
     protected abstract String name();
     protected abstract Flow<ConsumerMessage.CommittableMessage<K, V>, ConsumerMessage.CommittableOffset, NotUsed> messageHandling();
 
-
-    protected Logger logger() {
-        return log;
-    }
-
     private Status updateStatus(Status status) {
         innerStatus.set(status);
         return status;
@@ -245,13 +395,13 @@ public abstract class ResilientKafkaConsumer<K, V> {
     public Status start() {
         Status currentStatus = status();
         if (Status.Starting.equals(currentStatus) || Status.Started.equals(currentStatus)) {
-            logger().info("{} already started", name());
+            LOGGER.info("{} already started", name());
             return currentStatus;
         }
         updateStatus(Status.Starting);
         CommitterSettings committerSettings = CommitterSettings.create(actorSystem);
 
-        logger().info("Starting {} on topic '{}' with group id '{}'", name(), subscription, groupId);
+        LOGGER.info("Starting {} on topic '{}' with group id '{}'", name(), subscription, groupId);
         AtomicInteger restartCount = new AtomicInteger(0);
         RestartSource.onFailuresWithBackoff(
                 minBackoff,
@@ -261,9 +411,9 @@ public abstract class ResilientKafkaConsumer<K, V> {
                     this.onStarting.get();
                     int count = restartCount.incrementAndGet();
                     if (count > 1) {
-                        logger().info("Stream for {} is restarting for the {} time", name(), count);
+                        LOGGER.info("Stream for {} is restarting for the {} time", name(), count);
                     } else {
-                        logger().info("Stream for {} is starting", name());
+                        LOGGER.info("Stream for {} is starting", name());
                     }
                     return Consumer
                             .committablePartitionedSource(consumerSettings, subscription)
@@ -275,7 +425,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
                             .mapMaterializedValue(control -> {
                                 updateStatus(Status.Started);
                                 this.onStarted.apply(control, count);
-                                logger().info("Stream for {} has started", name());
+                                LOGGER.info("Stream for {} has started", name());
                                 controlRef.set(control);
                                 return control;
                             })
@@ -302,7 +452,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
     protected CompletionStage<Status> handleTerminaison(CompletionStage<Done> done) {
         return done
                 .thenApply(any -> {
-                    logger().info("Stopping {}", name());
+                    LOGGER.info("Stopping {}", name());
                     updateStatus(Status.Stopped);
                     return stopConsumingKafka()
                             .exceptionally(__ -> done())
@@ -311,7 +461,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
                             .exceptionally(__ -> Status.Stopped);
                 })
                 .exceptionally(e -> {
-                    logger().error("Error during " + name(), e);
+                    LOGGER.error("Error during " + name(), e);
                     updateStatus(Status.Failed);
                     return stopConsumingKafka()
                             .exceptionally(__ -> done())
@@ -329,9 +479,9 @@ public abstract class ResilientKafkaConsumer<K, V> {
             return control.shutdown()
                     .whenComplete((d, e) -> {
                         if (e != null) {
-                            logger().error("Error shutting down kafka consumer for {}", name());
+                            LOGGER.error("Error shutting down kafka consumer for {}", name());
                         } else {
-                            logger().info("Kafka consumer for {} is shutdown", name());
+                            LOGGER.info("Kafka consumer for {} is shutdown", name());
                         }
                     })
                     .thenCompose(___ -> control.isShutdown())

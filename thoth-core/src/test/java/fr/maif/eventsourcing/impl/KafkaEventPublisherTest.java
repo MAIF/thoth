@@ -31,7 +31,6 @@ import fr.maif.kafka.JsonSerializer;
 import io.vavr.collection.List;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
-import lombok.SneakyThrows;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -55,6 +54,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -76,8 +76,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
     }
 
     @BeforeEach
-    @SneakyThrows
-    void cleanUpInit() {
+    void cleanUpInit() throws ExecutionException, InterruptedException, TimeoutException {
         setUpAdminClient();
         Set<String> topics = adminClient().listTopics().names().get(5, TimeUnit.SECONDS);
         if (!topics.isEmpty()) {

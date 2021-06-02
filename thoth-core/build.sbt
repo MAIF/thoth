@@ -13,7 +13,6 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8"     % jacksonVersion,
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310"   % jacksonVersion,
   "fr.maif"                        % "functional-json"           % functionalJsonVersion,
-  "org.projectlombok"              % "lombok"                    % "1.18.18",
   "com.typesafe.akka"             %% "akka-testkit"              % akkaVersion         % Test,
   "com.typesafe.akka"             %% "akka-stream-testkit"       % akkaVersion         % Test,
   "com.typesafe.akka"             %% "akka-stream-kafka-testkit" % alpakkaKafkaVersion % Test,
