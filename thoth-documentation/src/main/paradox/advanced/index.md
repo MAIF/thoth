@@ -6,6 +6,7 @@
 * [Custom event ordering](event-ordering.md)
 * [Read speed optimisation](aggregatestore.md)
 * [Event replay](event-replay.md)
+* [Multiple commands](multi-command.md)
 
 @@@
 

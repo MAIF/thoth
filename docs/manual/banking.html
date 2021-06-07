@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.1*
+1.1.4*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -50,6 +50,7 @@
     <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
     <li><a href="advanced/event-replay.html" class="page">Event replay</a></li>
+    <li><a href="advanced/multi-command.html" class="page">Multiple command handling in the same transaction</a></li>
   </ul></li>
   <li><a href="eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="kafka-consumption.html" class="page">Using published events</a></li>
@@ -92,7 +93,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.1*
+1.1.4*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -112,6 +113,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
     <li><a href="advanced/event-replay.html" class="page">Event replay</a></li>
+    <li><a href="advanced/multi-command.html" class="page">Multiple command handling in the same transaction</a></li>
   </ul></li>
   <li><a href="eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="kafka-consumption.html" class="page">Using published events</a></li>
@@ -145,11 +147,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#in-memory-example" name="in-memory-example" class="anchor"><span class="anchor-link"></span></a>In memory example</h1>
 <p>This sample explains how to implement event sourcing for a simple use case of bank account.</p>
-<p>In this example, we will focus on managing accounts one by one (i.e. no transfer operations) :</p>
-<ul>
-  <li>because it&rsquo;s simpler to implement / understand</li>
-  <li>because <a href="https://github.com/MAIF/thoth/issues/4">one feature</a> is missing to implement scenario such as multiple bank accounts</li>
-</ul>
+<p>In this example, we will focus on managing accounts one by one.</p>
+<p>We will see later <a href="advanced/multi-command.html">how to manager multiple accounts at once</a>.</p>
 <p>Here is the process modeling of what happens: </p>
 <p><img src="img/thoth_bank_account.jpg" /> </p>
 <h2><a href="#model-state-" name="model-state-" class="anchor"><span class="anchor-link"></span></a>Model (State)</h2>

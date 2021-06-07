@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.1*
+1.1.4*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -50,6 +50,7 @@
     <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
     <li><a href="advanced/event-replay.html" class="page">Event replay</a></li>
+    <li><a href="advanced/multi-command.html" class="page">Multiple command handling in the same transaction</a></li>
   </ul></li>
   <li><a href="eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="kafka-consumption.html" class="page">Using published events</a></li>
@@ -92,7 +93,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.1*
+1.1.4*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -112,6 +113,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
     <li><a href="advanced/event-replay.html" class="page">Event replay</a></li>
+    <li><a href="advanced/multi-command.html" class="page">Multiple command handling in the same transaction</a></li>
   </ul></li>
   <li><a href="eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="kafka-consumption.html" class="page">Using published events</a></li>
@@ -158,7 +160,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p><img src="img/thoth_event_sourcing.jpg" /></p>
 <h2><a href="#documentation" name="documentation" class="anchor"><span class="anchor-link"></span></a>Documentation</h2>
 <p>This documentation focuses on implementing event-sourcing on a simple use case : a banking application.</p>
-<h2><a href="#installation" name="installation" class="anchor"><span class="anchor-link"></span></a>Installation</h2><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "1.1.1*"
+<h2><a href="#installation" name="installation" class="anchor"><span class="anchor-link"></span></a>Installation</h2><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "1.1.4*"
 libraryDependencies ++= Seq(
   "fr.maif" % "common-events" % ThothVersion,
   "fr.maif" %% "thoth-core" % ThothVersion,
@@ -166,7 +168,7 @@ libraryDependencies ++= Seq(
   "fr.maif" %% "thoth-jooq-async" % ThothVersion,
   "fr.maif" %% "thoth-kafka-goodies" % ThothVersion
 )</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
-  &lt;thoth.version&gt;1.1.1*&lt;/thoth.version&gt;
+  &lt;thoth.version&gt;1.1.4*&lt;/thoth.version&gt;
 &lt;/properties&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;fr.maif&lt;/groupId&gt;
@@ -193,7 +195,7 @@ libraryDependencies ++= Seq(
   &lt;artifactId&gt;thoth-kafka-goodies_2.12&lt;/artifactId&gt;
   &lt;version&gt;${thoth.version}&lt;/version&gt;
 &lt;/dependency&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">versions += [
-  ThothVersion: "1.1.1*"
+  ThothVersion: "1.1.4*"
 ]
 dependencies {
   compile group: 'fr.maif', name: 'common-events', version: versions.ThothVersion,
@@ -228,6 +230,7 @@ dependencies {
     <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
     <li><a href="advanced/event-replay.html" class="page">Event replay</a></li>
+    <li><a href="advanced/multi-command.html" class="page">Multiple command handling in the same transaction</a></li>
   </ul></li>
   <li><a href="eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="kafka-consumption.html" class="page">Using published events</a>

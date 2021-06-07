@@ -28,6 +28,8 @@ import fr.maif.thoth.sample.events.BankEvent;
 import fr.maif.thoth.sample.projections.eventualyconsistent.MeanWithdrawProjection;
 import fr.maif.thoth.sample.state.Account;
 import io.vavr.Tuple0;
+import io.vavr.collection.List;
+import io.vavr.collection.Seq;
 import io.vavr.control.Either;
 
 @RestController
@@ -76,6 +78,33 @@ public class BankController {
                 .toCompletableFuture();
     }
 
+
+    @PostMapping("/_action/transfer")
+    public CompletableFuture<ResponseEntity<TransferResultDTO>> transfer(@RequestBody TransferDTO transferDTO) {
+        if(Objects.isNull(transferDTO.from)) {
+            return CompletableFuture.completedFuture(ResponseEntity.badRequest().body(TransferResultDTO.error("from field must be set")));
+        } else if(Objects.isNull(transferDTO.to)) {
+            return CompletableFuture.completedFuture(ResponseEntity.badRequest().body(TransferResultDTO.error("to field must be set")));
+        } else if(Objects.isNull(transferDTO.amount)) {
+            return CompletableFuture.completedFuture(ResponseEntity.badRequest().body(TransferResultDTO.error("amount field must be set")));
+        }
+
+        return eventProcessor.batchProcessCommand(List.of(
+                new BankCommand.Withdraw(transferDTO.from, transferDTO.amount),
+                new BankCommand.Deposit(transferDTO.to, transferDTO.amount)))
+                .map(Either::sequence)
+                .map(either -> either.fold(
+                        errors -> new ResponseEntity<TransferResultDTO>(TransferResultDTO.error(String.join("\n", errors)), HttpStatus.BAD_REQUEST),
+                        success -> {
+                            var fromResult = success.get(0);
+                            var toResult = success.get(1);
+
+                            return ResponseEntity.ok(new TransferResultDTO(
+                                    AccountDTO.fromAccount(fromResult.currentState.get()),
+                                    AccountDTO.fromAccount(toResult.currentState.get())));
+                        })).toCompletableFuture();
+    }
+
     @DeleteMapping("/{id}")
     public CompletableFuture<ResponseEntity<?>> closeAccount(@PathVariable("id") String id) {
         return eventProcessor.processCommand(new BankCommand.CloseAccount(id))
@@ -119,6 +148,26 @@ public class BankController {
             result.error = "No withdraw data available";
             return result;
         });
+    }
+
+    private static ResponseEntity<TransferResultDTO> transferResultToDTO(Either<
+            Seq<String>,
+            Seq<ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, Tuple0>>> maybeSuccess,
+            String from, String to) {
+        return maybeSuccess.fold(
+                errors -> ResponseEntity.badRequest().body(TransferResultDTO.error(String.join(",", errors))),
+                success -> ResponseEntity.ok(success.foldLeft(new TransferResultDTO(), (result, processingSuccess) -> {
+                        final Account account = processingSuccess.currentState.get();
+                        final AccountDTO dto = AccountDTO.fromAccount(account);
+                        if(dto.id.equals(from)) {
+                            result.from = AccountDTO.fromAccount(account);
+                        } else if(dto.id.equals(to)) {
+                            result.to = AccountDTO.fromAccount(account);
+                        }
+
+                        return result;
+                    }))
+        );
     }
 
     private static ResponseEntity<AccountDTO> resultToDTO(Either<

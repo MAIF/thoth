@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 
 <head>
-<title>Non blocking JOOQ implementation · Thoth</title>
+<title>Multiple command handling in the same transaction · Thoth</title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content='Thoth doc'/>
@@ -50,11 +50,11 @@
     <li><a href="../advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="../advanced/aggregatestore.html" class="page">Aggregate store</a></li>
     <li><a href="../advanced/event-replay.html" class="page">Event replay</a></li>
-    <li><a href="../advanced/multi-command.html" class="page">Multiple command handling in the same transaction</a></li>
+    <li><a href="../advanced/multi-command.html" class="active page">Multiple command handling in the same transaction</a></li>
   </ul></li>
   <li><a href="../eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="../kafka-consumption.html" class="page">Using published events</a></li>
-  <li><a href="../non-blocking/index.html" class="active page">Non blocking JOOQ implementation</a>
+  <li><a href="../non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
   <ul>
     <li><a href="../non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
     <li><a href="../non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
@@ -113,11 +113,11 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="../advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="../advanced/aggregatestore.html" class="page">Aggregate store</a></li>
     <li><a href="../advanced/event-replay.html" class="page">Event replay</a></li>
-    <li><a href="../advanced/multi-command.html" class="page">Multiple command handling in the same transaction</a></li>
+    <li><a href="../advanced/multi-command.html" class="active page">Multiple command handling in the same transaction</a></li>
   </ul></li>
   <li><a href="../eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="../kafka-consumption.html" class="page">Using published events</a></li>
-  <li><a href="../non-blocking/index.html" class="active page">Non blocking JOOQ implementation</a>
+  <li><a href="../non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
   <ul>
     <li><a href="../non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
     <li><a href="../non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
@@ -137,7 +137,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="nav-breadcrumbs">
 <ul>
   <li><a href="../index.html">Thoth</a></li>
-  <li>Non blocking JOOQ implementation</li>
+  <li><a href="../advanced/index.html">Advanced use cases</a></li>
+  <li>Multiple command handling in the same transaction</li>
 </ul>
 </div>
 </div>
@@ -145,20 +146,33 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
-<h1><a href="#non-blocking-jooq-implementation" name="non-blocking-jooq-implementation" class="anchor"><span class="anchor-link"></span></a>Non blocking JOOQ implementation</h1>
-<p>This section provides an alternative implementation to the <a href="../standard/index.html">standard one</a> that combine Vertx Postgres driver to JOOQ to get a reactive implementation.</p>
-<div class="toc ">
-<ul>
-  <li><a href="../non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
-  <li><a href="../non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
-</ul>
-</div>
+<h1><a href="#multiple-command-handling-in-the-same-transaction" name="multiple-command-handling-in-the-same-transaction" class="anchor"><span class="anchor-link"></span></a>Multiple command handling in the same transaction</h1>
+<p>To process multiple commands at once, you should use <code>batchProcessCommand</code> method. Commands will be process in the same transaction, therefore if one command fail, events derived from the other won&rsquo;t be written / published.</p>
+<p>Code below show implementation of multiple command processing to transfer money from one account to another in the same transaction, <a href="https://github.com/MAIF/thoth/blob/master/sample/src/main/java/fr/maif/thoth/sample/api/BankController.java">see complete code here</a>.</p>
+<pre class="prettyprint"><code class="language-java">eventProcessor.batchProcessCommand(List.of(
+        new BankCommand.Withdraw(transferDTO.from, transferDTO.amount),
+        new BankCommand.Deposit(transferDTO.to, transferDTO.amount))
+    )
+    .map(Either::sequence)
+    .map(either -&gt; either.fold(
+        errors -&gt; new ResponseEntity&lt;TransferResultDTO&gt;(TransferResultDTO.error(String.join(&quot;\n&quot;, errors)), HttpStatus.BAD_REQUEST),
+        success -&gt; {
+            var fromResult = success.get(0);
+            var toResult = success.get(1);
+    
+            return ResponseEntity.ok(new TransferResultDTO(
+            AccountDTO.fromAccount(fromResult.currentState.get()),
+            AccountDTO.fromAccount(toResult.currentState.get())));
+        }
+    )
+    );
+</code></pre>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/non-blocking/index.md">here</a>.
+The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/advanced/multi-command.md">here</a>.
 </div>
 
 <div class="nav-next">
-<p><strong>Next:</strong> <a href="../non-blocking/banking-real-life-non-blocking.html">Postgres Kafka, non blocking event sourcing</a></p>
+<p><strong>Next:</strong> <a href="../eventually-consistent-projection.html">Eventually consistent projections</a></p>
 </div>
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>

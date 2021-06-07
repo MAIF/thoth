@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.1*
+1.1.4*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -50,6 +50,7 @@
     <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
     <li><a href="advanced/event-replay.html" class="page">Event replay</a></li>
+    <li><a href="advanced/multi-command.html" class="page">Multiple command handling in the same transaction</a></li>
   </ul></li>
   <li><a href="eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="kafka-consumption.html" class="page">Using published events</a></li>
@@ -92,7 +93,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.1*
+1.1.4*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -112,6 +113,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
     <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
     <li><a href="advanced/event-replay.html" class="page">Event replay</a></li>
+    <li><a href="advanced/multi-command.html" class="page">Multiple command handling in the same transaction</a></li>
   </ul></li>
   <li><a href="eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="kafka-consumption.html" class="page">Using published events</a></li>
@@ -145,16 +147,16 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#resilient-kafka-consumption" name="resilient-kafka-consumption" class="anchor"><span class="anchor-link"></span></a>Resilient kafka consumption</h1>
 <p>Thoth provides a resilient kafka consumer. </p>
-<h2><a href="#installation" name="installation" class="anchor"><span class="anchor-link"></span></a>Installation</h2><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "1.1.1*"
+<h2><a href="#installation" name="installation" class="anchor"><span class="anchor-link"></span></a>Installation</h2><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "1.1.4*"
 libraryDependencies += "fr.maif" %% "thoth-kafka-goodies" % ThothVersion</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
-  &lt;thoth.version&gt;1.1.1*&lt;/thoth.version&gt;
+  &lt;thoth.version&gt;1.1.4*&lt;/thoth.version&gt;
 &lt;/properties&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;fr.maif&lt;/groupId&gt;
   &lt;artifactId&gt;thoth-kafka-goodies_2.12&lt;/artifactId&gt;
   &lt;version&gt;${thoth.version}&lt;/version&gt;
 &lt;/dependency&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">versions += [
-  ThothVersion: "1.1.1*"
+  ThothVersion: "1.1.4*"
 ]
 dependencies {
   compile group: 'fr.maif', name: 'thoth-kafka-goodies_2.12', version: versions.ThothVersion
