@@ -61,6 +61,8 @@ import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.json.EventEnvelopeJson;
 import fr.maif.thoth.sample.api.AccountDTO;
 import fr.maif.thoth.sample.api.BalanceDTO;
+import fr.maif.thoth.sample.api.TransferDTO;
+import fr.maif.thoth.sample.api.TransferResultDTO;
 import fr.maif.thoth.sample.events.BankEvent;
 import fr.maif.thoth.sample.events.BankEventFormat;
 import io.vavr.Tuple;
@@ -289,6 +291,52 @@ class ThothSampleApplicationTests {
 	}
 
 
+	@Test
+	void transferShouldWork() {
+		final String sourceId = "from";
+		final String targetId = "to";
+
+		createAccount(new AccountDTO(new BigDecimal("1000"), sourceId));
+		createAccount(new AccountDTO(new BigDecimal("10"), targetId));
+		final TransferResultDTO result = transfer(sourceId, targetId, new BigDecimal("100"));
+
+		assertThat(result.from.balance).isEqualByComparingTo("900");
+		assertThat(result.to.balance).isEqualByComparingTo("110");
+	}
+
+	@Test
+	void transferShouldFailIfBalanceIsTooLow() {
+		final String sourceId = "from";
+		final String targetId = "to";
+
+		createAccount(new AccountDTO(new BigDecimal("50"), sourceId));
+		createAccount(new AccountDTO(new BigDecimal("10"), targetId));
+		final TransferResultDTO result = transfer(sourceId, targetId, new BigDecimal("100"));
+
+		assertThat(result.error).isEqualTo("Overdrawn account");
+	}
+
+	@Test
+	void transferShouldFailIfSourceAccountDoesNotExist() {
+		final String targetId = "to";
+
+		createAccount(new AccountDTO(new BigDecimal("10"), targetId));
+		final TransferResultDTO result = transfer("from", targetId, new BigDecimal("100"));
+
+		assertThat(result.error).isEqualTo("Account does not exist");
+	}
+
+	@Test
+	void transferShouldFailIfTargetAccountDoesNotExist() {
+		final String sourceId = "from";
+
+		createAccount(new AccountDTO(new BigDecimal("1000"), sourceId));
+		final TransferResultDTO result = transfer(sourceId, "to", new BigDecimal("100"));
+
+		assertThat(result.error).isEqualTo("Account does not exist");
+	}
+
+
 
 	private AccountDTO readAccount(String id) {
 		try {
@@ -357,6 +405,24 @@ class ThothSampleApplicationTests {
 		} catch(HttpClientErrorException ex) {
 			try {
 				return mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class);
+			} catch (IOException e) {
+				throw ex;
+			}
+		}
+	}
+
+
+	private TransferResultDTO transfer(String source, String target, BigDecimal amount) {
+		TransferDTO request = new TransferDTO();
+		request.amount = amount;
+		request.from = source;
+		request.to = target;
+
+		try {
+			return restTemplate.postForEntity("/bank/api/_action/transfer", request, TransferResultDTO.class).getBody();
+		} catch(HttpClientErrorException ex) {
+			try {
+				return mapper.readValue(ex.getResponseBodyAsString(), TransferResultDTO.class);
 			} catch (IOException e) {
 				throw ex;
 			}
