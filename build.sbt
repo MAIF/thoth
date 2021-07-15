@@ -5,8 +5,11 @@ organization := "fr.maif"
 
 resolvers ++= Seq(Resolver.jcenterRepo)
 
-scalaVersion := "2.12.13"
-crossScalaVersions := List("2.13.5", "2.12.13")
+val mainScalaVersion = "2.12.13"
+val scalaVersions    = List("2.13.5", mainScalaVersion)
+
+scalaVersion := mainScalaVersion
+crossScalaVersions := scalaVersions
 
 usePgpKeyHex("5B6BE1966878E3AE16B85BC975B8BA741462DEA9")
 sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
@@ -57,7 +60,11 @@ lazy val `thoth-tck` = project
   .dependsOn(`thoth-core`)
   .enablePlugins(TestNGPlugin)
   .settings(
-    skip in publish := true
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    scalaVersion := mainScalaVersion,
+    crossScalaVersions := scalaVersions,
+    crossPaths := true
   )
 
 lazy val `demo-postgres-kafka-reactive` =
@@ -71,7 +78,7 @@ lazy val `commons-events` = project
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
     sonatypeCredentialHost := "s01.oss.sonatype.org",
-    scalaVersion := "2.12.13",
+    scalaVersion := mainScalaVersion,
     crossPaths := false
   )
 
@@ -79,8 +86,8 @@ lazy val `thoth-kafka-goodies` = project
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
     sonatypeCredentialHost := "s01.oss.sonatype.org",
-    scalaVersion := "2.12.13",
-    crossScalaVersions := List("2.13.5", "2.12.13"),
+    scalaVersion := mainScalaVersion,
+    crossScalaVersions := scalaVersions,
     crossPaths := true
   )
 
@@ -89,8 +96,8 @@ lazy val `thoth-jooq-async` = project
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
     sonatypeCredentialHost := "s01.oss.sonatype.org",
-    scalaVersion := "2.12.13",
-    crossScalaVersions := List("2.13.5", "2.12.13"),
+    scalaVersion := mainScalaVersion,
+    crossScalaVersions := scalaVersions,
     crossPaths := true
   )
 
@@ -99,8 +106,8 @@ lazy val `thoth-core` = project
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
     sonatypeCredentialHost := "s01.oss.sonatype.org",
-    scalaVersion := "2.12.13",
-    crossScalaVersions := List("2.13.5", "2.12.13"),
+    scalaVersion := mainScalaVersion,
+    crossScalaVersions := scalaVersions,
     crossPaths := true
   )
 
@@ -110,8 +117,8 @@ lazy val `thoth-jooq` = project
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
     sonatypeCredentialHost := "s01.oss.sonatype.org",
-    scalaVersion := "2.12.13",
-    crossScalaVersions := List("2.13.5", "2.12.13"),
+    scalaVersion := mainScalaVersion,
+    crossScalaVersions := scalaVersions,
     crossPaths := true
   )
 
