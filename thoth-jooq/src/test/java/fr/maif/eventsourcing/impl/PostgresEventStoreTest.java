@@ -16,7 +16,6 @@ import io.vavr.collection.List;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
-import lombok.SneakyThrows;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.SQLDialect;
@@ -183,7 +182,6 @@ public class PostgresEventStoreTest {
 
 
     @Test
-    @SneakyThrows
     public void loadEventsUnpublished() {
         initDatas();
         List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(transactionSource()
@@ -198,8 +196,7 @@ public class PostgresEventStoreTest {
     }
 
     @Test
-    @SneakyThrows
-    public void loadEventsUnpublishedSkip() {
+    public void loadEventsUnpublishedSkip() throws InterruptedException {
         initDatas();
         Duration initialDelay = Duration.ofMillis(100);
         System.out.println("Running first query");
@@ -227,8 +224,7 @@ public class PostgresEventStoreTest {
     }
 
     @Test
-    @SneakyThrows
-    public void loadEventsUnpublishedWait() {
+    public void loadEventsUnpublishedWait() throws InterruptedException {
         initDatas();
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> first = transactionSource().flatMapConcat(t ->
                 postgresEventStore.loadEventsUnpublished(t, WAIT)
@@ -252,8 +248,7 @@ public class PostgresEventStoreTest {
     }
 
     @Test
-    @SneakyThrows
-    public void markEventsAsPublished() {
+    public void markEventsAsPublished() throws SQLException {
         initDatas();
         List<EventEnvelope<VikingEvent, Void, Void>> events;
         try (Connection connection = dataSource.getConnection()) {

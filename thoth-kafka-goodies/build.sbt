@@ -7,7 +7,6 @@ name := "thoth-kafka-goodies"
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream"               % akkaVersion,
   "com.typesafe.akka" %% "akka-stream-kafka"         % alpakkaKafkaVersion,
-  "org.projectlombok"  % "lombok"                    % "1.18.18",
   "com.typesafe.akka" %% "akka-testkit"              % akkaVersion         % Test,
   "com.typesafe.akka" %% "akka-stream-testkit"       % akkaVersion         % Test,
   "com.typesafe.akka" %% "akka-stream-kafka-testkit" % alpakkaKafkaVersion % Test,

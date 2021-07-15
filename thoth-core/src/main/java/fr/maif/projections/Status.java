@@ -1,7 +1,5 @@
 package fr.maif.projections;
 
-import lombok.ToString;
-
 import static io.vavr.API.$;
 import static io.vavr.API.Case;
 import static io.vavr.API.Match;
@@ -30,43 +28,63 @@ public interface Status {
 
     String name();
 
-    @ToString
     class Started implements Status {
         @Override
         public String name() {
             return "Started";
         }
+
+        @Override
+        public String toString() {
+            return "Started{}";
+        }
     }
 
-    @ToString
     class Starting implements Status {
         @Override
         public String name() {
             return "Starting";
         }
+
+        @Override
+        public String toString() {
+            return "Starting{}";
+        }
     }
 
-    @ToString
     class Failed implements Status {
         @Override
         public String name() {
             return "Failed";
         }
+
+        @Override
+        public String toString() {
+            return "Failed{}";
+        }
     }
 
-    @ToString
     class Stopped implements Status {
         @Override
         public String name() {
             return "Stopped";
         }
+
+        @Override
+        public String toString() {
+            return "Stopped{}";
+        }
     }
 
-    @ToString
     class Stopping implements Status {
         @Override
         public String name() {
             return "Stopping";
+        }
+
+        @Override
+        public String toString() {
+            return "Stopping{}";
         }
     }
 

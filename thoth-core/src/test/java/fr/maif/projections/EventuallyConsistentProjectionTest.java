@@ -15,7 +15,6 @@ import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Option;
-import lombok.SneakyThrows;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -42,8 +41,7 @@ class EventuallyConsistentProjectionTest extends TestcontainersKafkaTest {
     }
 
     @Test
-    @SneakyThrows
-    void consumer() {
+    void consumer() throws Exception {
 
         String topic = createTopic();
         String groupId = "test-group-id";

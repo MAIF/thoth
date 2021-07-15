@@ -6,8 +6,6 @@ import fr.maif.json.Json;
 import fr.maif.json.JsonFormat;
 import fr.maif.json.JsonRead;
 import io.vavr.API.Match.Pattern0;
-import lombok.Builder;
-import lombok.Value;
 
 import java.math.BigDecimal;
 
@@ -55,12 +53,38 @@ public interface BankEvent extends Event {
             )
     );
 
-    @Builder
-    @Value
     class MoneyWithdrawn implements BankEvent {
-
         public final String accountId;
         public final BigDecimal amount;
+
+        static class MoneyWithdrawnBuilder{
+            String accountId;
+            BigDecimal amount;
+
+            MoneyWithdrawnBuilder accountId(String accountId){
+                this.accountId = accountId;
+                return this;
+            }
+
+            MoneyWithdrawnBuilder amount(BigDecimal amount){
+                this.amount = amount;
+                return this;
+            }
+
+            MoneyWithdrawn build(){
+                return new MoneyWithdrawn(accountId,amount);
+            }
+
+        }
+
+        public MoneyWithdrawn(String accountId, BigDecimal amount) {
+            this.accountId = accountId;
+            this.amount = amount;
+        }
+
+        public static MoneyWithdrawnBuilder builder(){
+            return new MoneyWithdrawnBuilder();
+        }
 
         @Override
         public Type<MoneyWithdrawn> type() {
@@ -84,10 +108,29 @@ public interface BankEvent extends Event {
         );
     }
 
-    @Builder
-    @Value
     class AccountOpened implements BankEvent {
         public final String accountId;
+
+        static class AccountOpenedBuilder{
+            String accountId;
+
+            AccountOpenedBuilder accountId(String accountId){
+                this.accountId = accountId;
+                return this;
+            }
+
+            AccountOpened build(){
+                return new AccountOpened(accountId);
+            }
+        }
+
+        public AccountOpened(String accountId) {
+            this.accountId = accountId;
+        }
+
+        public static AccountOpenedBuilder builder(){
+            return new AccountOpenedBuilder();
+        }
 
         @Override
         public Type<AccountOpened> type() {
@@ -109,11 +152,39 @@ public interface BankEvent extends Event {
         );
     }
 
-    @Builder
-    @Value
+
     class MoneyDeposited implements BankEvent {
         public final String accountId;
         public final BigDecimal amount;
+
+        public MoneyDeposited(String accountId, BigDecimal amount) {
+            this.accountId = accountId;
+            this.amount = amount;
+        }
+
+        static class MoneyDepositedBuilder{
+            String accountId;
+            BigDecimal amount;
+
+            MoneyDepositedBuilder accountId(String accountId){
+                this.accountId = accountId;
+                return this;
+            }
+
+            MoneyDepositedBuilder amount(BigDecimal amount){
+                this.amount = amount;
+                return this;
+            }
+
+            MoneyDeposited build(){
+                return new MoneyDeposited(accountId,amount);
+            }
+
+        }
+
+        public static MoneyDepositedBuilder builder(){
+            return new MoneyDepositedBuilder();
+        }
 
         @Override
         public Type<MoneyDeposited> type() {
@@ -137,10 +208,29 @@ public interface BankEvent extends Event {
         );
     }
 
-    @Builder
-    @Value
     class AccountClosed implements BankEvent {
         public final String accountId;
+
+        static class AccountClosedBuilder{
+            String accountId;
+
+            AccountClosedBuilder accountId(String accountId){
+                this.accountId = accountId;
+                return this;
+            }
+
+            AccountClosed build(){
+                return new AccountClosed(accountId);
+            }
+        }
+
+        public AccountClosed(String accountId) {
+            this.accountId = accountId;
+        }
+
+        public static AccountClosedBuilder builder(){
+            return new AccountClosedBuilder();
+        }
 
         @Override
         public Type<AccountClosed> type() {
