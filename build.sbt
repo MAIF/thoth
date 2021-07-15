@@ -112,7 +112,7 @@ lazy val `thoth-core` = project
   )
 
 lazy val `thoth-jooq` = project
-  .dependsOn(`thoth-core`, `thoth-tck`)
+  .dependsOn(`thoth-core`, `thoth-tck` % "compile->test")
   .enablePlugins(TestNGPlugin)
   .settings(
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
@@ -148,7 +148,7 @@ releaseProcess := Seq[ReleaseStep](
   pushChanges
 )
 
-lazy val githubRepo = "maif/thoth"
+lazy val githubRepo   = "maif/thoth"
 
 inThisBuild(
   List(
