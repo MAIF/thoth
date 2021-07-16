@@ -124,7 +124,7 @@ lazy val `thoth-jooq` = project
 
 javacOptions in Compile ++= Seq(
   "-source",
-  "15",
+  "16",
   "-target",
   "8",
   "-Xlint:unchecked",

@@ -25,10 +25,9 @@ libraryDependencies ++= Seq(
 
 javacOptions in Compile ++= Seq(
   "-source",
-  "15",
+  "16",
   "-target",
-  "15",
+  "16",
   "-Xlint:unchecked",
-  "-Xlint:deprecation",
-  "--enable-preview"
+  "-Xlint:deprecation"
 )
