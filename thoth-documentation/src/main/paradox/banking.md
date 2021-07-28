@@ -2,10 +2,9 @@
 
 This sample explains how to implement event sourcing for a simple use case of bank account.
 
-In this example, we will focus on managing accounts one by one (i.e. no transfer operations) :
+In this example, we will focus on managing accounts one by one.
 
-* because it's simpler to implement / understand
-* because [one feature](https://github.com/MAIF/thoth/issues/4) is missing to implement scenario such as multiple bank accounts
+We will see later @ref:[how to manager multiple accounts at once](advanced/multi-command.md).
 
 Here is the process modeling of what happens: 
 
