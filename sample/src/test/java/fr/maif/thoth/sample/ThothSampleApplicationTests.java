@@ -5,7 +5,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLType;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -56,15 +61,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import akka.actor.ActorSystem;
 import fr.maif.eventsourcing.EventEnvelope;
+import fr.maif.eventsourcing.EventProcessor;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.json.EventEnvelopeJson;
 import fr.maif.thoth.sample.api.AccountDTO;
 import fr.maif.thoth.sample.api.BalanceDTO;
 import fr.maif.thoth.sample.api.TransferDTO;
 import fr.maif.thoth.sample.api.TransferResultDTO;
+import fr.maif.thoth.sample.commands.BankCommand;
 import fr.maif.thoth.sample.events.BankEvent;
 import fr.maif.thoth.sample.events.BankEventFormat;
+import fr.maif.thoth.sample.projections.transactional.GlobalBalanceProjection;
+import fr.maif.thoth.sample.state.Account;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.Tuple2;
@@ -82,6 +92,12 @@ class ThothSampleApplicationTests {
 	private ObjectMapper mapper;
 	@Autowired
 	private BankEventFormat eventFormat;
+	@Autowired
+	private GlobalBalanceProjection projection;
+	@Autowired
+	private EventProcessor<String, Account, BankCommand, BankEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor;
+	@Autowired
+	private ActorSystem actorSystem;
 
 	@Container
 	private static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres").withTag("11.2"));
@@ -334,6 +350,67 @@ class ThothSampleApplicationTests {
 		final TransferResultDTO result = transfer(sourceId, "to", new BigDecimal("100"));
 
 		assertThat(result.error).isEqualTo("Account does not exist");
+	}
+
+	@Test
+	void projectionShouldCatchUpExistingEvents() throws SQLException {
+		String entityId = "test";
+
+		registerInJournal(new BankEvent.AccountOpened(entityId));
+		registerInJournal(new BankEvent.MoneyDeposited(entityId, new BigDecimal("100")));
+		registerInJournal(new BankEvent.MoneyWithdrawn(entityId, new BigDecimal("30")));
+
+		assertThat(globalBalance().amount).isEqualByComparingTo(new BigDecimal("0"));
+
+		projection.initialize(pgDataSource.getConnection(), eventProcessor.eventStore(), actorSystem).join();
+
+		assertThat(globalBalance().amount).isEqualByComparingTo(new BigDecimal("70"));
+
+	}
+
+	private void registerInJournal(BankEvent event) throws SQLException {
+		String eventType;
+		String json;
+		if(event instanceof BankEvent.AccountOpened) {
+			eventType = "AccountOpened";
+			json = "{\"accountId\": \"" + event.accountId + "\"}";
+		} else if(event instanceof BankEvent.MoneyWithdrawn withdraw) {
+			eventType = "MoneyWithdrawn";
+			json = "{\"amount\": " + withdraw.amount + ", \"accountId\": \"" + event.accountId + "\"}";
+		} else if(event instanceof BankEvent.MoneyDeposited deposit) {
+			eventType = "MoneyDeposited";
+			json = "{\"amount\": " + deposit.amount + ", \"accountId\": \"" + event.accountId + "\"}";
+		} else if(event instanceof BankEvent.AccountClosed) {
+			eventType = "AccountClosed";
+			json = "{\"accountId\": \"" + event.accountId + "\"}";
+		} else {
+			throw new RuntimeException("Unknown event type " + event.getClass().getSimpleName());
+		}
+
+
+		try(Connection connection = pgDataSource.getConnection()) {
+			final ResultSet sequenceResult = connection.prepareStatement("select nextval('bank_sequence_num')").executeQuery();
+			sequenceResult.next();
+			final long sequenceNum = sequenceResult.getLong("nextval");
+			final PreparedStatement statement = connection.prepareStatement("""
+					INSERT INTO bank_journal (id, entity_id, sequence_num, event_type, version, transaction_id, event, total_message_in_transaction, num_message_in_transaction, emission_date, published)
+					VALUES(?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?);
+					""");
+
+			statement.setObject(1, UUID.randomUUID());
+			statement.setString(2, event.entityId());
+			statement.setLong(3, sequenceNum);
+			statement.setString(4, eventType);
+			statement.setInt(5, 1);
+			statement.setObject(6, UUID.randomUUID());
+			statement.setObject(7, json);
+			statement.setInt(8, 1);
+			statement.setInt(9, 1);
+			statement.setDate(10, new Date(System.currentTimeMillis()));
+			statement.setBoolean(11, false);
+
+			statement.execute();
+		}
 	}
 
 

@@ -86,6 +86,45 @@ public class DemoApplication {
 }
 ```
 
+
+### Catch up past events
+
+In some cases, the projection will be created while events already exist in the journal.
+Sometimes these pre-existing events should be added to the projection.
+
+To "catch up" with past events, you need to stream journal content:
+
+```java
+eventStore.loadAllEvents()
+    .map(enveloppe -> enveloppe.event)
+    .filter(event -> event instanceof BankEvent.MoneyDeposited || event instanceof BankEvent.MoneyWithdrawn)
+    .mapAsync(1, event ->
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                if(event instanceof BankEvent.MoneyDeposited deposit) {
+                    String statement = "UPDATE global_balance SET balance=balance+?::money";
+                    try(PreparedStatement preparedStatement = connection.prepareStatement(statement)) {
+                        preparedStatement.setBigDecimal(1, deposit.amount);
+                        preparedStatement.execute();
+                    }
+                } else if(event instanceof BankEvent.MoneyWithdrawn withdraw) {
+                    String statement = "UPDATE global_balance SET balance=balance-?::money";
+                    try(PreparedStatement preparedStatement = connection.prepareStatement(statement)) {
+                        preparedStatement.setBigDecimal(1, withdraw.amount);
+                        preparedStatement.execute();
+                    }
+                }
+                return Tuple.empty();
+            } catch(SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        })
+    ).run(actorSystem)
+```
+
+⚠️ This code should be run while the system is not receiving events, otherwise there is a risk of double consumption.
+To fix this one solution would be to store consumed event id or sequence num and compare them with incoming events.
+
 ## Eventually consistent projections
 
 Sometimes projections are too costly to be updated in transaction, sometimes we don't need real time update.
