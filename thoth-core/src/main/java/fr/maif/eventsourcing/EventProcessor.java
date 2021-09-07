@@ -5,11 +5,14 @@ import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
 import fr.maif.eventsourcing.TransactionManager.InTransactionResult;
 import fr.maif.eventsourcing.impl.DefaultAggregateStore;
+import io.vavr.Lazy;
 import io.vavr.Tuple;
+import io.vavr.Tuple0;
 import io.vavr.Tuple3;
 import io.vavr.Value;
 import io.vavr.collection.List;
 import io.vavr.collection.Seq;
+import io.vavr.collection.Set;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
@@ -34,22 +37,24 @@ public class EventProcessor<Error, S extends State<S>, C extends Command<Meta, C
     private final CommandHandler<Error, S, C, E, Message, TxCtx> commandHandler;
     private final EventHandler<S, E> eventHandler;
     private final List<Projection<TxCtx, E, Meta, Context>> projections;
+    private final LockManager<TxCtx> lockManager;
 
-    public static <Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, TxCtx, Message, Meta, Context> EventProcessor<Error, S, C, E, TxCtx, Message, Meta, Context> create(ActorSystem system, EventStore<TxCtx, E, Meta, Context> eventStore, TransactionManager<TxCtx> transactionManager, CommandHandler<Error, S, C, E, Message, TxCtx> commandHandler, EventHandler<S, E> eventHandler, List<Projection<TxCtx, E, Meta, Context>> projections) {
-        return new EventProcessor<>(eventStore, transactionManager, new DefaultAggregateStore<>(eventStore, eventHandler, system, transactionManager), commandHandler, eventHandler, projections);
+    public static <Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, TxCtx, Message, Meta, Context> EventProcessor<Error, S, C, E, TxCtx, Message, Meta, Context> create(ActorSystem system, EventStore<TxCtx, E, Meta, Context> eventStore, TransactionManager<TxCtx> transactionManager, CommandHandler<Error, S, C, E, Message, TxCtx> commandHandler, EventHandler<S, E> eventHandler, List<Projection<TxCtx, E, Meta, Context>> projections, LockManager<TxCtx> lockManager) {
+        return new EventProcessor<>(eventStore, transactionManager, new DefaultAggregateStore<>(eventStore, eventHandler, system, transactionManager), commandHandler, eventHandler, projections, lockManager);
     }
 
-    public EventProcessor(ActorSystem system, EventStore<TxCtx, E, Meta, Context> eventStore, TransactionManager<TxCtx> transactionManager, CommandHandler<Error, S, C, E, Message, TxCtx> commandHandler, EventHandler<S, E> eventHandler, List<Projection<TxCtx, E, Meta, Context>> projections) {
-        this(eventStore, transactionManager, new DefaultAggregateStore<>(eventStore, eventHandler, system, transactionManager), commandHandler, eventHandler, projections);
+    public EventProcessor(ActorSystem system, EventStore<TxCtx, E, Meta, Context> eventStore, TransactionManager<TxCtx> transactionManager, CommandHandler<Error, S, C, E, Message, TxCtx> commandHandler, EventHandler<S, E> eventHandler, List<Projection<TxCtx, E, Meta, Context>> projections, LockManager<TxCtx> lockManager) {
+        this(eventStore, transactionManager, new DefaultAggregateStore<>(eventStore, eventHandler, system, transactionManager), commandHandler, eventHandler, projections, lockManager);
     }
 
-    public EventProcessor(EventStore<TxCtx, E, Meta, Context> eventStore, TransactionManager<TxCtx> transactionManager, AggregateStore<S, String, TxCtx> aggregateStore, CommandHandler<Error, S, C, E, Message, TxCtx> commandHandler, EventHandler<S, E> eventHandler, List<Projection<TxCtx, E, Meta, Context>> projections) {
+    public EventProcessor(EventStore<TxCtx, E, Meta, Context> eventStore, TransactionManager<TxCtx> transactionManager, AggregateStore<S, String, TxCtx> aggregateStore, CommandHandler<Error, S, C, E, Message, TxCtx> commandHandler, EventHandler<S, E> eventHandler, List<Projection<TxCtx, E, Meta, Context>> projections, LockManager<TxCtx> lockManager) {
         this.eventStore = eventStore;
         this.transactionManager = transactionManager;
         this.aggregateStore = aggregateStore;
         this.commandHandler = commandHandler;
         this.eventHandler = eventHandler;
         this.projections = projections;
+        this.lockManager = lockManager;
     }
 
     public EventProcessor(
@@ -57,7 +62,8 @@ public class EventProcessor<Error, S extends State<S>, C extends Command<Meta, C
             TransactionManager<TxCtx> transactionManager,
             SnapshotStore<S, String, TxCtx> aggregateStore,
             CommandHandler<Error, S, C, E, Message, TxCtx> commandHandler,
-            EventHandler<S, E> eventHandler) {
+            EventHandler<S, E> eventHandler,
+            LockManager<TxCtx> lockManager) {
 
         this.projections = List.empty();
         this.eventStore = eventStore;
@@ -65,6 +71,7 @@ public class EventProcessor<Error, S extends State<S>, C extends Command<Meta, C
         this.aggregateStore = aggregateStore;
         this.commandHandler = commandHandler;
         this.eventHandler = eventHandler;
+        this.lockManager = lockManager;
     }
 
     public Future<Either<Error, ProcessingSuccess<S, E, Meta, Context, Message>>> processCommand(C command) {
@@ -81,87 +88,94 @@ public class EventProcessor<Error, S extends State<S>, C extends Command<Meta, C
     }
 
     public Future<InTransactionResult<List<Either<Error, ProcessingSuccess<S, E, Meta, Context, Message>>>>> batchProcessCommand(TxCtx ctx, List<C> commands) {
-        // Collect all states from db
-        return traverseSequential(commands, c ->
-                this.getSnapshot(ctx, c).flatMap(mayBeState ->
-                        //handle command with state to get events
-                        handleCommand(ctx, mayBeState, c)
-                                // Return command + state + (error or events)
-                                .map(r -> Tuple(c, mayBeState, r))
-                )
-        )
-                .map(Value::toList)
-                .flatMap(commandsAndResults -> {
-                    // Extract errors from command handling
-                    List<Either<Error, ProcessingSuccess<S, E, Meta, Context, Message>>> errors = commandsAndResults
-                            .map(Tuple3::_3)
-                            .filter(Either::isLeft)
-                            .map(e -> Either.left(e.swap().get()));
+        Set<String> entitiesToLock = commands.filter(cmd -> !cmd.concurrent())
+                .map(Command::entityId)
+                .map(Lazy::toOption)
+                .filter(Option::isDefined)
+                .map(Option::get).toSet();
 
-                    // Extract success and generate envelopes for each result
-                    Future<Seq<CommandStateAndEvent>> success = traverseSequential(commandsAndResults.filter(t -> t._3.isRight()), t -> {
-                        C command = t._1;
-                        Option<S> mayBeState = t._2;
-                        List<E> events = t._3.get().events.toList();
-                        return buildEnvelopes(ctx, command, events).map(eventEnvelopes -> {
-                            Option<Long> mayBeLastSeqNum = eventEnvelopes.lastOption().map(evl -> evl.sequenceNum);
-                            return new CommandStateAndEvent(command, mayBeState, eventEnvelopes, events, t._3.get().message, mayBeLastSeqNum);
-                        });
+        return lockManager.lock(ctx, entitiesToLock).flatMap(__ ->
+                // Collect all states from db
+                traverseSequential(commands, c ->
+                    this.getSnapshot(ctx, c).flatMap(mayBeState ->
+                            //handle command with state to get events
+                            handleCommand(ctx, mayBeState, c)
+                                    // Return command + state + (error or events)
+                                    .map(r -> Tuple(c, mayBeState, r))
+                    )
+            ))
+            .map(Value::toList)
+            .flatMap(commandsAndResults -> {
+                // Extract errors from command handling
+                List<Either<Error, ProcessingSuccess<S, E, Meta, Context, Message>>> errors = commandsAndResults
+                        .map(Tuple3::_3)
+                        .filter(Either::isLeft)
+                        .map(e -> Either.left(e.swap().get()));
+
+                // Extract success and generate envelopes for each result
+                Future<Seq<CommandStateAndEvent>> success = traverseSequential(commandsAndResults.filter(t -> t._3.isRight()), t -> {
+                    C command = t._1;
+                    Option<S> mayBeState = t._2;
+                    List<E> events = t._3.get().events.toList();
+                    return buildEnvelopes(ctx, command, events).map(eventEnvelopes -> {
+                        Option<Long> mayBeLastSeqNum = eventEnvelopes.lastOption().map(evl -> evl.sequenceNum);
+                        return new CommandStateAndEvent(command, mayBeState, eventEnvelopes, events, t._3.get().message, mayBeLastSeqNum);
                     });
+                });
 
-                    return success.map(s -> Tuple(s.toList(), errors));
-                })
-                .flatMap(successAndErrors -> {
+                return success.map(s -> Tuple(s.toList(), errors));
+            })
+            .flatMap(successAndErrors -> {
 
-                    List<Either<Error, ProcessingSuccess<S, E, Meta, Context, Message>>> errors = successAndErrors._2;
-                    List<CommandStateAndEvent> success = successAndErrors._1;
+                List<Either<Error, ProcessingSuccess<S, E, Meta, Context, Message>>> errors = successAndErrors._2;
+                List<CommandStateAndEvent> success = successAndErrors._1;
 
-                    // Get all envelopes
-                    List<EventEnvelope<E, Meta, Context>> envelopes = success.flatMap(CommandStateAndEvent::getEventEnvelopes);
+                // Get all envelopes
+                List<EventEnvelope<E, Meta, Context>> envelopes = success.flatMap(CommandStateAndEvent::getEventEnvelopes);
 
-                    Future<Seq<ProcessingSuccess<S, E, Meta, Context, Message>>> stored = eventStore
-                            // Persist all envelopes
-                            .persist(ctx, envelopes)
-                            .flatMap(__ ->
-                                    // Persist states
-                                    traverseSequential(success, s -> {
-                                        LOGGER.debug("Storing state {} to DB", s);
-                                        return aggregateStore
-                                                .buildAggregateAndStoreSnapshot(
-                                                        ctx,
-                                                        eventHandler,
-                                                        s.getState(),
-                                                        s.getCommand().entityId().get(),
-                                                        s.getEvents(),
-                                                        s.getSequenceNum()
-                                                )
-                                                .map(mayBeNextState ->
-                                                        new ProcessingSuccess<>(s.state, mayBeNextState, s.getEventEnvelopes(), s.getMessage())
-                                                );
-                                    })
-                            )
-                            .flatMap(mayBeNextState ->
-                                    // Apply events to projections
-                                    traverseSequential(projections, p -> {
-                                        LOGGER.debug("Applying envelopes {} to projection", envelopes);
-                                        return p.storeProjection(ctx, envelopes);
-                                    })
-                                            .map(__ -> mayBeNextState)
-                            );
-                    return stored.map(results ->
-                            errors.appendAll(results.map(Either::right))
-                    );
-                })
-                .map(results -> new InTransactionResult<>(
-                        results,
-                        () -> {
-                            List<EventEnvelope<E, Meta, Context>> envelopes = results.flatMap(Value::toList).flatMap(ProcessingSuccess::getEvents);
-                            LOGGER.debug("Publishing events {} to kafka", envelopes);
-                            return eventStore.publish(envelopes)
-                                    .map(__ -> Tuple.empty())
-                                    .recover(e -> Tuple.empty());
-                        }
-                ));
+                Future<Seq<ProcessingSuccess<S, E, Meta, Context, Message>>> stored = eventStore
+                        // Persist all envelopes
+                        .persist(ctx, envelopes)
+                        .flatMap(__ ->
+                                // Persist states
+                                traverseSequential(success, s -> {
+                                    LOGGER.debug("Storing state {} to DB", s);
+                                    return aggregateStore
+                                            .buildAggregateAndStoreSnapshot(
+                                                    ctx,
+                                                    eventHandler,
+                                                    s.getState(),
+                                                    s.getCommand().entityId().get(),
+                                                    s.getEvents(),
+                                                    s.getSequenceNum()
+                                            )
+                                            .map(mayBeNextState ->
+                                                    new ProcessingSuccess<>(s.state, mayBeNextState, s.getEventEnvelopes(), s.getMessage())
+                                            );
+                                })
+                        )
+                        .flatMap(mayBeNextState ->
+                                // Apply events to projections
+                                traverseSequential(projections, p -> {
+                                    LOGGER.debug("Applying envelopes {} to projection", envelopes);
+                                    return p.storeProjection(ctx, envelopes);
+                                })
+                                        .map(__ -> mayBeNextState)
+                        );
+                return stored.map(results ->
+                        errors.appendAll(results.map(Either::right))
+                );
+            })
+            .map(results -> new InTransactionResult<>(
+                    results,
+                    () -> {
+                        List<EventEnvelope<E, Meta, Context>> envelopes = results.flatMap(Value::toList).flatMap(ProcessingSuccess::getEvents);
+                        LOGGER.debug("Publishing events {} to kafka", envelopes);
+                        return eventStore.publish(envelopes)
+                                .map(__ -> Tuple.empty())
+                                .recover(e -> Tuple.empty());
+                    }
+            ));
     }
 
     Future<List<EventEnvelope<E, Meta, Context>>> buildEnvelopes(TxCtx tx, C command, List<E> events) {

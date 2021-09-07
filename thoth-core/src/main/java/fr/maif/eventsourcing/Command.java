@@ -26,4 +26,8 @@ public interface Command<Meta, Context> {
     default Option<String> userId() {
         return Option.none();
     }
+
+    default boolean concurrent() {
+        return true;
+    }
 }
