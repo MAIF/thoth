@@ -32,13 +32,25 @@ public class DefaultAggregateStore<S extends State<S>, E extends Event, Meta, Co
 
     @Override
     public Future<Option<S>> getAggregate(TxCtx ctx, String entityId) {
-        return Future.fromCompletableFuture(this.eventStore
-                .loadEventsByQuery(ctx, EventStore.Query.builder().withEntityId(entityId).build())
-                .runFold(Option.<S>none(), (mayBeState, event) ->
-                                this.eventEventHandler.applyEvent(mayBeState, event.event)
-                                        .map((S state) -> (S) state.withSequenceNum(event.sequenceNum))
-                        , materializer)
-                .toCompletableFuture()
-        );
+
+        return this.getSnapshot(ctx, entityId)
+                .flatMap(mayBeSnapshot -> {
+
+                    EventStore.Query query = mayBeSnapshot.fold(
+                            // No snapshot defined, we read all the events
+                            () -> EventStore.Query.builder().withEntityId(entityId).build(),
+                            // If a snapshot is defined, we read events from seq num of the snapshot :
+                            s -> EventStore.Query.builder().withSequenceFrom(s.sequenceNum()).withEntityId(entityId).build()
+                    );
+
+                    return Future.fromCompletableFuture(this.eventStore
+                            .loadEventsByQuery(ctx, query)
+                            .runFold(mayBeSnapshot, (mayBeState, event) ->
+                                            this.eventEventHandler.applyEvent(mayBeState, event.event)
+                                                    .map((S state) -> (S) state.withSequenceNum(event.sequenceNum))
+                                    , materializer)
+                            .toCompletableFuture()
+                    );
+                });
     }
 }
