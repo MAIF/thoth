@@ -83,9 +83,7 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
     public <TxCtx> void start(EventStore<TxCtx, E, Meta, Context> eventStore, ConcurrentReplayStrategy concurrentReplayStrategy) {
         killSwitch = RestartSource
                 .onFailuresWithBackoff(
-                        restartInterval,
-                        maxRestartInterval,
-                        0,
+                        RestartSettings.create(restartInterval, maxRestartInterval, 0),
                         () -> {
                             LOGGER.info("Starting/Restarting publishing event to kafka on topic {}", topic);
                             return Source.completionStage(eventStore.openTransaction().toCompletableFuture())

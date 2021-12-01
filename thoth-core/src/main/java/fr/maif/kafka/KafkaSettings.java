@@ -10,6 +10,7 @@ import io.vavr.Tuple2;
 import io.vavr.control.Option;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.internals.BrokerSecurityConfigs;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -17,20 +18,59 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-public class KafkaSettings {
-    private final String servers;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
-    private final Option<String> keyStorePath;
-    private final Option<String> trustStorePath;
-    private final Option<String> keyStorePass;
-    private final Option<String> trustStorePass;
+public class KafkaSettings {
+
+    private final String servers;
+    private final Map<String, String> consumerProperties;
+    private final Map<String, String> producerProperties;
+
+    public KafkaSettings(String servers, Map<String, String> consumerProperties, Map<String, String> producerProperties) {
+        this.servers = servers;
+        this.consumerProperties = consumerProperties;
+        this.producerProperties = producerProperties;
+    }
 
     public KafkaSettings(String servers, Option<String> keyStorePath, Option<String> keyStorePass, Option<String> trustStorePath, Option<String> trustStorePass) {
         this.servers = servers;
-        this.keyStorePath = keyStorePath;
-        this.trustStorePath = trustStorePath;
-        this.trustStorePass = trustStorePass;
-        this.keyStorePass = keyStorePass;
+        this.producerProperties = new HashMap<>();
+        this.producerProperties.put(ProducerConfig.ACKS_CONFIG, "all");
+        this.producerProperties.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
+        this.producerProperties.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1");
+
+        this.consumerProperties = new HashMap<>();
+        this.consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        this.consumerProperties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+
+        final Option<Tuple2<String, String>> keyStoreInfo = keyStorePath.flatMap(path -> keyStorePass.map(pass -> Tuple.of(path, pass)));
+        final Option<Tuple2<String, String>> trustStoreInfo = trustStorePath.flatMap(path -> trustStorePass.map(pass -> Tuple.of(path, pass)));
+
+        keyStoreInfo.forEach(info -> {
+            String path = info._1;
+            String password = info._2;
+            consumerProperties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
+            consumerProperties.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, null);
+            consumerProperties.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, password);
+            consumerProperties.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, path);
+            consumerProperties.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, password);
+            producerProperties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
+            producerProperties.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, null);
+            producerProperties.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, password);
+            producerProperties.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, path);
+            producerProperties.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, password);
+
+            trustStoreInfo.forEach(trustInfo -> {
+                String trustPath = trustInfo._1;
+                String trustPassword = trustInfo._2;
+                consumerProperties.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustPath);
+                consumerProperties.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustPassword);
+                producerProperties.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustPath);
+                producerProperties.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustPassword);
+            });
+        });
     }
 
     public static KafkaSettings fromConfig(Config config) {
@@ -52,35 +92,11 @@ public class KafkaSettings {
     }
 
     public <S> ConsumerSettings<String, S> consumerSettings(ActorSystem system, String groupId, Deserializer<S> deserializer) {
-
-        final ConsumerSettings<String, S> settings = ConsumerSettings
+        return ConsumerSettings
                 .create(system, new StringDeserializer(), deserializer)
                 .withGroupId(groupId)
-                .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
-                .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true")
+                .withProperties(this.consumerProperties)
                 .withBootstrapServers(this.servers);
-
-        final Option<Tuple2<String, String>> keyStoreInfo = this.keyStorePath.flatMap(path -> this.keyStorePass.map(pass -> Tuple.of(path, pass)));
-        final Option<Tuple2<String, String>> trustStoreInfo = this.trustStorePath.flatMap(path -> this.trustStorePass.map(pass -> Tuple.of(path, pass)));
-
-        return keyStoreInfo.map(info -> {
-            String path = info._1;
-            String password = info._2;
-            final ConsumerSettings<String, S> settingsWithKeyStore = settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL")
-                    .withProperty(BrokerSecurityConfigs.SSL_CLIENT_AUTH_CONFIG, "required")
-                    .withProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, null)
-                    .withProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, password)
-                    .withProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, path)
-                    .withProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, password);
-
-            return trustStoreInfo.map(trustInfo -> {
-                String trustPath = trustInfo._1;
-                String trustPassword = trustInfo._2;
-
-                return settingsWithKeyStore.withProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustPath)
-                        .withProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustPassword);
-            }).getOrElse(settingsWithKeyStore);
-        }).getOrElse(settings);
     }
 
     public ProducerSettings<String, String> producerSettings(ActorSystem system) {
@@ -88,31 +104,10 @@ public class KafkaSettings {
     }
 
     public <S> ProducerSettings<String, S> producerSettings(ActorSystem system, Serializer<S> serializer) {
-        ProducerSettings<String, S> settings = ProducerSettings
+        return ProducerSettings
                 .create(system, new StringSerializer(), serializer)
+                .withProperties(this.producerProperties)
                 .withBootstrapServers(this.servers);
-
-        final Option<Tuple2<String, String>> keyStoreInfo = this.keyStorePath.flatMap(path -> this.keyStorePass.map(pass -> Tuple.of(path, pass)));
-        final Option<Tuple2<String, String>> trustStoreInfo = this.trustStorePath.flatMap(path -> this.trustStorePass.map(pass -> Tuple.of(path, pass)));
-
-        ProducerSettings<String, S> keyStoreSettings = keyStoreInfo.map(info -> {
-            String path = info._1;
-            String password = info._2;
-            return settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL")
-                    .withProperty(BrokerSecurityConfigs.SSL_CLIENT_AUTH_CONFIG, "required")
-                    .withProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, null)
-                    .withProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, password)
-                    .withProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, path)
-                    .withProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, password);
-        }).getOrElse(settings);
-
-        return trustStoreInfo.map(trustInfo -> {
-            String trustPath = trustInfo._1;
-            String trustPassword = trustInfo._2;
-
-            return keyStoreSettings.withProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustPath)
-                    .withProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustPassword);
-        }).getOrElse(keyStoreSettings);
     }
 
     public static KafkaSettingsBuilder newBuilder(String servers) {
