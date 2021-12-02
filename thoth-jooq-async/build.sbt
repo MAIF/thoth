@@ -20,7 +20,7 @@ libraryDependencies ++= Seq(
   "net.aichler"        % "jupiter-interface"       % "0.9.1"          % Test
 )
 
-javacOptions in Compile ++= Seq(
+Compile / javacOptions ++= Seq(
   "-source",
   "8",
   "-target",
@@ -30,4 +30,4 @@ javacOptions in Compile ++= Seq(
 )
 
 // Skip the javadoc for the moment
-sources in (Compile, doc) := Seq.empty
+Compile / doc / sources := Seq.empty

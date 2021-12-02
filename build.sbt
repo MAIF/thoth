@@ -30,30 +30,30 @@ lazy val root = (project in file("."))
   )
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .settings(
-    skip in publish := true
+    publish / skip := true
   )
 
 lazy val `demo-postgres-kafka` = (project in file("./demo/demo-postgres-kafka"))
   .dependsOn(`thoth-jooq`)
   .settings(
-    skip in publish := true
+    publish / skip := true
   )
 
 lazy val `sample` = project
   .dependsOn(`thoth-jooq`)
   .settings(
-    skip in publish := true
+    publish / skip := true
   )
 
 lazy val `demo-in-memory` = (project in file("./demo/demo-in-memory"))
   .dependsOn(`thoth-core`)
   .settings(
-    skip in publish := true
+    publish / skip := true
   )
 
 lazy val `thoth-documentation` = project
   .settings(
-    skip in publish := true
+    publish / skip := true
   )
 
 lazy val `thoth-tck` = project
@@ -71,7 +71,7 @@ lazy val `demo-postgres-kafka-reactive` =
   (project in file("./demo/demo-postgres-kafka-reactive"))
     .dependsOn(`thoth-core`, `thoth-jooq-async`)
     .settings(
-      skip in publish := true
+      publish / skip := true
     )
 
 lazy val `commons-events` = project
@@ -122,7 +122,7 @@ lazy val `thoth-jooq` = project
     crossPaths := true
   )
 
-javacOptions in Compile ++= Seq(
+Compile / javacOptions ++= Seq(
   "-source",
   "16",
   "-target",
@@ -134,7 +134,7 @@ javacOptions in Compile ++= Seq(
 testFrameworks := Seq(TestFrameworks.JUnit)
 testOptions += Tests.Argument(TestFrameworks.JUnit, "-v")
 
-(parallelExecution in Test) := false
+(Test / parallelExecution) := false
 
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
@@ -191,6 +191,6 @@ inThisBuild(
         )
       ),
     releaseCrossBuild := true,
-    publishArtifact in Test := false
+    Test / publishArtifact := false
   )
 )

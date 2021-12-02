@@ -30,9 +30,9 @@ libraryDependencies ++= Seq(
   "org.slf4j"          % "slf4j-simple"            % "1.7.30"    % Test
 )
 
-testNGSuites := Seq(((resourceDirectory in Test).value / "testng.xml").absolutePath)
+testNGSuites := Seq(((Test / resourceDirectory).value / "testng.xml").absolutePath)
 
-javacOptions in Compile ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
+Compile / javacOptions ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
 
 // Skip the javadoc for the moment
-sources in (Compile, doc) := Seq.empty
+Compile / doc / sources := Seq.empty

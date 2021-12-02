@@ -25,10 +25,10 @@ libraryDependencies ++= Seq(
   "org.junit.vintage"              % "junit-vintage-engine"      % "5.4.2"             % Test,
   "net.aichler"                    % "jupiter-interface"         % "0.9.1"             % Test,
   "org.scalatest"                 %% "scalatest"                 % "3.0.8"             % Test,
-  "org.testcontainers"             % "kafka"                     % "1.15.1"            % Test
+  "org.testcontainers"             % "kafka"                     % "1.15.3"            % Test
 )
 
-javacOptions in Compile ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
+Compile / javacOptions ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
 
 // Skip the javadoc for the moment
-sources in (Compile, doc) := Seq.empty
+Compile / doc / sources := Seq.empty

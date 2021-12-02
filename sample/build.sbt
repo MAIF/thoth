@@ -23,7 +23,7 @@ libraryDependencies ++= Seq(
 "org.junit.vintage"         % "junit-vintage-engine"     % "5.4.2"  % Test
 )
 
-javacOptions in Compile ++= Seq(
+Compile / javacOptions ++= Seq(
   "-source",
   "16",
   "-target",

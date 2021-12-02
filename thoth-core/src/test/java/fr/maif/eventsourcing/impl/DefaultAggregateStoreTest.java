@@ -75,12 +75,12 @@ class DefaultAggregateStoreTest {
     void testReloadEventAndBuildAggregateWithSnapshots() {
 
         EventStore<Tuple0, VikingEvent, Tuple0, Tuple0> eventStore = mock(EventStore.class);
-        DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0> aggregateStore = new DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0>(eventStore, new Helpers.VikingEventHandler(), actorSystem, new EventProcessorTest.FakeTransactionManager()) {
+        DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0> aggregateStore = spy(new DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0>(eventStore, new Helpers.VikingEventHandler(), actorSystem, new EventProcessorTest.FakeTransactionManager()) {
             @Override
             public Future<Option<Viking>> getSnapshot(Tuple0 transactionContext, String id) {
                 return Future.successful(Option.some(new Viking(id, "Rollo", 1L)));
             }
-        };
+        });
 
         Query query = Query.builder().withEntityId(entityId).withSequenceFrom(1L).build();
         when(eventStore.loadEventsByQuery(Tuple(), query)).thenReturn(Source.from(List.of(eventEnvelope2)));
@@ -89,5 +89,6 @@ class DefaultAggregateStoreTest {
 
         assertThat(vikings).isEqualTo(Some(new Viking(entityId, "Ragnar Lodbrock", 2L)));
         verify(eventStore, times(1)).loadEventsByQuery(Tuple(), query);
+        verify(aggregateStore, times(1)).getSnapshot(any(), eq(entityId));
     }
 }
