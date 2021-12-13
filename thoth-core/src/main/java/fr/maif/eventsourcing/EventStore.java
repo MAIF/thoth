@@ -11,6 +11,7 @@ import io.vavr.concurrent.Future;
 import io.vavr.control.Option;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
@@ -30,7 +31,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
         return loadEventsByQuery(Query.builder().withEntityId(id).build());
     }
 
-    default Source<EventEnvelope<E, Meta, Context>, NotUsed> loadAllEvents(){
+    default Source<EventEnvelope<E, Meta, Context>, NotUsed> loadAllEvents() {
         return loadEventsByQuery(Query.builder().build());
     }
 
@@ -125,6 +126,27 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
         public Option<Long> sequenceTo() {
             return Option.of(sequenceTo);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Query query = (Query) o;
+            return Objects.equals(dateFrom, query.dateFrom) &&
+                    Objects.equals(dateTo, query.dateTo) &&
+                    Objects.equals(entityId, query.entityId) &&
+                    Objects.equals(size, query.size) &&
+                    Objects.equals(userId, query.userId) &&
+                    Objects.equals(systemId, query.systemId) &&
+                    Objects.equals(sequenceFrom, query.sequenceFrom) &&
+                    Objects.equals(sequenceTo, query.sequenceTo) &&
+                    Objects.equals(published, query.published);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(dateFrom, dateTo, entityId, size, userId, systemId, sequenceFrom, sequenceTo, published);
         }
 
         public static class Builder {

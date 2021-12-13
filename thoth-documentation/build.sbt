@@ -3,11 +3,11 @@ import sbt.project
 lazy val `thoth-documentation` = (project in file("."))
   .enablePlugins(ParadoxPlugin)
   .settings(
-    skip in publish := true,
+    publish / skip := true,
     name := "Thoth doc",
     paradoxTheme := Some(builtinParadoxTheme("generic")),
     paradoxGroups := Map("Language" -> Seq("Java")),
-    paradoxProperties in Compile ++= Map(
+    Compile / paradoxProperties ++= Map(
         "version"               -> version.value,
         "scalaVersion"          -> scalaVersion.value,
         "scalaBinaryVersion"    -> scalaBinaryVersion.value,
@@ -20,7 +20,7 @@ lazy val `thoth-documentation` = (project in file("."))
 lazy val generateDoc           = taskKey[Unit]("Copy doc")
 
 generateDoc := {
-  val _           = (paradox in Compile).value
+  val _           = (Compile / paradox).value
   val paradoxFile = target.value / "paradox" / "site" / "main"
   val targetDocs  = `thoth-documentation`.base.getParentFile / "docs" / "manual"
   IO.delete(targetDocs)

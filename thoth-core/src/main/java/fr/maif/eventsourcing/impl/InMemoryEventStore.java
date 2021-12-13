@@ -33,7 +33,7 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
 
     private final ConcurrentHashMap<String, Long> offsets = new ConcurrentHashMap<>();
 
-    private InMemoryEventStore(ActorSystem system) {
+    public InMemoryEventStore(ActorSystem system) {
         this.system = system;
         this.materializer = Materializer.createMaterializer(system);
 

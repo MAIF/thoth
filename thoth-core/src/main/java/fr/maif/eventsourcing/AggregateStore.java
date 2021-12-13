@@ -16,6 +16,10 @@ public interface AggregateStore<S extends State<S>, Id, TxCtx> {
         return Future.successful(Tuple.empty());
     }
 
+    default Future<Option<S>> getSnapshot(TxCtx transactionContext, Id id) {
+        return Future.successful(Option.none());
+    }
+
     default <E extends Event> Future<Option<S>> buildAggregateAndStoreSnapshot(TxCtx ctx, EventHandler<S, E> eventHandler, Option<S> state, Id id, List<E> events, Option<Long> lastSequenceNum) {
 
         Option<S> newState = eventHandler.deriveState(state, events.filter(event -> event.entityId().equals(id)));

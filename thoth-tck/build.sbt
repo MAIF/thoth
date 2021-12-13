@@ -11,4 +11,4 @@ libraryDependencies ++= Seq(
   "org.mockito"        % "mockito-core" % "3.6.28"    % Test
 )
 
-testNGSuites := Seq(((resourceDirectory in Test).value / "testng.xml").absolutePath)
+testNGSuites := Seq(((Test / resourceDirectory).value / "testng.xml").absolutePath)
