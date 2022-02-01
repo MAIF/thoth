@@ -48,33 +48,38 @@ public class KafkaSettings {
         final Option<Tuple2<String, String>> keyStoreInfo = keyStorePath.flatMap(path -> keyStorePass.map(pass -> Tuple.of(path, pass)));
         final Option<Tuple2<String, String>> trustStoreInfo = trustStorePath.flatMap(path -> trustStorePass.map(pass -> Tuple.of(path, pass)));
 
+        if (keyStoreInfo.isDefined() || trustStoreInfo.isDefined()) {
+            consumerProperties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
+            consumerProperties.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, null);
+            producerProperties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
+            producerProperties.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, null);
+        }
+
         keyStoreInfo.forEach(info -> {
             String path = info._1;
             String password = info._2;
-            consumerProperties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-            consumerProperties.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, null);
-            consumerProperties.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, password);
             consumerProperties.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, path);
             consumerProperties.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, password);
-            producerProperties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-            producerProperties.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, null);
-            producerProperties.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, password);
+            consumerProperties.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, password);
+
             producerProperties.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, path);
             producerProperties.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, password);
+            producerProperties.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, password);
+        });
 
-            trustStoreInfo.forEach(trustInfo -> {
-                String trustPath = trustInfo._1;
-                String trustPassword = trustInfo._2;
-                consumerProperties.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustPath);
-                consumerProperties.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustPassword);
-                producerProperties.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustPath);
-                producerProperties.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustPassword);
-            });
+        trustStoreInfo.forEach(trustInfo -> {
+            String trustPath = trustInfo._1;
+            String trustPassword = trustInfo._2;
+            consumerProperties.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustPath);
+            consumerProperties.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustPassword);
+
+            producerProperties.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustPath);
+            producerProperties.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustPassword);
         });
     }
 
-    public static KafkaSettings fromConfig(Config config) {
-        return new KafkaSettings(
+    public static fr.maif.kafka.KafkaSettings fromConfig(Config config) {
+        return new fr.maif.kafka.KafkaSettings(
                 config.getString("kafka.servers"),
                 Configs.getOptionalString(config, "kafka.keystore.location"),
                 Configs.getOptionalString(config, "kafka.truststore.location"),
