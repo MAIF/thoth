@@ -20,7 +20,6 @@ libraryDependencies ++= Seq(
   "org.junit.platform" % "junit-platform-launcher" % "1.4.2"     % Test,
   "org.junit.platform" % "junit-platform-commons"  % "1.4.2"     % Test,
   "org.junit.jupiter"  % "junit-jupiter-engine"    % "5.4.2"     % Test,
-  "org.junit.vintage"  % "junit-vintage-engine"    % "5.4.2"     % Test,
   "net.aichler"        % "jupiter-interface"       % "0.9.1"     % Test,
   "org.mockito"        % "mockito-core"            % "2.22.0"    % Test,
   "org.testng"         % "testng"                  % "6.3"       % Test,
