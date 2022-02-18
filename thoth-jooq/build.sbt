@@ -27,7 +27,8 @@ libraryDependencies ++= Seq(
   "org.testcontainers" % "postgresql"              % "1.15.0"    % Test,
   "org.testcontainers" % "kafka"                   % "1.15.0"    % Test,
   "org.slf4j"          % "slf4j-api"               % "1.7.30"    % Test,
-  "org.slf4j"          % "slf4j-simple"            % "1.7.30"    % Test
+  "org.slf4j"          % "slf4j-simple"            % "1.7.30"    % Test,
+  "org.testcontainers" % "postgresql"              % "1.16.3"    % Test
 )
 
 testNGSuites := Seq(((Test / resourceDirectory).value / "testng.xml").absolutePath)

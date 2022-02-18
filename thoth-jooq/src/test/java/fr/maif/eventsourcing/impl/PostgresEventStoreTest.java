@@ -25,6 +25,8 @@ import org.junit.Ignore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.io.InputStream;
 import java.sql.Connection;
@@ -48,6 +50,7 @@ import static org.mockito.Mockito.mock;
 
 public class PostgresEventStoreTest {
 
+    private final PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(DockerImageName.parse("postgres").withTag("14"));
     private ActorSystem system;
     private PostgresEventStore<VikingEvent, Void, Void> postgresEventStore;
     private HikariDataSource dataSource;
@@ -280,25 +283,21 @@ public class PostgresEventStoreTest {
 
     @BeforeEach
     public void setUp() {
-
+        postgreSQLContainer.start();
         ExecutorService executorService = Executors.newFixedThreadPool(20);
         EventPublisher<VikingEvent, Void, Void> eventPublisher = mock(EventPublisher.class);
 
         this.system = ActorSystem.create();
         Properties props = new Properties();
         props.setProperty("dataSourceClassName", "org.postgresql.ds.PGSimpleDataSource");
-        props.setProperty("dataSource.serverName", "localhost");
-        props.setProperty("dataSource.portNumber", "5557");
-        props.setProperty("dataSource.user", "eventsourcing");
-        props.setProperty("dataSource.password", "eventsourcing");
-        props.setProperty("dataSource.databaseName", "eventsourcing");
+        props.setProperty("dataSource.serverName", postgreSQLContainer.getHost());
+        props.setProperty("dataSource.portNumber", postgreSQLContainer.getFirstMappedPort().toString());
+        props.setProperty("dataSource.user", postgreSQLContainer.getUsername());
+        props.setProperty("dataSource.password", postgreSQLContainer.getPassword());
+        props.setProperty("dataSource.databaseName", postgreSQLContainer.getDatabaseName());
         props.setProperty("maximumPoolSize", "20");
         HikariConfig config = new HikariConfig(props);
         this.dataSource = new HikariDataSource(config);
-//        this.dataSource.setJdbcUrl("jdbc:postgresql://localhost:5557/eventsourcing");
-//        this.dataSource.setUsername("eventsourcing");
-//        this.dataSource.setPassword("eventsourcing");
-//        this.dataSource.setDataSourceClassName("org.postgresql.ds.PGSimpleDataSource");
 
         this.dslContext = DSL.using(dataSource, SQLDialect.POSTGRES);
         Try.of(() -> {

@@ -10,22 +10,23 @@ import org.jooq.SQLDialect;
 import org.jooq.impl.DefaultConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.testcontainers.containers.PostgreSQLContainer;
 
 public class ReactivePostgresEventStoreTest extends AbstractPostgresEventStoreTest {
 
 
     @Override
-    protected PgAsyncPool init() {
+    protected PgAsyncPool init(PostgreSQLContainer<?> postgreSQLContainer) {
         DefaultConfiguration jooqConfig = new DefaultConfiguration();
         jooqConfig.setSQLDialect(SQLDialect.POSTGRES);
 
         PoolOptions poolOptions = new PoolOptions().setMaxSize(30);
         PgConnectOptions options = new PgConnectOptions()
-                .setPort(port)
-                .setHost("localhost")
-                .setDatabase(database)
-                .setUser(user)
-                .setPassword(password);
+                .setPort(postgreSQLContainer.getFirstMappedPort())
+                .setHost(postgreSQLContainer.getHost())
+                .setDatabase(postgreSQLContainer.getDatabaseName())
+                .setUser(postgreSQLContainer.getUsername())
+                .setPassword(postgreSQLContainer.getUsername());
         PgPool client = PgPool.pool(Vertx.vertx(), options, poolOptions);
         return new ReactivePgAsyncPool(client, jooqConfig);
     }
