@@ -28,7 +28,7 @@ libraryDependencies ++= Seq(
   "org.testcontainers"             % "kafka"                     % "1.15.3"            % Test
 )
 
-Compile / javacOptions ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
+Compile / javacOptions ++= Seq("-source", "11", "-target", "11", "-Xlint:unchecked", "-Xlint:deprecation")
 
 // Skip the javadoc for the moment
 Compile / doc / sources := Seq.empty

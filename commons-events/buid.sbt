@@ -8,7 +8,7 @@ libraryDependencies ++= Seq(
   "io.vavr" % "vavr" % vavrVersion
 )
 
-javacOptions in Compile ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
+javacOptions in Compile ++= Seq("-source", "11", "-target", "11", "-Xlint:unchecked", "-Xlint:deprecation")
 
 // Skip the javadoc for the moment
 sources in (Compile, doc) := Seq.empty
