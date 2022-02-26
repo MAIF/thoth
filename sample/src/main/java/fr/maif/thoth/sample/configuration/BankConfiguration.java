@@ -133,20 +133,19 @@ public class BankConfiguration {
         return ActorSystem.create();
     }
 
-    @Bean
-    public GlobalBalanceProjection dailyTotalWithdrawProjection() {
+    @Bean GlobalBalanceProjection globalBalanceProjection() {
         return new GlobalBalanceProjection();
     }
 
     @Bean
     public EventProcessor<String, Account, BankCommand, BankEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor(
             ActorSystem actorSystem,
-            GlobalBalanceProjection globalBalanceProjection,
+            GlobalBalanceProjection balanceProjection,
             DataSource dataSource,
             JacksonEventFormat<String, BankEvent> eventFormat,
             TableNames tableNames,
-            ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings) {
-        return PostgresKafkaEventProcessor.withActorSystem(actorSystem)
+            ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings) throws SQLException {
+        var processor = PostgresKafkaEventProcessor.withActorSystem(actorSystem)
                 .withDataSource(dataSource)
                 .withTables(tableNames)
                 .withTransactionManager(Executors.newFixedThreadPool(5))
@@ -157,7 +156,11 @@ public class BankConfiguration {
                 .withEventHandler(new BankEventHandler())
                 .withDefaultAggregateStore()
                 .withCommandHandler(new BankCommandHandler())
-                .withProjections(globalBalanceProjection)
+                .withProjections(balanceProjection)
                 .build();
+
+        balanceProjection.initialize(dataSource.getConnection(), processor.eventStore(), actorSystem);
+
+        return processor;
     }
 }

@@ -217,6 +217,36 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 	}
 }
 </code></pre>
+<h3><a href="#catch-up-past-events" name="catch-up-past-events" class="anchor"><span class="anchor-link"></span></a>Catch up past events</h3>
+<p>In some cases, the projection will be created while events already exist in the journal. Sometimes these pre-existing events should be added to the projection.</p>
+<p>To &ldquo;catch up&rdquo; with past events, you need to stream journal content:</p>
+<pre class="prettyprint"><code class="language-java">eventStore.loadAllEvents()
+    .map(enveloppe -&gt; enveloppe.event)
+    .filter(event -&gt; event instanceof BankEvent.MoneyDeposited || event instanceof BankEvent.MoneyWithdrawn)
+    .mapAsync(1, event -&gt;
+        CompletableFuture.supplyAsync(() -&gt; {
+            try {
+                if(event instanceof BankEvent.MoneyDeposited deposit) {
+                    String statement = &quot;UPDATE global_balance SET balance=balance+?::money&quot;;
+                    try(PreparedStatement preparedStatement = connection.prepareStatement(statement)) {
+                        preparedStatement.setBigDecimal(1, deposit.amount);
+                        preparedStatement.execute();
+                    }
+                } else if(event instanceof BankEvent.MoneyWithdrawn withdraw) {
+                    String statement = &quot;UPDATE global_balance SET balance=balance-?::money&quot;;
+                    try(PreparedStatement preparedStatement = connection.prepareStatement(statement)) {
+                        preparedStatement.setBigDecimal(1, withdraw.amount);
+                        preparedStatement.execute();
+                    }
+                }
+                return Tuple.empty();
+            } catch(SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        })
+    ).run(actorSystem)
+</code></pre>
+<p>⚠️ This code should be run while the system is not receiving events, otherwise there is a risk of double consumption. To fix this one solution would be to store consumed event id or sequence num and compare them with incoming events.</p>
 <h2><a href="#eventually-consistent-projections" name="eventually-consistent-projections" class="anchor"><span class="anchor-link"></span></a>Eventually consistent projections</h2>
 <p>Sometimes projections are too costly to be updated in transaction, sometimes we don&rsquo;t need real time update.</p>
 <p>In these case we could build &ldquo;eventually consistent&rdquo; projections, by connecting to our &ldquo;bank&rdquo; topic in Kafka, and consuming events from there.</p>
