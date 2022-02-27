@@ -47,6 +47,10 @@ public class EventProcessor<Error, S extends State<S>, C extends Command<Meta, C
         this(eventStore, transactionManager, new DefaultAggregateStore<>(eventStore, eventHandler, system, transactionManager), commandHandler, eventHandler, projections, lockManager);
     }
 
+    public EventProcessor(ActorSystem system, EventStore<TxCtx, E, Meta, Context> eventStore, TransactionManager<TxCtx> transactionManager, CommandHandler<Error, S, C, E, Message, TxCtx> commandHandler, EventHandler<S, E> eventHandler, List<Projection<TxCtx, E, Meta, Context>> projections) {
+        this(eventStore, transactionManager, new DefaultAggregateStore<>(eventStore, eventHandler, system, transactionManager), commandHandler, eventHandler, projections, new NoOpLockManager<>());
+    }
+
     public EventProcessor(EventStore<TxCtx, E, Meta, Context> eventStore, TransactionManager<TxCtx> transactionManager, AggregateStore<S, String, TxCtx> aggregateStore, CommandHandler<Error, S, C, E, Message, TxCtx> commandHandler, EventHandler<S, E> eventHandler, List<Projection<TxCtx, E, Meta, Context>> projections, LockManager<TxCtx> lockManager) {
         this.eventStore = eventStore;
         this.transactionManager = transactionManager;
