@@ -236,7 +236,8 @@ public class EventProcessorTest {
                 new FakeTransactionManager(),
                 vikingSnapshot,
                 new VikingCommandHandler(),
-                new VikingEventHandler()
+                new VikingEventHandler(),
+                new NoOpLockManager<>()
         );
     }
 
@@ -247,7 +248,8 @@ public class EventProcessorTest {
                 new FakeTransactionManager(),
                 new VikingCommandHandler(),
                 new VikingEventHandler(),
-                projections
+                projections,
+                new NoOpLockManager<>()
         );
     }
 

@@ -1,5 +1,6 @@
 package fr.maif.eventsourcing.datastore;
 
+import fr.maif.eventsourcing.NoOpLockManager;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -31,7 +32,8 @@ public class InMemoryDataStoreTest extends DataStoreVerification<Tuple0> {
                 noOpTransactionManager(),
                 new TestCommandHandler(),
                 new TestEventHandler(),
-                io.vavr.collection.List.empty()
+                io.vavr.collection.List.empty(),
+                new NoOpLockManager<>()
         );
     }
 
