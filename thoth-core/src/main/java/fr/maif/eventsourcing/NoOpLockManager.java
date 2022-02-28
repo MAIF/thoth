@@ -10,4 +10,9 @@ public class NoOpLockManager<TxCtx> implements LockManager<TxCtx>{
     public Future<Tuple0> lock(TxCtx transactionManager, Set<String> entityIds) {
         return Future.successful(Tuple.empty());
     }
+
+    @Override
+    public boolean isNoOp() {
+        return true;
+    }
 }

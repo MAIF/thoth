@@ -102,6 +102,10 @@ public class EventProcessor<Error, S extends State<S>, C extends Command<Meta, C
                 .filter(Option::isDefined)
                 .map(Option::get).toSet();
 
+        if(lockManager.isNoOp() && entitiesToLock.nonEmpty()) {
+            LOGGER.error("Non concurrent command detected without a proper lock manager configured, these commands will by executed concurrently");
+        }
+
         return lockManager.lock(ctx, entitiesToLock).flatMap(__ ->
                 // Collect all states from db
                 traverseSequential(commands, c ->

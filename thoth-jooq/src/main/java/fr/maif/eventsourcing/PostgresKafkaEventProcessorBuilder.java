@@ -9,7 +9,6 @@ import fr.maif.eventsourcing.impl.DefaultAggregateStore;
 import fr.maif.eventsourcing.impl.JdbcTransactionManager;
 import fr.maif.eventsourcing.impl.KafkaEventPublisher;
 import fr.maif.eventsourcing.impl.PostgresEventStore;
-import fr.maif.eventsourcing.impl.PostgresLockManager;
 import fr.maif.eventsourcing.impl.TableNames;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
@@ -601,6 +600,30 @@ public class PostgresKafkaEventProcessorBuilder {
             this.projections = projections;
         }
 
+        public BuilderWithLockManager withLockManager(LockManager<Connection> lockManager) {
+            return new BuilderWithLockManager<>(
+                system,
+                dataSource,
+                tableNames,
+                transactionManager,
+                eventFormat,
+                metaFormat,
+                contextFormat,
+                eventPublisher,
+                concurrentReplayStrategy,
+                eventStore,
+                aggregateStore,
+                eventHandler,
+                commandHandler,
+                projections,
+                lockManager
+            );
+        }
+
+        public BuilderWithLockManager withNoLockManager() {
+            return this.withLockManager(new NoOpLockManager<>());
+        }
+
         public PostgresKafkaEventProcessor<Error, S, C, E, Message, Meta, Context> build() {
             return new PostgresKafkaEventProcessor<Error, S, C, E, Message, Meta, Context>(
                     new PostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<Error, S, C, E, Message, Meta, Context>(
@@ -612,11 +635,70 @@ public class PostgresKafkaEventProcessorBuilder {
                             eventHandler,
                             projections,
                             eventPublisher,
-                            new PostgresLockManager(tableNames)
+                            new NoOpLockManager<>() // For compatibility
                     )
             );
         }
+    }
 
+    public static class BuilderWithLockManager<Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, Message, Meta, Context> {
+        public final ActorSystem system;
+        public final DataSource dataSource;
+        public final TableNames tableNames;
+        public final TransactionManager<Connection> transactionManager;
+        public final JacksonEventFormat<?, E> eventFormat;
+        public final JacksonSimpleFormat<Meta> metaFormat;
+        public final JacksonSimpleFormat<Context> contextFormat;
+        public final KafkaEventPublisher<E, Meta, Context> eventPublisher;
+        public final ConcurrentReplayStrategy concurrentReplayStrategy;
+        public final PostgresEventStore<E, Meta, Context> eventStore;
+        public final AggregateStore<S, String, Connection> aggregateStore;
+        public final EventHandler<S, E> eventHandler;
+        public final CommandHandler<Error, S, C, E, Message, Connection> commandHandler;
+        public final List<Projection<Connection, E, Meta, Context>> projections;
+        public final LockManager<Connection> lockManager;
+
+        public BuilderWithLockManager(ActorSystem system, DataSource dataSource, TableNames tableNames,
+            TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat,
+            JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat,
+            KafkaEventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
+            PostgresEventStore<E, Meta, Context> eventStore,
+            AggregateStore<S, String, Connection> aggregateStore, EventHandler<S, E> eventHandler,
+            CommandHandler<Error, S, C, E, Message, Connection> commandHandler,
+            List<Projection<Connection, E, Meta, Context>> projections,
+            LockManager<Connection> lockManager) {
+            this.system = system;
+            this.dataSource = dataSource;
+            this.tableNames = tableNames;
+            this.transactionManager = transactionManager;
+            this.eventFormat = eventFormat;
+            this.metaFormat = metaFormat;
+            this.contextFormat = contextFormat;
+            this.eventPublisher = eventPublisher;
+            this.concurrentReplayStrategy = concurrentReplayStrategy;
+            this.eventStore = eventStore;
+            this.aggregateStore = aggregateStore;
+            this.eventHandler = eventHandler;
+            this.commandHandler = commandHandler;
+            this.projections = projections;
+            this.lockManager = lockManager;
+        }
+
+        public PostgresKafkaEventProcessor<Error, S, C, E, Message, Meta, Context> build() {
+            return new PostgresKafkaEventProcessor<Error, S, C, E, Message, Meta, Context>(
+                new PostgresKafkaEventProcessor.PostgresKafkaEventProcessorConfig<Error, S, C, E, Message, Meta, Context>(
+                    concurrentReplayStrategy,
+                    eventStore,
+                    transactionManager,
+                    aggregateStore,
+                    commandHandler,
+                    eventHandler,
+                    projections,
+                    eventPublisher,
+                    lockManager
+                )
+            );
+        }
     }
 
 }

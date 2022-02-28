@@ -6,4 +6,7 @@ import io.vavr.concurrent.Future;
 
 public interface LockManager<TxCtx> {
     Future<Tuple0> lock(TxCtx transactionContext, Set<String> entityIds);
+    default boolean isNoOp() {
+        return false;
+    }
 }
