@@ -254,7 +254,10 @@ public class EventProcessorTest {
     }
 
 
-    private EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessorWithSnapshot(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, AggregateStore<Viking, String, Tuple0> aggregateStore, List<Projection<Tuple0, VikingEvent, Tuple0, Tuple0>> projections) {
+    private EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessorWithSnapshot(
+        InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore,
+        AggregateStore<Viking, String, Tuple0> aggregateStore,
+        List<Projection<Tuple0, VikingEvent, Tuple0, Tuple0>> projections) {
         return new EventProcessor<>(
                 inMemoryEventStore,
                 new FakeTransactionManager(),
