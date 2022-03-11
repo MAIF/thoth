@@ -124,7 +124,7 @@ public class KafkaSettings {
     }
 
     public static class KafkaSettingsBuilder {
-        private Boolean enableIdempotence;
+        private boolean enableIdempotence;
         private String keyStorePath;
         private String trustStorePath;
         private String keyStorePassword;
@@ -149,7 +149,7 @@ public class KafkaSettings {
         }
 
         public KafkaSettingsBuilder withEnableIdempotence(Boolean enableIdempotence) {
-            this.enableIdempotence = enableIdempotence != null && enableIdempotence;
+            this.enableIdempotence = enableIdempotence != null ? enableIdempotence : false;
             return this;
         }
 
