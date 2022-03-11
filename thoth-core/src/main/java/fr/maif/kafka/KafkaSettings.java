@@ -20,6 +20,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
 public class KafkaSettings {
@@ -34,11 +35,13 @@ public class KafkaSettings {
         this.producerProperties = producerProperties;
     }
 
-    public KafkaSettings(String servers, Option<String> keyStorePath, Option<String> keyStorePass, Option<String> trustStorePath, Option<String> trustStorePass) {
+    public KafkaSettings(String servers, boolean enableIdempotence, Option<String> keyStorePath, Option<String> keyStorePass, Option<String> trustStorePath, Option<String> trustStorePass) {
         this.servers = servers;
         this.producerProperties = new HashMap<>();
         this.producerProperties.put(ProducerConfig.ACKS_CONFIG, "all");
-        this.producerProperties.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
+        if (enableIdempotence) {
+            this.producerProperties.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
+        }
         this.producerProperties.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1");
 
         this.consumerProperties = new HashMap<>();
@@ -81,6 +84,7 @@ public class KafkaSettings {
     public static fr.maif.kafka.KafkaSettings fromConfig(Config config) {
         return new fr.maif.kafka.KafkaSettings(
                 config.getString("kafka.servers"),
+                Configs.getOptionalBoolean(config, "kafka.enable-idempotence").getOrElse(false),
                 Configs.getOptionalString(config, "kafka.keystore.location"),
                 Configs.getOptionalString(config, "kafka.truststore.location"),
                 Configs.getOptionalString(config, "kafka.truststore.pass"),
@@ -89,7 +93,7 @@ public class KafkaSettings {
     }
 
     public KafkaSettings(String servers) {
-        this(servers, Option.none(), Option.none(), Option.none(), Option.none());
+        this(servers, false, Option.none(), Option.none(), Option.none(), Option.none());
     }
 
     public ConsumerSettings<String, String> consumerSettings(ActorSystem system, String groupId) {
@@ -120,6 +124,7 @@ public class KafkaSettings {
     }
 
     public static class KafkaSettingsBuilder {
+        private Boolean enableIdempotence;
         private String keyStorePath;
         private String trustStorePath;
         private String keyStorePassword;
@@ -143,8 +148,13 @@ public class KafkaSettings {
             return this;
         }
 
+        public KafkaSettingsBuilder withEnableIdempotence(Boolean enableIdempotence) {
+            this.enableIdempotence = Objects.requireNonNullElse(enableIdempotence, false);
+            return this;
+        }
+
         public KafkaSettings build() {
-            return new KafkaSettings(servers, Option.of(keyStorePath), Option.of(keyStorePassword), Option.of(trustStorePath), Option.of(trustStorePassword));
+            return new KafkaSettings(servers, enableIdempotence, Option.of(keyStorePath), Option.of(keyStorePassword), Option.of(trustStorePath), Option.of(trustStorePassword));
         }
     }
 }

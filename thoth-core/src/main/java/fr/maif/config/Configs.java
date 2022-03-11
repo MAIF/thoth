@@ -11,4 +11,11 @@ public class Configs {
             return Option.none();
         }
     }
+    public static Option<Boolean> getOptionalBoolean(com.typesafe.config.Config config, String key) {
+        if (config.hasPath(key)) {
+            return Option.of(config.getBoolean(key));
+        } else {
+            return Option.none();
+        }
+    }
 }
