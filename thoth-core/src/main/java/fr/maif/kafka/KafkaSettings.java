@@ -149,7 +149,7 @@ public class KafkaSettings {
         }
 
         public KafkaSettingsBuilder withEnableIdempotence(Boolean enableIdempotence) {
-            this.enableIdempotence = Objects.requireNonNullElse(enableIdempotence, false);
+            this.enableIdempotence = enableIdempotence != null && enableIdempotence;
             return this;
         }
 
