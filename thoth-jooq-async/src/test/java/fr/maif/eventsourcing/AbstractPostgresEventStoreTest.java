@@ -25,6 +25,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -43,11 +45,7 @@ import static org.mockito.Mockito.mock;
 
 public abstract class AbstractPostgresEventStoreTest {
 
-    protected Integer port = 5557;
-    protected String host = "localhost";
-    protected String database = "eventsourcing";
-    protected String user = "eventsourcing";
-    protected String password = "eventsourcing";
+    private final PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(DockerImageName.parse("postgres").withTag("14"));
 
     private ActorSystem system;
     private ReactivePostgresEventStore<VikingEvent, Void, Void> postgresEventStore;
@@ -274,21 +272,21 @@ public abstract class AbstractPostgresEventStoreTest {
                 .get();
     }
 
-    protected abstract PgAsyncPool init();
+    protected abstract PgAsyncPool init(PostgreSQLContainer<?> postgreSQLContainer);
 
     @BeforeEach
     public void setUp() {
-
+        postgreSQLContainer.start();
         EventPublisher<VikingEvent, Void, Void> eventPublisher = mock(EventPublisher.class);
 
         this.system = ActorSystem.create();
 
-        this.pgAsyncPool = init();
+        this.pgAsyncPool = init(postgreSQLContainer);
 
         PGSimpleDataSource pgSimpleDataSource = new PGSimpleDataSource();
-        pgSimpleDataSource.setUrl("jdbc:postgresql://"+host+":"+port+"/"+database);
-        pgSimpleDataSource.setUser(user);
-        pgSimpleDataSource.setPassword(password);
+        pgSimpleDataSource.setUrl(postgreSQLContainer.getJdbcUrl());
+        pgSimpleDataSource.setUser(postgreSQLContainer.getUsername());
+        pgSimpleDataSource.setPassword(postgreSQLContainer.getPassword());
         this.dslContext = DSL.using(pgSimpleDataSource, SQLDialect.POSTGRES);
         Try.of(() -> {
             this.dslContext.deleteFrom(vikings_journal).execute();
@@ -317,6 +315,7 @@ public abstract class AbstractPostgresEventStoreTest {
             this.dslContext.deleteFrom(vikings_journal).execute();
             return "";
         });
+        postgreSQLContainer.stop();
 
     }
 
