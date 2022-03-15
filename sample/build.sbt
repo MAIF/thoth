@@ -11,9 +11,9 @@ Compile / compileOrder := CompileOrder.JavaThenScala
 libraryDependencies ++= Seq(
 "org.springframework.boot"  % "spring-boot-starter"      % "2.4.3",
 "org.springframework.boot"  % "spring-boot-starter-web"  % "2.4.3",
-"org.testcontainers"        % "postgresql"               % "1.15.2" % Test,
-"org.testcontainers"        % "kafka"                    % "1.15.2" % Test,
-"org.testcontainers"        % "junit-jupiter"            % "1.15.2" % Test,
+"org.testcontainers"        % "postgresql"               % "1.16.3" % Test,
+"org.testcontainers"        % "kafka"                    % "1.16.3" % Test,
+"org.testcontainers"        % "junit-jupiter"            % "1.16.3" % Test,
 "org.springframework.boot"  % "spring-boot-starter-test" % "2.4.3"  % Test,
 "org.assertj"               % "assertj-core"             % "3.19.0" % Test,
 "net.aichler"               % "jupiter-interface"        % "0.9.1"  % Test,

@@ -25,7 +25,7 @@ libraryDependencies ++= Seq(
   "org.junit.vintage"              % "junit-vintage-engine"      % "5.4.2"             % Test,
   "net.aichler"                    % "jupiter-interface"         % "0.9.1"             % Test,
   "org.scalatest"                 %% "scalatest"                 % "3.0.8"             % Test,
-  "org.testcontainers"             % "kafka"                     % "1.15.3"            % Test
+  "org.testcontainers"             % "kafka"                     % "1.16.3"            % Test
 )
 
 Compile / javacOptions ++= Seq("-source", "8", "-target", "8", "-Xlint:unchecked", "-Xlint:deprecation")
