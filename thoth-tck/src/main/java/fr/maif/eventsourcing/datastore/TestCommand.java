@@ -20,6 +20,10 @@ public abstract class TestCommand implements Command<Tuple0, Tuple0> {
         return API.Match.Pattern0.of(DeleteCommand.class);
     }
 
+    public static API.Match.Pattern0<NonConcurrentCommand> $NonConcurrentCommand() {
+        return API.Match.Pattern0.of(NonConcurrentCommand.class);
+    }
+
     public TestCommand(String id) {
         this.id = id;
     }
@@ -45,6 +49,17 @@ public abstract class TestCommand implements Command<Tuple0, Tuple0> {
     public static class DeleteCommand extends TestCommand {
         public DeleteCommand(String id) {
             super(id);
+        }
+    }
+
+    public static class NonConcurrentCommand extends TestCommand {
+        public NonConcurrentCommand(String id) {
+            super(id);
+        }
+
+        @Override
+        public boolean concurrent() {
+            return false;
         }
     }
 

@@ -1,5 +1,13 @@
 package fr.maif.eventsourcing;
 
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.sql.Connection;
+
+import javax.sql.DataSource;
+
 import akka.actor.ActorSystem;
 import akka.kafka.ProducerSettings;
 import fr.maif.akka.AkkaExecutionContext;
@@ -8,16 +16,10 @@ import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.eventsourcing.impl.DefaultAggregateStore;
 import fr.maif.eventsourcing.impl.KafkaEventPublisher;
 import fr.maif.eventsourcing.impl.PostgresEventStore;
+import fr.maif.eventsourcing.impl.PostgresLockManager;
 import fr.maif.eventsourcing.impl.TableNames;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
-
-import javax.sql.DataSource;
-import java.io.Closeable;
-import java.io.IOException;
-import java.sql.Connection;
-
-import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
 
 public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, Message, Meta, Context> extends EventProcessor<Error, S, C, E, Connection, Message, Meta, Context> implements Closeable {
 
@@ -38,7 +40,8 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
                 config.aggregateStore,
                 config.commandHandler,
                 config.eventHandler,
-                config.projections
+                config.projections,
+                config.lockManager
         );
         this.config = config;
         config.eventPublisher.start(config.eventStore, Option.of(config.concurrentReplayStrategy).getOrElse(SKIP));
@@ -59,6 +62,7 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
         public final EventHandler<S, E> eventHandler;
         public final List<Projection<Connection, E, Meta, Context>> projections;
         public final KafkaEventPublisher<E, Meta, Context> eventPublisher;
+        private final LockManager<Connection> lockManager;
 
         public PostgresKafkaEventProcessorConfig(
                 EventStore.ConcurrentReplayStrategy concurrentReplayStrategy, ActorSystem system,
@@ -91,7 +95,7 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
             this.commandHandler = commandHandler;
             this.eventHandler = eventHandler;
             this.projections = projections;
-
+            this.lockManager = new PostgresLockManager(tableNames);
         }
 
         public PostgresKafkaEventProcessorConfig(
@@ -136,7 +140,8 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
                 CommandHandler<Error, S, C, E, Message, Connection> commandHandler,
                 EventHandler<S, E> eventHandler,
                 List<Projection<Connection, E, Meta, Context>> projections,
-                KafkaEventPublisher<E, Meta, Context> eventPublisher) {
+                KafkaEventPublisher<E, Meta, Context> eventPublisher,
+                LockManager<Connection> lockManager) {
             this.concurrentReplayStrategy = concurrentReplayStrategy;
             this.eventStore = eventStore;
             this.transactionManager = transactionManager;
@@ -145,6 +150,7 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
             this.eventHandler = eventHandler;
             this.projections = projections;
             this.eventPublisher = eventPublisher;
+            this.lockManager = lockManager;
         }
 
         public PostgresKafkaEventProcessorConfig(
@@ -154,7 +160,8 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
                 CommandHandler<Error, S, C, E, Message, Connection> commandHandler,
                 EventHandler<S, E> eventHandler,
                 List<Projection<Connection, E, Meta, Context>> projections,
-                KafkaEventPublisher<E, Meta, Context> eventPublisher) {
+                KafkaEventPublisher<E, Meta, Context> eventPublisher,
+                LockManager<Connection> lockManager) {
             this.concurrentReplayStrategy = concurrentReplayStrategy;
             this.eventStore = eventStore;
             this.transactionManager = transactionManager;
@@ -163,6 +170,7 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
             this.projections = projections;
             this.eventPublisher = eventPublisher;
             this.aggregateStore = new DefaultAggregateStore<>(this.eventStore, eventHandler, actorSystem, transactionManager);
+            this.lockManager = lockManager;
         }
     }
 }

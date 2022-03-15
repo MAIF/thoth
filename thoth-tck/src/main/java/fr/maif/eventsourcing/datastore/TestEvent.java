@@ -10,6 +10,7 @@ public abstract class TestEvent implements Event {
 
     public static Type<SimpleEvent> SimpleEventV1 = Type.create(SimpleEvent.class, 1L);
     public static Type<DeleteEvent> DeleteEventV1 = Type.create(DeleteEvent.class, 1L);
+    public static Type<DecreaseEvent> DecreaseEventV1 = Type.create(DecreaseEvent.class, 1L);
 
     @Override
     public String entityId() {
@@ -43,6 +44,18 @@ public abstract class TestEvent implements Event {
         @Override
         public Type<?> type() {
             return DeleteEventV1;
+        }
+    }
+
+    public static class DecreaseEvent extends TestEvent {
+        @JsonCreator
+        public DecreaseEvent(@JsonProperty("id") String id) {
+            super(id);
+        }
+
+        @Override
+        public Type<?> type() {
+            return DecreaseEventV1;
         }
     }
 }

@@ -14,7 +14,11 @@ public class TestEventHandler implements EventHandler<TestState, TestEvent> {
                     Integer previousCount = previousState.map(p -> p.count).getOrElse(0);
                     return Option.some(new TestState(event.id, previousCount + 1));
                 }),
-                Case(TestEvent.DeleteEventV1.pattern(), evt -> Option.none())
+                Case(TestEvent.DeleteEventV1.pattern(), evt -> Option.none()),
+            Case(TestEvent.DecreaseEventV1.pattern(), evt -> {
+              final int count = previousState.get().count;
+              return Option.some(new TestState(event.id, count - 1));
+            })
         );
     }
 }

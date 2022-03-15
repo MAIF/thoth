@@ -7,10 +7,12 @@ import fr.maif.eventsourcing.EventStore;
 import fr.maif.eventsourcing.ProcessingSuccess;
 import fr.maif.eventsourcing.State;
 import io.vavr.Tuple0;
+import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public interface DataStoreVerificationRules<Ste extends State, Evt extends Event, Meta, Context, TxCtx> {
     Either<String, ProcessingSuccess<TestState, TestEvent, Tuple0, Tuple0, Tuple0>> submitValidCommand(EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id);
@@ -18,6 +20,7 @@ public interface DataStoreVerificationRules<Ste extends State, Evt extends Event
     void submitMultiEventsCommand(EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id);
     Option<Ste> readState(EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id);
     void submitDeleteCommand(EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id);
+    Future<Either<String, ProcessingSuccess<TestState, TestEvent, Tuple0, Tuple0, Tuple0>>> submitNonConcurrentCommand(EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id);
     List<EventEnvelope<TestEvent, Tuple0, Tuple0>> readPublishedEvents(String kafkaBootstrapUrl, String topic);
     void shutdownBroker();
     void restartBroker();
@@ -37,6 +40,7 @@ public interface DataStoreVerificationRules<Ste extends State, Evt extends Event
 
     void required_eventShouldBePublishedEventIfBrokerIsDownAtFirst();
     void required_commandSubmissionShouldFailIfDatabaseIsNotAvailable();
+    void required_nonConcurrentCommandsShouldBeProcessedSequentially();
 
     List<EventEnvelope<Evt, Meta, Context>> readFromDataStore(EventStore<TxCtx, TestEvent, Tuple0, Tuple0> eventStore);
 

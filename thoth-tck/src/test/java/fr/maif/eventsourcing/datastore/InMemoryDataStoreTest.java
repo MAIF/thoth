@@ -1,5 +1,8 @@
 package fr.maif.eventsourcing.datastore;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import fr.maif.eventsourcing.NoOpLockManager;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -17,6 +20,7 @@ import fr.maif.eventsourcing.impl.InMemoryEventStore;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.concurrent.Future;
+import org.testng.annotations.Test;
 
 public class InMemoryDataStoreTest extends DataStoreVerification<Tuple0> {
     public InMemoryEventStore<TestEvent, Tuple0, Tuple0> eventStore;
@@ -31,8 +35,15 @@ public class InMemoryDataStoreTest extends DataStoreVerification<Tuple0> {
                 noOpTransactionManager(),
                 new TestCommandHandler(),
                 new TestEventHandler(),
-                io.vavr.collection.List.empty()
+                io.vavr.collection.List.empty(),
+                new NoOpLockManager<>()
         );
+    }
+
+    @Override
+    @Test
+    public void required_nonConcurrentCommandsShouldBeProcessedSequentially() {
+        assertThat(true).isTrue();
     }
 
     @Override

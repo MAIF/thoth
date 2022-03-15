@@ -15,7 +15,8 @@ public class TestEventFormat implements JacksonEventFormat<String, TestEvent> {
     public Either<String, TestEvent> read(String type, Long version, JsonNode json) {
         return API.Match(Tuple.of(type, version)).option(
                 Case(TestEvent.SimpleEventV1.pattern2(), () -> Json.fromJson(json, TestEvent.SimpleEvent.class)),
-                Case(TestEvent.DeleteEventV1.pattern2(), () -> Json.fromJson(json, TestEvent.DeleteEvent.class))
+                Case(TestEvent.DeleteEventV1.pattern2(), () -> Json.fromJson(json, TestEvent.DeleteEvent.class)),
+                Case(TestEvent.DecreaseEventV1.pattern2(), () -> Json.fromJson(json, TestEvent.DecreaseEvent.class))
         )
         .toEither(() -> "Unknown event type " + type + "(v" + version + ")")
         .flatMap(jsResult -> jsResult.toEither().mapLeft(errs -> errs.mkString(",")));
