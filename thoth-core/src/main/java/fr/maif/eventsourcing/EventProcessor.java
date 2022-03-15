@@ -107,8 +107,7 @@ public class EventProcessor<Error, S extends State<S>, C extends Command<Meta, C
         }
 
         return lockManager.lock(ctx, entitiesToLock).flatMap(__ ->
-                // Collect all states from db
-                traverseSequential(commands, c ->
+            traverseSequential(commands, c -> // Collect all states from db
                     this.getSnapshot(ctx, c).flatMap(mayBeState ->
                             //handle command with state to get events
                             handleCommand(ctx, mayBeState, c)

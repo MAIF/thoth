@@ -9,6 +9,7 @@ import fr.maif.eventsourcing.impl.DefaultAggregateStore;
 import fr.maif.eventsourcing.impl.JdbcTransactionManager;
 import fr.maif.eventsourcing.impl.KafkaEventPublisher;
 import fr.maif.eventsourcing.impl.PostgresEventStore;
+import fr.maif.eventsourcing.impl.PostgresLockManager;
 import fr.maif.eventsourcing.impl.TableNames;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
@@ -600,7 +601,7 @@ public class PostgresKafkaEventProcessorBuilder {
             this.projections = projections;
         }
 
-        public BuilderWithLockManager withLockManager(LockManager<Connection> lockManager) {
+        private BuilderWithLockManager withLockManager(LockManager<Connection> lockManager) {
             return new BuilderWithLockManager<>(
                 system,
                 dataSource,
@@ -618,6 +619,10 @@ public class PostgresKafkaEventProcessorBuilder {
                 projections,
                 lockManager
             );
+        }
+
+        public BuilderWithLockManager withLockManager() {
+            return this.withLockManager(new PostgresLockManager(tableNames));
         }
 
         public BuilderWithLockManager withNoLockManager() {

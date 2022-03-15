@@ -77,9 +77,11 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
             "                      published boolean default false,\n" +
             "                      UNIQUE (entity_id, sequence_num)\n" +
             "                    );\n" +
-            "                        \n" +
+            "                    CREATE TABLE IF NOT EXISTS test_lock (\n" +
+            "                      entity_id varchar(100) NOT NULL PRIMARY KEY\n" +
+            "                    );" +
             "                    CREATE SEQUENCE if not exists test_sequence_num;";
-    private final String TRUNCATE_QUERY = "TRUNCATE TABLE test_journal";
+    private final String TRUNCATE_QUERY = "TRUNCATE TABLE test_journal; TRUNCATE TABLE test_lock;";
 
     @AfterClass(alwaysRun = true)
     public void tearDown() throws InterruptedException {
@@ -90,7 +92,7 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
 
     @BeforeClass(alwaysRun = true)
     public void initClass() {
-        this.tableNames = new TableNames("test_journal", "test_sequence_num");
+        this.tableNames = new TableNames("test_journal", "test_sequence_num", "test_lock");
         this.eventFormat = new TestEventFormat();
 
         postgres = new PostgreSQLContainer();
@@ -129,6 +131,7 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
                 .withDefaultAggregateStore()
                 .withCommandHandler(new TestCommandHandler<>())
                 .withNoProjections()
+                .withLockManager()
                 .build();
 
 

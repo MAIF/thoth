@@ -6,9 +6,11 @@ import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventProcessor;
 import fr.maif.eventsourcing.EventStore;
 import fr.maif.eventsourcing.ProcessingSuccess;
+import fr.maif.eventsourcing.datastore.TestCommand.NonConcurrentCommand;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.json.EventEnvelopeJson;
 import io.vavr.Tuple0;
+import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 
@@ -200,6 +202,24 @@ public abstract class DataStoreVerification<TxCtx> implements DataStoreVerificat
     }
 
     @Override
+    @Test
+    public void required_nonConcurrentCommandsShouldBeProcessedSequentially() {
+        String topic = randomKafkaTopic();
+        EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor = eventProcessor(topic);
+        submitValidCommand(eventProcessor, "1");
+        final Future<Either<String, ProcessingSuccess<TestState, TestEvent, Tuple0, Tuple0, Tuple0>>> futureFirstResult = submitNonConcurrentCommand(
+            eventProcessor, "1");
+        final Future<Either<String, ProcessingSuccess<TestState, TestEvent, Tuple0, Tuple0, Tuple0>>> futureSecondResult = submitNonConcurrentCommand(
+            eventProcessor, "1");
+        final Either<String, ProcessingSuccess<TestState, TestEvent, Tuple0, Tuple0, Tuple0>> firstResult = futureFirstResult.get();
+        final Either<String, ProcessingSuccess<TestState, TestEvent, Tuple0, Tuple0, Tuple0>> secondResult = futureSecondResult.get();
+        assertThat(firstResult.isRight() || secondResult.isRight()).isTrue();
+        assertThat(firstResult.isRight() && secondResult.isRight()).isFalse();
+        String error = firstResult.isLeft() ? firstResult.getLeft() : secondResult.getLeft();
+        assertThat(error).isEqualTo("Count is not high enough");
+    }
+
+    @Override
     public Either<String, ProcessingSuccess<TestState, TestEvent, Tuple0, Tuple0, Tuple0>> submitValidCommand(
             EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor,
             String id) {
@@ -226,6 +246,11 @@ public abstract class DataStoreVerification<TxCtx> implements DataStoreVerificat
     @Override
     public void submitDeleteCommand(EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id) {
         eventProcessor.processCommand(new TestCommand.DeleteCommand(id)).get();
+    }
+
+    @Override
+    public Future<Either<String, ProcessingSuccess<TestState, TestEvent, Tuple0, Tuple0, Tuple0>>> submitNonConcurrentCommand(EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id) {
+        return eventProcessor.processCommand(new NonConcurrentCommand(id));
     }
 
     @Override
