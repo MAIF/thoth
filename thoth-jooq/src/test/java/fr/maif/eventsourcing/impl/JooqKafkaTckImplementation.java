@@ -95,7 +95,7 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
         this.tableNames = new TableNames("test_journal", "test_sequence_num", "test_lock");
         this.eventFormat = new TestEventFormat();
 
-        postgres = new PostgreSQLContainer();
+        postgres = new PostgreSQLContainer("14.2");
         postgres.start();
         kafka = new KafkaContainer();
         kafka.start();
