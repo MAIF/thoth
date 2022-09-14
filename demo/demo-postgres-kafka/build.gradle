@@ -1,0 +1,12 @@
+
+
+
+
+dependencies {
+
+    implementation project(':commons-events')
+    implementation project(':thoth-core')
+    implementation project(':thoth-jooq')
+    implementation project(':thoth-kafka-goodies')
+
+}

@@ -5,3 +5,6 @@ target
 .DS_Store
 .bloop
 .java-version
+
+# Ignore Gradle build output directory
+build

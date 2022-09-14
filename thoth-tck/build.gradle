@@ -1,0 +1,27 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+group = 'fr.maif'
+
+dependencies {
+    implementation project(':commons-events')
+    implementation project(':thoth-core')
+    implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
+    implementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")
+    implementation("org.assertj:assertj-core:3.10.0")
+    implementation("org.testng:testng:6.3")
+    implementation("io.vavr:vavr:$vavrVersion")
+    implementation("fr.maif:functional-json:$functionalJsonVersion")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
+
+    testImplementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
+    testImplementation("org.mockito:mockito-core:3.6.28")
+}
+
+test {
+    useTestNG()
+}
+
