@@ -21,7 +21,7 @@ jobs:
       - name: Stop docker
         run: docker-compose -f docker-compose.test.yml down
       - name: Run sample application test
-        run: sbt "project sample" test
+        run: ./gradlew :sample:test
       - name: Publish Unit IT Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
