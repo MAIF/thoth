@@ -1,10 +1,14 @@
 
 dependencies {
 
+    implementation project(':commons-events')
     implementation project(':thoth-core')
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("org.jooq:jooq:$jooqVersion")
     implementation("fr.maif:jooq-async-api_$scalaVersion:$jooqAsyncVersion")
+    implementation("fr.maif:functional-json:$functionalJsonVersion")
+    implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
+    implementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")
 
     testImplementation("fr.maif:jooq-async-jdbc_$scalaVersion:$jooqAsyncVersion")
     testImplementation("fr.maif:jooq-async-reactive_$scalaVersion:$jooqAsyncVersion")
