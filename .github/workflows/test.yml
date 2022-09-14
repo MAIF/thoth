@@ -22,9 +22,9 @@ jobs:
         run: docker-compose -f docker-compose.test.yml down
       - name: Run sample application test
         run: sbt "project sample" test
-      - name: Publish Unit Test Results
+      - name: Publish Unit IT Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
         with:
-          files: "**/test-reports/**/*.xml"
+          files: "**/test-results/**/*.xml"
   
