@@ -26,11 +26,11 @@ jobs:
           git config --local user.name "thoth-github-actions"
           ./gradlew release -Prelease.useAutomaticVersion=true -Prelease.releaseVersion=${{ github.event.inputs.releaseVersion }} -Prelease.newVersion=${{ github.event.inputs.nextVersion }}
       - name: push tag
-          uses: ad-m/github-push-action@master
-          with:
-            branch: master
-            tags: true
-            github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        uses: ad-m/github-push-action@master
+        with:
+          branch: master
+          tags: true
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - name: Create a Release
         id: create_release
         uses: actions/create-release@v1.1.4
