@@ -15,6 +15,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
+import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
+import fr.maif.eventsourcing.EventStore;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -53,6 +56,8 @@ import fr.maif.kafka.KafkaSettings;
 import io.vavr.Tuple0;
 
 public class JooqKafkaTckImplementation extends DataStoreVerification<Connection> {
+
+    private ActorSystem actorSystem = ActorSystem.create();
     private PGSimpleDataSource dataSource;
     private TableNames tableNames;
     private TestEventFormat eventFormat;
@@ -178,8 +183,7 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
         return kafkaSettings.producerSettings(actorSystem, JsonSerializer.of(
                 eventFormat,
                 JacksonSimpleFormat.empty(),
-                JacksonSimpleFormat.empty()
-                )
+                JacksonSimpleFormat.empty())
         );
     }
 
@@ -275,6 +279,15 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public List<EventEnvelope<TestEvent, Tuple0, Tuple0>> readFromDataStore(EventStore<Connection, TestEvent, Tuple0, Tuple0> eventStore) {
+        try {
+            return Source.fromPublisher(eventStore.loadAllEvents()).runWith(Sink.seq(), actorSystem).toCompletableFuture().get();
+        } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
     }
