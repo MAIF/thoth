@@ -16,12 +16,6 @@ plugins {
 subprojects {
     apply plugin: 'java'
     apply plugin: 'maven-publish'
-
-//    initializeSonatypeStagingRepository {
-//        shouldRunAfter(tasks.withType(Sign))
-//    }
-//    apply plugin: 'io.github.gradle-nexus.publish-plugin'
-
     group = 'fr.maif'
 
     repositories {
@@ -42,6 +36,7 @@ subprojects {
         jooqAsyncVersion      = "1.2.2"
         functionalJsonVersion = "1.0.3"
         kafkaVersion          = "3.0.1"
+        reactorKafkaVersion   = "1.3.12"
     }
     test {
         testLogging {
@@ -49,9 +44,9 @@ subprojects {
         }
     }
 
-    tasks.named('test') {
-        useJUnitPlatform()
-    }
+//    tasks.named('test') {
+//        useJUnitPlatform()
+//    }
 
 
     publishing {

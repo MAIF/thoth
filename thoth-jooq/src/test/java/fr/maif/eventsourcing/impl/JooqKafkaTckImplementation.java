@@ -61,7 +61,7 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
     private PGSimpleDataSource dataSource;
     private TableNames tableNames;
     private TestEventFormat eventFormat;
-    private PostgreSQLContainer postgres;
+    private PostgreSQLContainer<?> postgres;
     private KafkaContainer kafka;
 
     private final String SCHEMA = "CREATE TABLE IF NOT EXISTS test_journal (\n" +

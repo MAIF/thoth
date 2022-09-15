@@ -1,38 +1,48 @@
 package fr.maif.kafka.consumer;
 
-import akka.Done;
 import akka.actor.ActorSystem;
-import akka.kafka.ConsumerMessage.CommittableMessage;
-import akka.kafka.ConsumerMessage.CommittableOffset;
-import akka.kafka.ConsumerSettings;
-import akka.kafka.Subscriptions;
 import akka.kafka.testkit.javadsl.TestcontainersKafkaTest;
 import akka.stream.Materializer;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.FlowWithContext;
 import akka.testkit.javadsl.TestKit;
+import fr.maif.kafka.reactor.consumer.ResilientKafkaConsumer;
+import fr.maif.kafka.reactor.consumer.Status;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.kafka.receiver.ReceiverOptions;
 
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
     private static final ActorSystem system = ActorSystem.create("test");
+    private ReceiverOptions<String, String> receiverOptions;
 
     public ResilientKafkaConsumerTest() {
         super(system, Materializer.createMaterializer(system));
     }
 
+    @BeforeEach
+    public void init() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        receiverOptions = ReceiverOptions.<String, String>create(props);
+    }
 
     @Test
     void consumer() throws Exception {
@@ -43,17 +53,15 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
         AtomicReference<String> names = new AtomicReference<>("");
 
         ResilientKafkaConsumer<String, String> resilientKafkaConsumer = ResilientKafkaConsumer.create(
-                system,
                 "test",
                 ResilientKafkaConsumer.Config.create(
-                        Subscriptions.topics(topic),
+                        List.of(topic),
                         groupId,
-                        ConsumerSettings
-                                .create(system, new StringDeserializer(), new StringDeserializer())
-                                .withBootstrapServers(bootstrapServers())
+                        receiverOptions
                 ),
                 event -> {
-                    names.set(names.get() + " " + event.record().value());
+                    System.out.println("Event %s".formatted(event.value()));
+                    names.set(names.get() + " " + event.value());
                 }
         );
 
@@ -73,46 +81,6 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
 
     }
 
-    @Test
-    void contexteAkkastreamApi() throws Exception {
-
-        String topic = createTopic();
-        String groupId = "test-group-id-3";
-
-        AtomicReference<String> names = new AtomicReference<>("");
-
-        ResilientKafkaConsumer.createFromFlowCtxAgg(
-                system,
-                "test",
-                ResilientKafkaConsumer.Config.create(
-                        Subscriptions.topics(topic),
-                        groupId,
-                        ConsumerSettings
-                                .create(system, new StringDeserializer(), new StringDeserializer())
-                                .withBootstrapServers(bootstrapServers())
-                ),
-                FlowWithContext.<CommittableMessage<String, String>, CommittableOffset>create()
-                        .grouped(3)
-                        .map(messages -> {
-                            String collectedMessages = messages.stream().map(m -> m.record().value()).collect(Collectors.joining(" "));
-                            names.set(collectedMessages);
-                            return Done.done();
-                        })
-        );
-        Thread.sleep(3000);
-
-        resultOf(produceString(topic, "event-1"));
-        resultOf(produceString(topic, "event-2"));
-        resultOf(produceString(topic, "event-3"));
-
-        Thread.sleep(10000);
-
-        String actual = names.get();
-        System.out.println(actual);
-        assertThat(actual).isEqualTo("event-1 event-2 event-3");
-
-    }
-
 
     @Test
     void crash() throws Exception {
@@ -124,32 +92,22 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
         AtomicBoolean hasCrashed = new AtomicBoolean(false);
 
         ResilientKafkaConsumer.createFromFlow(
-                system,
                 "test",
-                ResilientKafkaConsumer.Config.create(
-                        Subscriptions.topics(topic),
-                        groupId,
-                        ConsumerSettings
-                                .create(system, new StringDeserializer(), new StringDeserializer())
-                                .withBootstrapServers(bootstrapServers())
-                ).withCommitSize(1).withMinBackoff(Duration.ofMillis(20)),
-                Flow
-                        .<CommittableMessage<String, String>>create()
-                        .zipWithIndex()
-                        .mapAsync(1, messageAndIndex -> {
-                            System.out.println(messageAndIndex.second() + " - " + messageAndIndex.first().record().value());
-                            if (messageAndIndex.second() > 0 && !hasCrashed.get()) {
-                                System.out.println("Crash !");
-                                hasCrashed.set(true);
-                                CompletableFuture<CommittableOffset> completableFuture = new CompletableFuture<>();
-                                completableFuture.completeExceptionally(new RuntimeException("Oups"));
-                                return completableFuture;
-                            } else {
-                                names.set(names.get() + " " + messageAndIndex.first().record().value());
-                                return CompletableFuture.completedFuture(messageAndIndex.first().committableOffset());
-                            }
-                        })
-        );
+                ResilientKafkaConsumer.Config.create(List.of(topic), groupId, receiverOptions).withCommitSize(1).withMinBackoff(Duration.ofMillis(20)),
+                        it -> it
+                                .index()
+                                .concatMap(messageAndIndex -> {
+                                    System.out.println(messageAndIndex.getT1() + " - " + messageAndIndex.getT2().value());
+                                    if (messageAndIndex.getT1() > 0 && !hasCrashed.get()) {
+                                        System.out.println("Crash !");
+                                        hasCrashed.set(true);
+                                        return Flux.error(new RuntimeException("Oups"));
+                                    } else {
+                                        names.set(names.get() + " " + messageAndIndex.getT2().value());
+                                        return Flux.just(messageAndIndex.getT2());
+                                    }
+                                })
+                );
         Thread.sleep(4000);
 
         resultOf(produceString(topic, "event-1"));
@@ -179,38 +137,29 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
         AtomicBoolean isFailed = new AtomicBoolean(false);
 
         ResilientKafkaConsumer<String, String> resilientKafkaConsumer = ResilientKafkaConsumer.create(
-                system,
-                "test",
-                ResilientKafkaConsumer.Config
-                        .create(
-                                Subscriptions.topics(topic),
+                        "test",
+                        ResilientKafkaConsumer.Config.create(
+                                List.of(topic),
                                 groupId,
-                                ConsumerSettings
-                                        .create(system, new StringDeserializer(), new StringDeserializer())
-                                        .withBootstrapServers(bootstrapServers())
+                                receiverOptions
                         )
-                        .withOnStarting(() -> CompletableFuture.supplyAsync(() -> {
+                        .withOnStarting(() -> Mono.fromRunnable(() -> {
                             isStarting.set(true);
-                            return Done.done();
                         }))
-                        .withOnStarted((c, time) -> CompletableFuture.supplyAsync(() -> {
+                        .withOnStarted((c, time) -> Mono.fromRunnable(() -> {
                             isStarted.set(true);
-                            return Done.done();
                         }))
-                        .withOnStopping(c -> CompletableFuture.supplyAsync(() -> {
+                        .withOnStopping(c -> Mono.fromRunnable(() -> {
                             isStopping.set(true);
-                            return Done.done();
                         }))
-                        .withOnStopped(() -> CompletableFuture.supplyAsync(() -> {
+                        .withOnStopped(() -> Mono.fromRunnable(() -> {
                             isStopped.set(true);
-                            return Done.done();
                         }))
-                        .withOnFailed(e -> CompletableFuture.supplyAsync(() -> {
+                        .withOnFailed(e -> Mono.fromRunnable(() -> {
                             isFailed.set(true);
-                            return Done.done();
                         }))
                 , event -> {
-                    names.set(names.get() + " " + event.record().value());
+                    names.set(names.get() + " " + event.value());
                 }
         );
 
@@ -231,10 +180,9 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
         String actual = names.get();
         System.out.println(actual);
         assertThat(actual).isEqualTo(" event-1 event-2 event-3");
-        CompletionStage<Done> stop = resilientKafkaConsumer.stop();
+        resilientKafkaConsumer.stop().block();
         assertThat(resilientKafkaConsumer.status()).isIn(Status.Stopping, Status.Stopped);
-        stop.toCompletableFuture().join();
-        assertThat(isStopping.get()).isTrue();
+        Thread.sleep(10000);
         assertThat(resilientKafkaConsumer.status()).isIn(Status.Stopped);
         assertThat(isStopped.get()).isTrue();
     }

@@ -6,9 +6,10 @@ plugins {
 group = 'fr.maif'
 
 dependencies {
-    implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
-    implementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")
+    implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
 
+    testImplementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
+    testImplementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")
     testImplementation("com.typesafe.akka:akka-testkit_$scalaVersion:$akkaVersion")
     testImplementation("com.typesafe.akka:akka-stream-testkit_$scalaVersion:$akkaVersion")
     testImplementation("com.typesafe.akka:akka-stream-kafka-testkit_$scalaVersion:$alpakkaKafkaVersion")
@@ -21,4 +22,8 @@ dependencies {
     testImplementation("org.scalatest:scalatest_$scalaVersion:3.0.8")
     testImplementation("org.testcontainers:kafka:1.15.1")
 
+}
+
+test {
+    useJUnitPlatform()
 }

@@ -1,4 +1,4 @@
-package fr.maif.kafka.consumer;
+package fr.maif.kafka.reactor.consumer;
 
 
 public enum Status {

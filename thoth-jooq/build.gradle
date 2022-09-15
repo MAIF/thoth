@@ -39,5 +39,9 @@ dependencies {
 }
 
 test {
-    useTestNG()
+    useJUnitPlatform()
+    useTestNG {
+        useDefaultListeners = true // Tells TestNG to execute its default reporting structure
+        suites 'src/test/resources/testng.xml' //location of our suite.xml
+    }
 }

@@ -22,3 +22,7 @@ dependencies {
     testImplementation("org.testcontainers:kafka:1.15.1")
 
 }
+
+test {
+    useJUnitPlatform()
+}
