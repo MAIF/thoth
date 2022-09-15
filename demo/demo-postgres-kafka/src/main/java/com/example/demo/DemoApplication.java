@@ -13,10 +13,10 @@ public class DemoApplication {
 		BankEventHandler eventHandler = new BankEventHandler();
 		Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
 
-		String id = bank.createAccount(BigDecimal.valueOf(100)).get().get().currentState.get().id;
+		String id = bank.createAccount(BigDecimal.valueOf(100)).toCompletableFuture().join().get().currentState.get().id;
 
-		bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
-		BigDecimal balance = bank.withdraw(id, BigDecimal.valueOf(10)).get().get().currentState.get().balance;
+		bank.withdraw(id, BigDecimal.valueOf(50)).toCompletableFuture().join().get().currentState.get();
+		BigDecimal balance = bank.withdraw(id, BigDecimal.valueOf(10)).toCompletableFuture().join().get().currentState.get().balance;
 		System.out.println(balance);
 
 		System.out.println(bank.meanWithdrawValue());

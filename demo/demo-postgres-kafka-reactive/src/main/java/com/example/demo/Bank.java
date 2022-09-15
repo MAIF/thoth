@@ -103,7 +103,7 @@ public class Bank implements Closeable {
                     println("Database initialization failed");
                     e.printStackTrace();
                 })
-                .flatMap(__ -> withdrawByMonthProjection.init())
+                .flatMap(__ -> Future.fromCompletableFuture(withdrawByMonthProjection.init().toCompletableFuture()))
                 .map(__ -> Tuple.empty());
     }
 
@@ -145,36 +145,36 @@ public class Bank implements Closeable {
     public Future<Either<String, Account>> createAccount(
             BigDecimal amount) {
         Lazy<String> lazyId = Lazy.of(() -> UUIDgenerator.generate().toString());
-        return eventProcessor.processCommand(new BankCommand.OpenAccount(lazyId, amount))
+        return Future.fromCompletableFuture(eventProcessor.processCommand(new BankCommand.OpenAccount(lazyId, amount)).toCompletableFuture())
                 .map(res -> res.flatMap(processingResult -> processingResult.currentState.toEither("Current state is missing")));
     }
 
     public Future<Either<String, Account>> withdraw(
             String account, BigDecimal amount) {
-        return eventProcessor.processCommand(new BankCommand.Withdraw(account, amount))
+        return Future.fromCompletableFuture(eventProcessor.processCommand(new BankCommand.Withdraw(account, amount)).toCompletableFuture())
                 .map(res -> res.flatMap(processingResult -> processingResult.currentState.toEither("Current state is missing")));
     }
 
     public Future<Either<String, Account>> deposit(
             String account, BigDecimal amount) {
-        return eventProcessor.processCommand(new BankCommand.Deposit(account, amount))
+        return Future.fromCompletableFuture(eventProcessor.processCommand(new BankCommand.Deposit(account, amount)).toCompletableFuture())
                 .map(res -> res.flatMap(processingResult -> processingResult.currentState.toEither("Current state is missing")));
     }
 
     public Future<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, Tuple0>>> close(
             String account) {
-        return eventProcessor.processCommand(new BankCommand.CloseAccount(account));
+        return Future.fromCompletableFuture(eventProcessor.processCommand(new BankCommand.CloseAccount(account)).toCompletableFuture());
     }
 
     public Future<Option<Account>> findAccountById(String id) {
-        return eventProcessor.getAggregate(id);
+        return Future.fromCompletableFuture(eventProcessor.getAggregate(id).toCompletableFuture());
     }
 
     public Future<BigDecimal> meanWithdrawByClientAndMonth(String clientId, Integer year, String month) {
-        return withdrawByMonthProjection.meanWithdrawByClientAndMonth(clientId, year, month);
+        return Future.fromCompletableFuture(withdrawByMonthProjection.meanWithdrawByClientAndMonth(clientId, year, month).toCompletableFuture());
     }
 
     public Future<BigDecimal> meanWithdrawByClient(String clientId) {
-        return withdrawByMonthProjection.meanWithdrawByClient(clientId);
+        return Future.fromCompletableFuture(withdrawByMonthProjection.meanWithdrawByClient(clientId).toCompletableFuture());
     }
 }

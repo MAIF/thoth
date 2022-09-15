@@ -11,6 +11,7 @@ import io.vavr.concurrent.Future;
 import org.jooq.DSLContext;
 
 import java.math.BigDecimal;
+import java.util.concurrent.CompletionStage;
 
 import static io.vavr.PartialFunction.unlift;
 import static org.jooq.impl.DSL.val;
@@ -25,7 +26,7 @@ public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction,
     }
 
     @Override
-    public Future<Tuple0> storeProjection(PgAsyncTransaction connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> envelopes) {
+    public CompletionStage<Tuple0> storeProjection(PgAsyncTransaction connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> envelopes) {
         return connection.executeBatch(dsl ->
                 envelopes
                         // Keep only MoneyWithdrawn events
@@ -45,10 +46,11 @@ public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction,
                                 val(t._1.emissionDate.getYear()),
                                 val(t._2.amount)
                         ))
-        ).map(__ -> Tuple.empty());
+        ).map(__ -> Tuple.empty())
+                .toCompletableFuture();
     }
 
-    public Future<BigDecimal> meanWithdrawByClientAndMonth(String clientId, Integer year, String month) {
+    public CompletionStage<BigDecimal> meanWithdrawByClientAndMonth(String clientId, Integer year, String month) {
         return pgAsyncPool.query(dsl -> dsl.resultQuery(
                 """
                     select round(withdraw / count::decimal, 2) 
@@ -58,10 +60,11 @@ public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction,
                 val(clientId),
                 val(year),
                 val(month))
-        ).map(r -> r.head().get(0, BigDecimal.class));
+        ).map(r -> r.head().get(0, BigDecimal.class))
+                .toCompletableFuture();
     }
 
-    public Future<BigDecimal> meanWithdrawByClient(String clientId) {
+    public CompletionStage<BigDecimal> meanWithdrawByClient(String clientId) {
         return pgAsyncPool.query(dsl -> dsl
                 .resultQuery(
                         """
@@ -70,11 +73,11 @@ public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction,
                             where  client_id = {0}
                             """, val(clientId)
                 )
-        ).map(r -> r.head().get("sum", BigDecimal.class));
+        ).map(r -> r.head().get("sum", BigDecimal.class))
+                .toCompletableFuture();
     }
 
-
-    public Future<Integer> init() {
+    public CompletionStage<Integer> init() {
         return this.pgAsyncPool.execute(dsl -> dsl.query("""
                  CREATE TABLE IF NOT EXISTS WITHDRAW_BY_MONTH(
                     client_id text,
@@ -101,6 +104,7 @@ public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction,
                         ADD CONSTRAINT WITHDRAW_BY_MONTH_UNIQUE 
                         UNIQUE USING INDEX WITHDRAW_BY_MONTH_UNIQUE_IDX;    
                     """))
-                );
+                )
+                .toCompletableFuture();
     }
 }

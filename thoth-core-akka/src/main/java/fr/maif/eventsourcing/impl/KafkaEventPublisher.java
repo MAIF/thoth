@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.WAIT;
 
@@ -91,8 +92,7 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
 
                                         LOGGER.info("Replaying not published in DB for {}", topic);
                                         ConcurrentReplayStrategy strategy = Objects.isNull(concurrentReplayStrategy) ? WAIT : concurrentReplayStrategy;
-                                        return eventStore
-                                                .loadEventsUnpublished(tx, strategy)
+                                        return Source.fromPublisher(eventStore.loadEventsUnpublished(tx, strategy))
                                                 .via(publishToKafka(eventStore, Option.some(tx), groupFlow))
                                                 .alsoTo(logProgress(100))
                                                 .watchTermination((nu, cs) ->
@@ -150,15 +150,13 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
     }
 
     @Override
-    public Future<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
         LOGGER.debug("Publishing event in memory : \n{} ", events);
-        return Future.fromCompletableFuture(
-                Source
+        return Source
                         .from(events)
                         .mapAsync(1, queue::offer)
                         .runWith(Sink.ignore(), materializer)
-                        .toCompletableFuture()
-        ).map(__ -> Tuple.empty());
+                        .thenApply(__ -> Tuple.empty());
     }
 
     @Override

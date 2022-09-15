@@ -5,7 +5,6 @@ import fr.maif.jdbc.exceptions.ExceptionsHandler;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Created by adelegue on 30/04/2016.

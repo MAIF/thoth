@@ -3,6 +3,7 @@ dependencies {
 
     implementation project(':commons-events')
     implementation project(':thoth-core')
+    implementation project(':thoth-core-akka')
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("org.jooq:jooq:$jooqVersion")
     implementation("fr.maif:jooq-async-api_$scalaVersion:$jooqAsyncVersion")

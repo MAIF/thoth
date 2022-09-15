@@ -8,8 +8,8 @@ group = 'fr.maif'
 dependencies {
     implementation project(':commons-events')
     implementation project(':thoth-core')
-    implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
-    implementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")
+//    implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
+//    implementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")
     implementation("org.assertj:assertj-core:3.10.0")
     implementation("org.testng:testng:6.3")
     implementation("io.vavr:vavr:$vavrVersion")
@@ -17,6 +17,7 @@ dependencies {
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
 
+    testImplementation project(':thoth-core-akka')
     testImplementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
     testImplementation("org.mockito:mockito-core:3.6.28")
 }

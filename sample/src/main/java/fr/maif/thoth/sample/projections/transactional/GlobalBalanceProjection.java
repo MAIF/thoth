@@ -3,6 +3,8 @@ package fr.maif.thoth.sample.projections.transactional;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.Projection;
@@ -15,8 +17,8 @@ import io.vavr.concurrent.Future;
 public class GlobalBalanceProjection implements Projection<Connection, BankEvent, Tuple0, Tuple0> {
 
     @Override
-    public Future<Tuple0> storeProjection(Connection connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> events) {
-        return Future.of(() -> {
+    public CompletionStage<Tuple0> storeProjection(Connection connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> events) {
+        return CompletableFuture.supplyAsync(() -> {
             try(PreparedStatement incrementStatement = connection.prepareStatement("UPDATE global_balance SET balance=balance+?::money");
                     PreparedStatement decrementStatement = connection.prepareStatement("UPDATE global_balance SET balance=balance-?::money")) {
                 for(var envelope: events) {

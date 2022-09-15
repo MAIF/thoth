@@ -30,7 +30,7 @@ public class SqlTest implements DbUtils {
     @Test
     public void testSelect() throws SQLException, ExecutionException, InterruptedException, ParseException {
         createDatabase(21);
-        Connection connection = dataSource.getConnection();
+        Connection connection = DbUtils.dataSource.getConnection();
         List<Map<String, String>> results = Sql.of(connection, system)
                 .select("select * from bands21").as(Convertions.map)
                 .get()
@@ -49,7 +49,7 @@ public class SqlTest implements DbUtils {
     @Test
     public void testUpdate() throws SQLException, ExecutionException, InterruptedException, ParseException {
         createDatabase(22);
-        Connection connection = dataSource.getConnection();
+        Connection connection = DbUtils.dataSource.getConnection();
         Integer updates = Sql.of(connection, system)
                 .update("update bands22 set name = ? where band_id = ?").params("The mars volta", 2)
                 .closeConnection(false)

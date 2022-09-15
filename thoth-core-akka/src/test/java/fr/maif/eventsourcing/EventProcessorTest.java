@@ -3,7 +3,9 @@ package fr.maif.eventsourcing;
 import akka.actor.ActorSystem;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
+import fr.maif.eventsourcing.impl.DefaultAggregateStore;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import fr.maif.eventsourcing.impl.InMemoryEventStore;
@@ -11,11 +13,13 @@ import io.vavr.collection.List;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -49,16 +53,16 @@ public class EventProcessorTest {
         EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0>  vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
 
         //Test
-        Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new CreateViking("1", "ragnar")).get();
+        Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new CreateViking("1", "ragnar")).toCompletableFuture().join();
 
         // Results
         assertThat(result.isRight()).isTrue();
         ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String> eventAndState = result.get();
-        assertThat(eventAndState.getPreviousState()).isEqualTo(Option.none());
+        Assertions.assertThat(eventAndState.getPreviousState()).isEqualTo(Option.none());
         Viking expected = new Viking("1", "ragnar", 1L);
-        assertThat(eventAndState.getCurrentState()).isEqualTo(Option.some(expected));
+        Assertions.assertThat(eventAndState.getCurrentState()).isEqualTo(Option.some(expected));
 
-        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
+        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = Source.fromPublisher(inMemoryEventStore.loadAllEvents()).runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> expectedEnvelope = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
                 .withEmissionDate(eventsFromJournal.get(0).emissionDate)
@@ -77,7 +81,7 @@ public class EventProcessorTest {
 
         assertThat(eventsFromJournal).containsExactly(expectedEnvelope);
 
-        assertThat(vikingSnapshot.data.get("1")).isEqualTo(expected);
+        Assertions.assertThat(vikingSnapshot.data.get("1")).isEqualTo(expected);
     }
 
 
@@ -90,16 +94,16 @@ public class EventProcessorTest {
         EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessorWithProjection(inMemoryEventStore, List.of(projection));
 
         //Test
-        Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new CreateViking("1", "ragnar")).get();
+        Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new CreateViking("1", "ragnar")).toCompletableFuture().join();
 
         // Results
         assertThat(result.isRight()).isTrue();
         ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String> eventAndState = result.get();
-        assertThat(eventAndState.getPreviousState()).isEqualTo(Option.none());
+        Assertions.assertThat(eventAndState.getPreviousState()).isEqualTo(Option.none());
         Viking expected = new Viking("1", "ragnar", 1L);
-        assertThat(eventAndState.getCurrentState()).isEqualTo(Option.some(expected));
+        Assertions.assertThat(eventAndState.getCurrentState()).isEqualTo(Option.some(expected));
 
-        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
+        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = Source.fromPublisher(inMemoryEventStore.loadAllEvents()).runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
 
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> expectedEnvelope = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
@@ -119,8 +123,8 @@ public class EventProcessorTest {
 
         assertThat(eventsFromJournal).containsExactly(expectedEnvelope);
 
-        assertThat(vikingEventProcessor.getAggregateStore().getAggregate(Tuple.empty(), "1").get()).isEqualTo(Some(expected));
-        assertThat(projection.data.get("1")).isEqualTo(1);
+        assertThat(vikingEventProcessor.getAggregateStore().getAggregate(Tuple.empty(), "1").toCompletableFuture().join()).isEqualTo(Some(expected));
+        Assertions.assertThat(projection.data.get("1")).isEqualTo(1);
     }
 
 
@@ -130,19 +134,19 @@ public class EventProcessorTest {
         InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create(actorSystem);
         EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
 
-        vikingEventProcessor.processCommand(new VikingCommand.CreateViking("1", "ragnar")).get();
-        Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new UpdateViking("1", "Ragnar Lodbrock")).get();
+        vikingEventProcessor.processCommand(new VikingCommand.CreateViking("1", "ragnar")).toCompletableFuture().join();
+        Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new UpdateViking("1", "Ragnar Lodbrock")).toCompletableFuture().join();
 
         assertThat(result.isRight()).isTrue();
         ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String> eventAndState = result.get();
         Viking intermediateState = new Viking("1", "ragnar", 1L);
 
-        assertThat(eventAndState.getPreviousState()).isEqualTo(Some(intermediateState));
+        Assertions.assertThat(eventAndState.getPreviousState()).isEqualTo(Some(intermediateState));
 
         Viking expected = new Viking("1", "Ragnar Lodbrock", 2L);
-        assertThat(eventAndState.getCurrentState()).isEqualTo(Option.some(expected));
+        Assertions.assertThat(eventAndState.getCurrentState()).isEqualTo(Option.some(expected));
 
-        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
+        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = Source.fromPublisher(inMemoryEventStore.loadAllEvents()).runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> eventEnvelope1 = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
                 .withEmissionDate(eventsFromJournal.get(0).emissionDate)
@@ -174,7 +178,7 @@ public class EventProcessorTest {
 
         assertThat(eventsFromJournal).containsExactly(eventEnvelope1, eventEnvelope2);
 
-        assertThat(vikingSnapshot.data.get("1")).isEqualTo(expected);
+        Assertions.assertThat(vikingSnapshot.data.get("1")).isEqualTo(expected);
     }
 
     @Test
@@ -183,18 +187,18 @@ public class EventProcessorTest {
         InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create(actorSystem);
         EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
 
-        vikingEventProcessor.processCommand(new VikingCommand.CreateViking("1", "ragnar")).get();
-        Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new DeleteViking("1")).get();
+        vikingEventProcessor.processCommand(new VikingCommand.CreateViking("1", "ragnar")).toCompletableFuture().join();
+        Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new DeleteViking("1")).toCompletableFuture().join();
 
         assertThat(result.isRight()).isTrue();
         ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String> eventAndState = result.get();
         Viking intermediateState = new Viking("1", "ragnar", 1L);
 
-        assertThat(eventAndState.getPreviousState()).isEqualTo(Some(intermediateState));
+        Assertions.assertThat(eventAndState.getPreviousState()).isEqualTo(Some(intermediateState));
 
-        assertThat(eventAndState.getCurrentState()).isEqualTo(Option.none());
+        Assertions.assertThat(eventAndState.getCurrentState()).isEqualTo(Option.none());
 
-        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = inMemoryEventStore.loadAllEvents().runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
+        java.util.List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> eventsFromJournal = Source.fromPublisher(inMemoryEventStore.loadAllEvents()).runWith(Sink.seq(), Materializer.createMaterializer(actorSystem)).toCompletableFuture().join();
 
         EventEnvelope<VikingEvent, Tuple0, Tuple0> eventEnvelope1 = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
                 .withEmissionDate(eventsFromJournal.get(0).emissionDate)
@@ -226,7 +230,7 @@ public class EventProcessorTest {
 
         assertThat(eventsFromJournal).containsExactly(eventEnvelope1, eventEnvelope2);
 
-        assertThat(vikingSnapshot.data.get("1")).isNull();
+        Assertions.assertThat(vikingSnapshot.data.get("1")).isNull();
     }
 
 
@@ -241,12 +245,14 @@ public class EventProcessorTest {
     }
 
     private EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessorWithProjection(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, List<Projection<Tuple0, VikingEvent, Tuple0, Tuple0>> projections) {
+        VikingEventHandler vikingEventHandler = new VikingEventHandler();
+        FakeTransactionManager fakeTransactionManager = new FakeTransactionManager();
         return new EventProcessor<>(
-                actorSystem,
                 inMemoryEventStore,
-                new FakeTransactionManager(),
+                fakeTransactionManager,
+                new DefaultAggregateStore<>(inMemoryEventStore, vikingEventHandler, actorSystem, fakeTransactionManager),
                 new VikingCommandHandler(),
-                new VikingEventHandler(),
+                vikingEventHandler,
                 projections
         );
     }
@@ -269,7 +275,7 @@ public class EventProcessorTest {
         private AtomicInteger counter = new AtomicInteger(0);
 
         @Override
-        public <T> Future<T> withTransaction(Function<Tuple0, Future<T>> callBack) {
+        public <T> CompletionStage<T> withTransaction(Function<Tuple0, CompletionStage<T>> callBack) {
             return callBack.apply(Tuple.empty());
         }
 

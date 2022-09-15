@@ -7,6 +7,9 @@ import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
 /**
  *
  * The command is the interface that need to be implemented in order to handle command.
@@ -27,14 +30,14 @@ public interface CommandHandler<Error, State, Command, E extends Event, Message,
      * @param command
      * @return
      */
-    Future<Either<Error, Events<E, Message>>> handleCommand(TxCtx ctx, Option<State> state, Command command);
+    CompletionStage<Either<Error, Events<E, Message>>> handleCommand(TxCtx ctx, Option<State> state, Command command);
 
-    default Future<Either<Error, Events<E, Tuple0>>> eventsAsync(E... events) {
-        return Future.successful(Either.right(Events.events(List.of(events))));
+    default CompletionStage<Either<Error, Events<E, Tuple0>>> eventsAsync(E... events) {
+        return CompletableFuture.completedStage(Either.right(Events.events(List.of(events))));
     }
 
-    default Future<Either<Error, Events<E, Message>>> eventsAsync(Message message, E... events) {
-        return Future.successful(Either.right(Events.events(message, List.of(events))));
+    default CompletionStage<Either<Error, Events<E, Message>>> eventsAsync(Message message, E... events) {
+        return CompletableFuture.completedStage(Either.right(Events.events(message, List.of(events))));
     }
 
     default Either<Error, Events<E, Tuple0>> events(E... events) {
@@ -49,8 +52,8 @@ public interface CommandHandler<Error, State, Command, E extends Event, Message,
         return Either.left(error);
     }
 
-    default Future<Either<Error, Events<E, Message>>> failAsync(Error error) {
-        return Future.successful(Either.left(error));
+    default CompletionStage<Either<Error, Events<E, Message>>> failAsync(Error error) {
+        return CompletableFuture.completedStage(Either.left(error));
     }
 
 }

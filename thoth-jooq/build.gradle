@@ -8,6 +8,7 @@ group = 'fr.maif'
 dependencies {
     implementation project(':commons-events')
     implementation project(':thoth-core')
+    implementation project(':thoth-core-akka')
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
     implementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")

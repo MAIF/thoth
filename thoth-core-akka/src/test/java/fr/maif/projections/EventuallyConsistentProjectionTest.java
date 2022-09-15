@@ -11,6 +11,7 @@ import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.json.Json;
 import fr.maif.json.JsonFormat;
 import fr.maif.projections.EventuallyConsistentProjection.Config;
+import io.vavr.API;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.concurrent.Future;
@@ -53,8 +54,8 @@ class EventuallyConsistentProjectionTest extends TestcontainersKafkaTest {
                 new Helpers.VikingEventFormat(),
                 event -> {
                     Option<String> name = Match(event.event).option(
-                            Case(VikingCreatedV1.pattern(), e -> e.name),
-                            Case(VikingUpdatedV1.pattern(), e -> e.name)
+                            API.Case(VikingEvent.VikingCreatedV1.pattern(), e -> e.name),
+                            API.Case(VikingEvent.VikingUpdatedV1.pattern(), e -> e.name)
                     );
                     name.forEach(n -> names.set(names.get() + " " + n));
                     return Future.successful(Tuple.empty());

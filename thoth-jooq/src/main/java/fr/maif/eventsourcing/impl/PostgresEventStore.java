@@ -3,12 +3,14 @@ package fr.maif.eventsourcing.impl;
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.stream.Materializer;
+import akka.stream.javadsl.AsPublisher;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
+import fr.maif.concurrent.CompletionStages;
 import fr.maif.json.MapperSingleton;
-import io.vavr.API;
 import io.vavr.Tuple0;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
@@ -30,6 +32,7 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
+import org.reactivestreams.Publisher;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
@@ -40,9 +43,10 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 
-import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
 import static io.vavr.API.List;
 import static io.vavr.API.Seq;
 import static io.vavr.API.Tuple;
@@ -128,46 +132,44 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
         this.eventPublisher.close();
     }
 
-    @Override
     public ActorSystem system() {
         return this.system;
     }
 
-    @Override
     public Materializer materializer() {
         return this.materializer;
     }
 
 
     @Override
-    public Future<Connection> openTransaction() {
-        return Future.of(executor, () -> {
+    public CompletionStage<Connection> openTransaction() {
+        return CompletionStages.fromTry(() -> Try.of(() -> {
             Connection connection = dataSource.getConnection();
             connection.setAutoCommit(false);
             return connection;
-        });
+        }), executor);
     }
 
     @Override
-    public Future<Tuple0> commitOrRollback(Option<Throwable> mayBeCrash, Connection connection) {
+    public CompletionStage<Tuple0> commitOrRollback(Option<Throwable> mayBeCrash, Connection connection) {
         return mayBeCrash.fold(
-                () -> Future.of(executor, () -> {
+                () -> CompletionStages.fromTry(() -> Try.of(() -> {
                     connection.commit();
                     connection.close();
                     return Tuple.empty();
-                }),
-                e -> Future.of(executor, () -> {
+                }), executor),
+                e -> CompletionStages.fromTry(() -> Try.of(() -> {
                     connection.rollback();
                     connection.close();
                     return Tuple.empty();
-                })
+                }), executor)
         );
     }
 
     @Override
-    public Future<Tuple0> persist(Connection connection, List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Tuple0> persist(Connection connection, List<EventEnvelope<E, Meta, Context>> events) {
 
-        return Future.of(executor, () -> {
+        return CompletionStages.fromTry(() -> Try.of(() -> {
             DSLContext create = DSL.using(connection, SQLDialect.POSTGRES);
 
             create.batch(
@@ -225,62 +227,60 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                     ).toJavaList()
             ).execute();
             return Tuple.empty();
-        });
+        }), executor);
     }
 
     @Override
-    public Future<Long> nextSequence(Connection tx) {
-        return Future.of(executor, () ->
+    public CompletionStage<Long> nextSequence(Connection tx) {
+        return CompletionStages.fromTry(() -> Try.of(() ->
                 DSL.using(tx).nextval(name(this.tableNames.sequenceNumName)).longValue()
-        );
+        ), executor);
     }
 
     @Override
-    public Future<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
         return this.eventPublisher.publish(events);
     }
 
 
     @Override
-    public Future<EventEnvelope<E, Meta, Context>> markAsPublished(EventEnvelope<E, Meta, Context> eventEnvelope) {
-        return Future.fromCompletableFuture(sql.update(table(this.tableNames.tableName))
+    public CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(EventEnvelope<E, Meta, Context> eventEnvelope) {
+        return sql.update(table(this.tableNames.tableName))
                 .set(PUBLISHED, true)
                 .where(ID.eq(eventEnvelope.id))
                 .executeAsync(executor)
                 .toCompletableFuture()
-        ).map(__ -> eventEnvelope.copy().withPublished(true).build());
+        .thenApply(__ -> eventEnvelope.copy().withPublished(true).build());
     }
 
     @Override
-    public Future<List<EventEnvelope<E, Meta, Context>>> markAsPublished(List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
-        return Future.fromCompletableFuture(
-                sql.update(table(this.tableNames.tableName))
+    public CompletionStage<List<EventEnvelope<E, Meta, Context>>> markAsPublished(List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
+        return sql.update(table(this.tableNames.tableName))
                         .set(PUBLISHED, true)
                         .where(ID.in(eventEnvelopes.map(evt -> evt.id).toJavaArray(UUID[]::new)))
                         .executeAsync(executor)
                         .toCompletableFuture()
-        ).map(__ -> eventEnvelopes.map(eventEnvelope -> eventEnvelope.copy().withPublished(true).build()));
+        .thenApply(__ -> eventEnvelopes.map(eventEnvelope -> eventEnvelope.copy().withPublished(true).build()));
     }
 
     @Override
-    public Future<List<EventEnvelope<E, Meta, Context>>> markAsPublished(Connection tx, List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
-        return Future.fromCompletableFuture(
-                DSL.using(tx, SQLDialect.POSTGRES)
+    public CompletionStage<List<EventEnvelope<E, Meta, Context>>> markAsPublished(Connection tx, List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
+        return DSL.using(tx, SQLDialect.POSTGRES)
                         .update(table(this.tableNames.tableName))
                         .set(PUBLISHED, true)
                         .where(ID.in(eventEnvelopes.map(evt -> evt.id).toJavaArray(UUID[]::new)))
                         .executeAsync(executor)
                         .toCompletableFuture()
-        ).map(__ -> eventEnvelopes.map(eventEnvelope -> eventEnvelope.copy().withPublished(true).build()));
+        .thenApply(__ -> eventEnvelopes.map(eventEnvelope -> eventEnvelope.copy().withPublished(true).build()));
     }
 
     @Override
-    public Future<EventEnvelope<E, Meta, Context>> markAsPublished(Connection tx, EventEnvelope<E, Meta, Context> eventEnvelope) {
-        return markAsPublished(tx, List(eventEnvelope)).map(Traversable::head);
+    public CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(Connection tx, EventEnvelope<E, Meta, Context> eventEnvelope) {
+        return markAsPublished(tx, List(eventEnvelope)).thenApply(Traversable::head);
     }
 
     @Override
-    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished(Connection c, ConcurrentReplayStrategy concurrentReplayStrategy) {
+    public Publisher<EventEnvelope<E, Meta, Context>> loadEventsUnpublished(Connection c, ConcurrentReplayStrategy concurrentReplayStrategy) {
         String tmpQuery = SELECT_CLAUSE +
                 " FROM " + this.tableNames.tableName +
                 " WHERE published = false " +
@@ -300,15 +300,16 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                 .select(query)
                 .closeConnection(false)
                 .as(this::rsToEnvelope)
-                .get();
+                .get()
+                .runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), system);
     }
 
     @Override
-    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsByQuery(Connection tx, Query query) {
+    public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(Connection tx, Query query) {
         return loadEventsByQueryWithOptions(tx, query, false);
     }
 
-    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsByQueryWithOptions(Connection tx, Query query, boolean autoClose) {
+    public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQueryWithOptions(Connection tx, Query query, boolean autoClose) {
         Seq<Tuple2<String, Object>> clauses = Seq(
                 query.dateFrom().map(d -> Tuple.<String, Object>of(" emission_date > ? ", Timestamp.valueOf(d))),
                 query.dateTo().map(d -> Tuple.<String, Object>of(" emission_date < ? ", Timestamp.valueOf(d))),
@@ -336,15 +337,17 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                 .closeConnection(autoClose)
                 .params(objects)
                 .as(this::rsToEnvelope)
-                .get();
+                .get()
+                .runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), system);
     }
 
     @Override
-    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsByQuery(Query query) {
+    public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(Query query) {
         return Sql.connection(dataSource, executor, false)
                 .flatMapConcat(c ->
-                        loadEventsByQueryWithOptions(c, query, true)
-                );
+                        Source.fromPublisher(loadEventsByQueryWithOptions(c, query, true))
+                )
+                .runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), system);
     }
 
     private EventEnvelope<E, Meta, Context> rsToEnvelope(ResultSet rs) {

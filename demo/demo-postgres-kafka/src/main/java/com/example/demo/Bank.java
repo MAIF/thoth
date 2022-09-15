@@ -28,6 +28,7 @@ import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -150,28 +151,28 @@ public class Bank {
     }
 
 
-    public Future<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> createAccount(
+    public CompletionStage<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> createAccount(
             BigDecimal amount) {
         Lazy<String> lazyId = Lazy.of(() -> UUIDgenerator.generate().toString());
         return eventProcessor.processCommand(new BankCommand.OpenAccount(lazyId, amount));
     }
 
-    public Future<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> withdraw(
+    public CompletionStage<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> withdraw(
             String account, BigDecimal amount) {
         return eventProcessor.processCommand(new BankCommand.Withdraw(account, amount));
     }
 
-    public Future<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> deposit(
+    public CompletionStage<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> deposit(
             String account, BigDecimal amount) {
         return eventProcessor.processCommand(new BankCommand.Deposit(account, amount));
     }
 
-    public Future<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> close(
+    public CompletionStage<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> close(
             String account) {
         return eventProcessor.processCommand(new BankCommand.CloseAccount(account));
     }
 
-    public Future<Option<Account>> findAccountById(String id) {
+    public CompletionStage<Option<Account>> findAccountById(String id) {
         return eventProcessor.getAggregate(id);
     }
 

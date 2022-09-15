@@ -13,12 +13,13 @@ import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.Tuple2;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 
 import java.util.Objects;
 import java.util.StringJoiner;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static fr.maif.Helpers.VikingEvent.VikingCreatedV1;
@@ -237,8 +238,8 @@ public class Helpers {
     public static class VikingCommandHandler implements CommandHandler<String, Viking, VikingCommand, VikingEvent, String, Tuple0> {
 
         @Override
-        public Future<Either<String, Events<VikingEvent, String>>> handleCommand(Tuple0 unit, Option<Viking> state, VikingCommand vikingCommand) {
-            return Future.successful(
+        public CompletionStage<Either<String, Events<VikingEvent, String>>> handleCommand(Tuple0 unit, Option<Viking> state, VikingCommand vikingCommand) {
+            return CompletableFuture.completedStage(
                     Match(vikingCommand).of(
                             Case(VikingCommand.CreateVikingV1.pattern(), e -> events("C", new VikingEvent.VikingCreated(e.id, e.name))),
                             Case(VikingCommand.UpdateVikingV1.pattern(), e -> events("U", new VikingEvent.VikingUpdated(e.id, e.name))),
@@ -290,34 +291,34 @@ public class Helpers {
 
 
         @Override
-        public Future<Option<Viking>> getSnapshot(String entityId) {
-            return Future.successful(Option.of(data.get(entityId)));
+        public CompletionStage<Option<Viking>> getSnapshot(String entityId) {
+            return CompletableFuture.completedStage(Option.of(data.get(entityId)));
         }
 
         @Override
-        public Future<Option<Viking>> getSnapshot(Tuple0 transactionContext, String entityId) {
-            return Future.successful(Option.of(data.get(entityId)));
+        public CompletionStage<Option<Viking>> getSnapshot(Tuple0 transactionContext, String entityId) {
+            return CompletableFuture.completedStage(Option.of(data.get(entityId)));
         }
 
         @Override
-        public Future<Tuple0> persist(Tuple0 transactionContext, String id, Option<Viking> state) {
+        public CompletionStage<Tuple0> persist(Tuple0 transactionContext, String id, Option<Viking> state) {
             Match(state).of(
                     Case($Some($()), s -> data.put(s.id, s)),
                     Case($None(), () -> data.remove(id))
             );
-            return Future.successful(Tuple.empty());
+            return CompletableFuture.completedStage(Tuple.empty());
         }
     }
 
     public static class VikingProjection implements Projection<Tuple0, VikingEvent, Tuple0, Tuple0> {
         public ConcurrentHashMap<String, Integer> data = new ConcurrentHashMap<>();
         @Override
-        public Future<Tuple0> storeProjection(Tuple0 unit, List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> events) {
+        public CompletionStage<Tuple0> storeProjection(Tuple0 unit, List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> events) {
             events.forEach(event -> {
                 int i = data.getOrDefault(event.entityId, 0) + events.size();
                 data.put(event.entityId, i);
             });
-            return Future(Tuple.empty());
+            return CompletableFuture.completedStage(Tuple.empty());
         }
     }
 

@@ -1,10 +1,10 @@
 package fr.maif.eventsourcing.impl;
 
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
+import fr.maif.concurrent.CompletionStages;
 import fr.maif.jdbc.Convertions;
 import fr.maif.jdbc.DbUtils;
 import fr.maif.jdbc.Sql;
@@ -37,15 +37,13 @@ public class JdbcTransactionManagerTest implements DbUtils {
         JdbcTransactionManager jdbcTransactionManager = new JdbcTransactionManager(dataSource, ec);
 
         jdbcTransactionManager.withTransaction(connection ->
-                Future.fromCompletableFuture(ec,
                         Sql.of(connection, system)
                                 .update("update bands1 set name = ? where band_id = ?").params("The mars volta", 2)
                                 .closeConnection(false)
                                 .count()
                                 .runWith(Sink.head(), Materializer.createMaterializer(system))
                                 .toCompletableFuture()
-                )
-        ).get();
+        ).toCompletableFuture().join();
 
 
         List<Map<String, String>> results = Sql.of(dataSource.getConnection(), system)
@@ -70,16 +68,14 @@ public class JdbcTransactionManagerTest implements DbUtils {
 
         Try.of(() -> {
             jdbcTransactionManager.withTransaction(connection ->
-                    Future.fromCompletableFuture(ec,
                             Sql.of(connection, system)
                                     .update("update bands2 set name = ? where band_id = ?").params("The mars volta", 2)
                                     .closeConnection(false)
                                     .count()
                                     .runWith(Sink.head(), Materializer.createMaterializer(system))
                                     .toCompletableFuture()
-                    )
-                            .flatMap(__ -> Future.failed(new RuntimeException("Oups")))
-            ).get();
+                            .thenCompose(__ -> CompletionStages.failed(new RuntimeException("Oups")))
+            ).toCompletableFuture().join();
             return true;
         });
 

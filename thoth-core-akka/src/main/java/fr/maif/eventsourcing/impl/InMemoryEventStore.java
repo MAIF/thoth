@@ -6,16 +6,18 @@ import akka.japi.Pair;
 import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.*;
-import io.vavr.Tuple;
-import io.vavr.Tuple0;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventStore;
+import io.vavr.Tuple;
+import io.vavr.Tuple0;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Option;
+import org.reactivestreams.Publisher;
 
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -52,80 +54,71 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
     }
 
     @Override
-    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished(Tuple0 tx, ConcurrentReplayStrategy concurrentReplayStrategy) {
-        return Source.empty();
+    public Publisher<EventEnvelope<E, Meta, Context>> loadEventsUnpublished(Tuple0 tx, ConcurrentReplayStrategy concurrentReplayStrategy) {
+        return Source.<EventEnvelope<E, Meta, Context>>empty().runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), system);
     }
 
     @Override
-    public Future<EventEnvelope<E, Meta, Context>> markAsPublished(Tuple0 tx, EventEnvelope<E, Meta, Context> eventEnvelope) {
+    public CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(Tuple0 tx, EventEnvelope<E, Meta, Context> eventEnvelope) {
         return markAsPublished(eventEnvelope);
     }
 
     @Override
-    public Future<Tuple0> openTransaction() {
-        return Future.successful(Tuple.empty());
+    public CompletionStage<Tuple0> openTransaction() {
+        return CompletableFuture.completedStage(Tuple.empty());
     }
 
     @Override
-    public Future<Tuple0> commitOrRollback(Option<Throwable> of, Tuple0 tx) {
-        return Future.successful(Tuple.empty());
+    public CompletionStage<Tuple0> commitOrRollback(Option<Throwable> of, Tuple0 tx) {
+        return CompletableFuture.completedStage(Tuple.empty());
     }
 
     @Override
-    public Future<EventEnvelope<E, Meta, Context>> markAsPublished(EventEnvelope<E, Meta, Context> eventEnvelope) {
-        return Future.successful(
+    public CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(EventEnvelope<E, Meta, Context> eventEnvelope) {
+        return CompletableFuture.completedStage(
                 eventEnvelope.copy().withPublished(true).build()
         );
     }
 
     @Override
-    public ActorSystem system() {
-        return this.system;
+    public CompletionStage<Long> nextSequence(Tuple0 tx) {
+        return CompletableFuture.completedStage(sequence_num.incrementAndGet());
     }
 
     @Override
-    public Materializer materializer() {
-        return this.materializer;
-    }
-
-    @Override
-    public Future<Long> nextSequence(Tuple0 tx) {
-        return Future.successful(sequence_num.incrementAndGet());
-    }
-
-    @Override
-    public Future<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
         events.forEach(queue::offer);
-        return Future.successful(Tuple.empty());
+        return CompletableFuture.completedStage(Tuple.empty());
     }
 
     @Override
-    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEvents(String id) {
-        return Source.from(eventStore);
+    public Publisher<EventEnvelope<E, Meta, Context>> loadEvents(String id) {
+        return Source.from(eventStore).runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), system);
     }
 
 
     @Override
-    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadAllEvents() {
-        return Source.from(eventStore);
+    public Publisher<EventEnvelope<E, Meta, Context>> loadAllEvents() {
+        return Source.from(eventStore).runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), system);
     }
 
     @Override
-    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsByQuery(Tuple0 tx, Query query) {
+    public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(Tuple0 tx, Query query) {
         return loadEventsByQuery(query);
     }
 
     @Override
-    public Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsByQuery(Query query) {
+    public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(Query query) {
         return Source.from(eventStore)
                 .filter(e -> {
                     return Option.of(query.entityId).map(id -> id.equals(e.entityId)).getOrElse(true);
-                });
+                })
+                .runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), system);
     }
 
     @Override
-    public Future<Tuple0> persist(Tuple0 transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Tuple0> persist(Tuple0 transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
         eventStore.addAll(events.toJavaList());
-        return Future.successful(Tuple.empty());
+        return CompletableFuture.completedStage(Tuple.empty());
     }
 }

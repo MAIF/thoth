@@ -4,6 +4,7 @@ import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
 import io.vavr.concurrent.Future;
 
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 public class ReactiveTransactionManager implements TransactionManager<PgAsyncTransaction> {
@@ -15,7 +16,7 @@ public class ReactiveTransactionManager implements TransactionManager<PgAsyncTra
     }
 
     @Override
-    public <T> Future<T> withTransaction(Function<PgAsyncTransaction, Future<T>> callBack) {
-        return pgAsyncPool.inTransaction(callBack);
+    public <T> CompletionStage<T> withTransaction(Function<PgAsyncTransaction, CompletionStage<T>> callBack) {
+        return pgAsyncPool.inTransaction(t -> Future.fromCompletableFuture(callBack.apply(t).toCompletableFuture())).toCompletableFuture();
     }
 }

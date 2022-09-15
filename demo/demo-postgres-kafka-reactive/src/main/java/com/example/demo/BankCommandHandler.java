@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.CommandHandler;
 import fr.maif.eventsourcing.Events;
 import fr.maif.jooq.PgAsyncTransaction;
@@ -10,6 +11,7 @@ import io.vavr.control.Either;
 import io.vavr.control.Option;
 
 import java.math.BigDecimal;
+import java.util.concurrent.CompletionStage;
 
 import static com.example.demo.BankCommand.$CloseAccount;
 import static com.example.demo.BankCommand.$Deposit;
@@ -23,11 +25,11 @@ import static io.vavr.API.Right;
 
 public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, Tuple0, PgAsyncTransaction> {
     @Override
-    public Future<Either<String, Events<BankEvent, Tuple0>>> handleCommand(
+    public CompletionStage<Either<String, Events<BankEvent, Tuple0>>> handleCommand(
             PgAsyncTransaction transactionContext,
             Option<Account> previousState,
             BankCommand command) {
-        return Future.of(() -> Match(command).of(
+        return CompletionStages.of(() -> Match(command).of(
             Case($Withdraw(), withdraw -> this.handleWithdraw(previousState, withdraw)),
             Case($Deposit(), deposit -> this.handleDeposit(previousState, deposit)),
             Case($OpenAccount(), this::handleOpening),

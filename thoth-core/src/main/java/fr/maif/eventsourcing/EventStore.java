@@ -1,60 +1,54 @@
 package fr.maif.eventsourcing;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.stream.Materializer;
-import akka.stream.javadsl.Source;
+import fr.maif.concurrent.CompletionStages;
 import io.vavr.Tuple0;
 import io.vavr.Value;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Option;
+import org.reactivestreams.Publisher;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.concurrent.CompletionStage;
 
 public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
-    ActorSystem system();
+    CompletionStage<Tuple0> persist(TxCtx transactionContext, List<EventEnvelope<E, Meta, Context>> events);
 
-    Materializer materializer();
+    Publisher<EventEnvelope<E, Meta, Context>> loadEventsUnpublished(TxCtx tx, ConcurrentReplayStrategy concurrentReplayStrategy);
 
-    Future<Tuple0> persist(TxCtx transactionContext, List<EventEnvelope<E, Meta, Context>> events);
+    Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(TxCtx tx, Query query);
 
-    Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsUnpublished(TxCtx tx, ConcurrentReplayStrategy concurrentReplayStrategy);
+    Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(Query query);
 
-    Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsByQuery(TxCtx tx, Query query);
-
-    Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEventsByQuery(Query query);
-
-    default Source<EventEnvelope<E, Meta, Context>, NotUsed> loadEvents(String id) {
+    default Publisher<EventEnvelope<E, Meta, Context>> loadEvents(String id) {
         return loadEventsByQuery(Query.builder().withEntityId(id).build());
     }
 
-    default Source<EventEnvelope<E, Meta, Context>, NotUsed> loadAllEvents() {
+    default Publisher<EventEnvelope<E, Meta, Context>> loadAllEvents() {
         return loadEventsByQuery(Query.builder().build());
     }
 
-    Future<Long> nextSequence(TxCtx tx);
+    CompletionStage<Long> nextSequence(TxCtx tx);
 
-    Future<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events);
+    CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events);
 
 
-    Future<EventEnvelope<E, Meta, Context>> markAsPublished(TxCtx tx, EventEnvelope<E, Meta, Context> eventEnvelope);
+    CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(TxCtx tx, EventEnvelope<E, Meta, Context> eventEnvelope);
 
-    default Future<List<EventEnvelope<E, Meta, Context>>> markAsPublished(TxCtx tx, List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
-        return Future.traverse(eventEnvelopes, evt -> this.markAsPublished(tx, evt)).map(Value::toList);
+    default CompletionStage<List<EventEnvelope<E, Meta, Context>>> markAsPublished(TxCtx tx, List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
+        return CompletionStages.traverse(eventEnvelopes, evt -> this.markAsPublished(tx, evt));
     }
 
-    Future<EventEnvelope<E, Meta, Context>> markAsPublished(EventEnvelope<E, Meta, Context> eventEnvelope);
+    CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(EventEnvelope<E, Meta, Context> eventEnvelope);
 
-    default Future<List<EventEnvelope<E, Meta, Context>>> markAsPublished(List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
-        return Future.traverse(eventEnvelopes, this::markAsPublished).map(Value::toList);
+    default CompletionStage<List<EventEnvelope<E, Meta, Context>>> markAsPublished(List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
+        return CompletionStages.traverse(eventEnvelopes, this::markAsPublished);
     }
 
-    Future<TxCtx> openTransaction();
+    CompletionStage<TxCtx> openTransaction();
 
-    Future<Tuple0> commitOrRollback(Option<Throwable> of, TxCtx tx);
+    CompletionStage<Tuple0> commitOrRollback(Option<Throwable> of, TxCtx tx);
 
     /**
      * Strategy to choose when replaying journal in case of crash when there is two or more nodes that want to replay concurrently.

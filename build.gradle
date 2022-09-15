@@ -41,6 +41,7 @@ subprojects {
         jooqVersion           = "3.14.3"
         jooqAsyncVersion      = "1.2.2"
         functionalJsonVersion = "1.0.3"
+        kafkaVersion          = "3.0.1"
     }
     test {
         testLogging {

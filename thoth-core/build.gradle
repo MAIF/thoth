@@ -7,15 +7,16 @@ group = 'fr.maif'
 
 dependencies {
     implementation project(':commons-events')
-    implementation project(':thoth-kafka-goodies')
+    implementation project(':thoth-akka-kafka-goodies')
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("io.vavr:vavr-jackson:$vavrVersion")
-    implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
-    implementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")
     implementation("com.fasterxml.uuid:java-uuid-generator:3.1.5")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
     implementation("fr.maif:functional-json:$functionalJsonVersion")
+    implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
+    implementation("org.reactivestreams:reactive-streams:1.0.4")
+    implementation("org.slf4j:slf4j-api:1.7.36")
 
     testImplementation("com.typesafe.akka:akka-testkit_$scalaVersion:$akkaVersion")
     testImplementation("com.typesafe.akka:akka-stream-testkit_$scalaVersion:$akkaVersion")
