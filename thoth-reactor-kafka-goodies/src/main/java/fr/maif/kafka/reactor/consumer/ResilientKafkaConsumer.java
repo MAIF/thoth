@@ -338,7 +338,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
         LOGGER.info("Starting {} on topic '{}' with group id '{}'", name(), topics, groupId);
         AtomicInteger restartCount = new AtomicInteger(0);
         KafkaReceiver<K, V> kafkaReceiver = KafkaReceiver.create(this.receiverOptions);
-        Disposable disposable = kafkaReceiver.receive()
+        Disposable disposable = kafkaReceiver.receive().publish()
                 .doOnSubscribe(s -> {
                     updateStatus(Status.Started);
                     this.onStarted.apply(controlRef.get(), restartCount.get()).subscribe();
