@@ -14,10 +14,10 @@ jobs:
           mkdir -p ~/.gradle/
           echo "${{secrets.PGP_SECRET}}" > ~/.gradle/secring.key
           gpg --batch --pinentry-mode=loopback --yes --passphrase ${{ secrets.PGP_PASSPHRASE }} --import ~/.gradle/secring.key
-          gpg --batch --pinentry-mode=loopback --yes --passphrase ${{ secrets.PGP_PASSPHRASE }} --export-secret-key D546AEC36F94B3078E33900CE856678CF07E3809 > ~/.gradle/secring.gpg
+          gpg --batch --pinentry-mode=loopback --yes --passphrase ${{ secrets.PGP_PASSPHRASE }} --export-secret-key 5B6BE1966878E3AE16B85BC975B8BA741462DEA9 > ~/.gradle/secring.gpg
       - name: Publish
         run: |
-          ./gradlew publish -PmavenCentralUsername=${{ secrets.SONATYPE_USERNAME }} -PmavenCentralPassword=${{ secrets.SONATYPE_PASSWORD }} -Psigning.keyId=F07E3809 -Psigning.password=${{secrets.PGP_PASSPHRASE}} -Psigning.secretKeyRingFile=$(echo ~/.gradle/secring.gpg) --warn --stacktrace
+          ./gradlew publish -Psigning.keyId=1462DEA9 -PmavenCentralUsername=${{ secrets.SONATYPE_USERNAME }} -PmavenCentralPassword=${{ secrets.SONATYPE_PASSWORD }} -Psigning.password=${{secrets.PGP_PASSPHRASE}} -Psigning.secretKeyRingFile=$(echo ~/.gradle/secring.gpg) --warn --stacktrace
           ./closeRelease.sh "${{ github.event.head_commit.message }}"
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
