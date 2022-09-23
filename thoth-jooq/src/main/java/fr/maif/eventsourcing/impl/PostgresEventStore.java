@@ -1,57 +1,53 @@
 package fr.maif.eventsourcing.impl;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.stream.Materializer;
-import akka.stream.javadsl.AsPublisher;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
 import fr.maif.concurrent.CompletionStages;
-import fr.maif.json.MapperSingleton;
-import io.vavr.Tuple0;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventPublisher;
 import fr.maif.eventsourcing.EventStore;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
-import fr.maif.jdbc.Sql;
+import fr.maif.json.MapperSingleton;
 import io.vavr.Tuple;
-import io.vavr.Tuple2;
 import io.vavr.collection.List;
 import io.vavr.collection.Seq;
 import io.vavr.collection.Traversable;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import org.reactivestreams.Publisher;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import javax.sql.DataSource;
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
 import static io.vavr.API.List;
 import static io.vavr.API.Seq;
-import static io.vavr.API.Tuple;
 import static java.util.function.Function.identity;
-import static org.jooq.impl.DSL.*;
+import static org.jooq.impl.DSL.field;
+import static org.jooq.impl.DSL.name;
+import static org.jooq.impl.DSL.table;
 
 public class PostgresEventStore<E extends Event, Meta, Context> implements EventStore<Connection, E, Meta, Context>, Closeable {
 
@@ -73,11 +69,8 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
     private final static Field<Timestamp> EMISSION_DATE = field("emission_date", Timestamp.class);
     private final static Field<Boolean> PUBLISHED = field("published", Boolean.class);
 
-
-    private final ActorSystem system;
-    private final Materializer materializer;
     private final DataSource dataSource;
-    private final ExecutorService executor;
+    private final Executor executor;
     private final TableNames tableNames;
     private final EventPublisher<E, Meta, Context> eventPublisher;
     private final DSLContext sql;
@@ -103,9 +96,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                     "  context," +
                     "  published ";
 
-    public PostgresEventStore(ActorSystem system, EventPublisher<E, Meta, Context> eventPublisher, DataSource dataSource, ExecutorService executor, TableNames tableNames, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat) {
-        this.system = system;
-        this.materializer = Materializer.createMaterializer(system);
+    public PostgresEventStore(EventPublisher<E, Meta, Context> eventPublisher, DataSource dataSource, Executor executor, TableNames tableNames, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat) {
         this.dataSource = dataSource;
         this.executor = executor;
         this.tableNames = tableNames;
@@ -118,28 +109,18 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
     }
 
     public static <E extends Event, Meta, Context> PostgresEventStore<E, Meta, Context> create(
-            ActorSystem system,
             EventPublisher<E, Meta, Context> eventPublisher,
             DataSource dataSource,
             ExecutorService executor,
             TableNames tableNames,
             JacksonEventFormat<?, E> eventFormat) {
-        return new PostgresEventStore<>(system, eventPublisher, dataSource, executor, tableNames, eventFormat, JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty());
+        return new PostgresEventStore<>(eventPublisher, dataSource, executor, tableNames, eventFormat, JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty());
     }
 
     @Override
     public void close() throws IOException {
         this.eventPublisher.close();
     }
-
-    public ActorSystem system() {
-        return this.system;
-    }
-
-    public Materializer materializer() {
-        return this.materializer;
-    }
-
 
     @Override
     public CompletionStage<Connection> openTransaction() {
@@ -163,7 +144,8 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                     connection.close();
                     return Tuple.empty();
                 }), executor)
-        ).thenRun(() -> {});
+        ).thenRun(() -> {
+        });
     }
 
     @Override
@@ -227,7 +209,8 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                     ).toJavaList()
             ).execute();
             return Tuple.empty();
-        }), executor).thenRun(() -> {});
+        }), executor).thenRun(() -> {
+        });
     }
 
     @Override
@@ -250,28 +233,28 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                 .where(ID.eq(eventEnvelope.id))
                 .executeAsync(executor)
                 .toCompletableFuture()
-        .thenApply(__ -> eventEnvelope.copy().withPublished(true).build());
+                .thenApply(__ -> eventEnvelope.copy().withPublished(true).build());
     }
 
     @Override
     public CompletionStage<List<EventEnvelope<E, Meta, Context>>> markAsPublished(List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
         return sql.update(table(this.tableNames.tableName))
-                        .set(PUBLISHED, true)
-                        .where(ID.in(eventEnvelopes.map(evt -> evt.id).toJavaArray(UUID[]::new)))
-                        .executeAsync(executor)
-                        .toCompletableFuture()
-        .thenApply(__ -> eventEnvelopes.map(eventEnvelope -> eventEnvelope.copy().withPublished(true).build()));
+                .set(PUBLISHED, true)
+                .where(ID.in(eventEnvelopes.map(evt -> evt.id).toJavaArray(UUID[]::new)))
+                .executeAsync(executor)
+                .toCompletableFuture()
+                .thenApply(__ -> eventEnvelopes.map(eventEnvelope -> eventEnvelope.copy().withPublished(true).build()));
     }
 
     @Override
     public CompletionStage<List<EventEnvelope<E, Meta, Context>>> markAsPublished(Connection tx, List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
         return DSL.using(tx, SQLDialect.POSTGRES)
-                        .update(table(this.tableNames.tableName))
-                        .set(PUBLISHED, true)
-                        .where(ID.in(eventEnvelopes.map(evt -> evt.id).toJavaArray(UUID[]::new)))
-                        .executeAsync(executor)
-                        .toCompletableFuture()
-        .thenApply(__ -> eventEnvelopes.map(eventEnvelope -> eventEnvelope.copy().withPublished(true).build()));
+                .update(table(this.tableNames.tableName))
+                .set(PUBLISHED, true)
+                .where(ID.in(eventEnvelopes.map(evt -> evt.id).toJavaArray(UUID[]::new)))
+                .executeAsync(executor)
+                .toCompletableFuture()
+                .thenApply(__ -> eventEnvelopes.map(eventEnvelope -> eventEnvelope.copy().withPublished(true).build()));
     }
 
     @Override
@@ -296,12 +279,12 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
             default:
                 query = tmpQuery;
         }
-        return Sql.of(c, system)
-                .select(query)
-                .closeConnection(false)
-                .as(this::rsToEnvelope)
-                .get()
-                .runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), system);
+
+        return Flux.fromStream(() -> DSL.using(c)
+                .resultQuery(query)
+                .stream()
+                .map(r -> rsToEnvelope(r.intoResultSet()))
+        );
     }
 
     @Override
@@ -310,44 +293,43 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
     }
 
     public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQueryWithOptions(Connection tx, Query query, boolean autoClose) {
-        Seq<Tuple2<String, Object>> clauses = Seq(
-                query.dateFrom().map(d -> Tuple.<String, Object>of(" emission_date > ? ", Timestamp.valueOf(d))),
-                query.dateTo().map(d -> Tuple.<String, Object>of(" emission_date < ? ", Timestamp.valueOf(d))),
-                query.entityId().map(d -> Tuple.<String, Object>of(" entity_id = ? ", d)),
-                query.systemId().map(d -> Tuple.<String, Object>of(" system_id = ? ", d)),
-                query.userId().map(d -> Tuple.<String, Object>of(" user_id = ? ", d)),
-                query.published().map(d -> Tuple.<String, Object>of(" published = ? ", d)),
-                query.sequenceTo().map(d -> Tuple.<String, Object>of(" sequence_num <= ? ", d)),
-                query.sequenceFrom().map(d -> Tuple.<String, Object>of(" sequence_num >= ? ", d))
-        )
-                .flatMap(identity());
+        final Seq<Condition> clauses = Seq(
+                query.dateFrom().map(d -> field("emission_date").greaterThan(Timestamp.valueOf(d))),
+                query.dateTo().map(d -> field(" emission_date").lessThan(Timestamp.valueOf(d))),
+                query.entityId().map(d -> field(" entity_id").eq(d)),
+                query.systemId().map(d -> field(" system_id").eq(d)),
+                query.userId().map(d -> field(" user_id").eq(d)),
+                query.published().map(d -> field(" published").eq(d)),
+                query.sequenceTo().map(d -> field(" sequence_num").lessOrEqual(d)),
+                query.sequenceFrom().map(d -> field(" sequence_num").greaterOrEqual(d))
+        ).flatMap(identity());
 
-        String strClauses = clauses.map(Tuple2::_1).mkString("WHERE", " AND ", "");
-        String select = SELECT_CLAUSE + " FROM " + this.tableNames.tableName + " " + (clauses.isEmpty() ? "" : strClauses) + " ORDER BY sequence_num asc";
-        if (Objects.nonNull(query.size)) {
-            select = select + " limit ? ";
-            clauses = clauses.append(Tuple("", query.size));
-        }
-        Object[] objects = clauses.map(Tuple2::_2).toJavaArray();
+        var tmpJooqQuery = DSL.using(tx)
+                .selectFrom(SELECT_CLAUSE + " FROM " + this.tableNames.tableName)
+                .where(clauses.toJavaList())
+                .orderBy(field("sequence_num").asc())
+                ;
+        var jooqQuery = Objects.nonNull(query.size) ? tmpJooqQuery.limit(query.size) : tmpJooqQuery;
 
-        LOGGER.debug("{}", select);
-
-        return Sql.of(tx, system)
-                .select(select)
-                .closeConnection(autoClose)
-                .params(objects)
-                .as(this::rsToEnvelope)
-                .get()
-                .runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), system);
+        LOGGER.debug("{}", jooqQuery);
+        return Flux.fromStream(() -> jooqQuery.stream().map(r -> rsToEnvelope(r.intoResultSet())))
+                .doFinally(any -> {
+                    if (autoClose) {
+                        try {
+                            tx.close();
+                        } catch (SQLException e) {
+                        }
+                    }
+                }).subscribeOn(Schedulers.fromExecutor(executor));
     }
 
     @Override
     public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(Query query) {
-        return Sql.connection(dataSource, executor, false)
-                .flatMapConcat(c ->
-                        Source.fromPublisher(loadEventsByQueryWithOptions(c, query, true))
-                )
-                .runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), system);
+        return Flux.usingWhen(
+                Mono.fromCallable(dataSource::getConnection).subscribeOn(Schedulers.fromExecutor(executor)),
+                (Connection c) -> loadEventsByQueryWithOptions(c, query, true),
+                c -> Mono.empty()
+        );
     }
 
     private EventEnvelope<E, Meta, Context> rsToEnvelope(ResultSet rs) {

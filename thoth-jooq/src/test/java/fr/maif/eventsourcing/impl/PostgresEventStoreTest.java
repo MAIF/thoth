@@ -312,7 +312,6 @@ public class PostgresEventStoreTest {
             e.printStackTrace();
         }
         this.postgresEventStore = new PostgresEventStore<>(
-                system,
                 eventPublisher,
                 dataSource,
                 executorService,

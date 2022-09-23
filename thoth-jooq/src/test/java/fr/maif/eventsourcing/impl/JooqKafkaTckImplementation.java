@@ -37,7 +37,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import akka.actor.ActorSystem;
-import akka.kafka.ProducerSettings;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventProcessorImpl;
 import fr.maif.eventsourcing.PostgresKafkaEventProcessor;
@@ -54,6 +53,7 @@ import fr.maif.json.EventEnvelopeJson;
 import fr.maif.kafka.JsonSerializer;
 import fr.maif.kafka.KafkaSettings;
 import io.vavr.Tuple0;
+import reactor.kafka.sender.SenderOptions;
 
 public class JooqKafkaTckImplementation extends DataStoreVerification<Connection> {
 
@@ -122,7 +122,6 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
     public EventProcessorImpl<String, TestState, TestCommand, TestEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor(String topic) {
 
         final PostgresKafkaEventProcessor<String, TestState, TestCommand, TestEvent, Tuple0, Tuple0, Tuple0> eventProcessor = PostgresKafkaEventProcessor
-                .withActorSystem(ActorSystem.create())
                 .withDataSource(dataSource)
                 .withTables(tableNames)
                 .withTransactionManager(Executors.newFixedThreadPool(4))
@@ -177,10 +176,10 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
         return KafkaSettings.newBuilder(kafka.getBootstrapServers()).build();
     }
 
-    private ProducerSettings<String, EventEnvelope<TestEvent, Tuple0, Tuple0>> producerSettings(
+    private SenderOptions<String, EventEnvelope<TestEvent, Tuple0, Tuple0>> producerSettings(
             KafkaSettings kafkaSettings,
             JacksonEventFormat<String, TestEvent> eventFormat) {
-        return kafkaSettings.producerSettings(actorSystem, JsonSerializer.of(
+        return kafkaSettings.producerSettings(JsonSerializer.of(
                 eventFormat,
                 JacksonSimpleFormat.empty(),
                 JacksonSimpleFormat.empty())

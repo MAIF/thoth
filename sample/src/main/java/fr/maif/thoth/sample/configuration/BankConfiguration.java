@@ -1,19 +1,5 @@
 package fr.maif.thoth.sample.configuration;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.concurrent.Executors;
-
-import javax.sql.DataSource;
-
-import org.postgresql.ds.PGSimpleDataSource;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-import akka.actor.ActorSystem;
-import akka.kafka.ProducerSettings;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventProcessorImpl;
 import fr.maif.eventsourcing.PostgresKafkaEventProcessor;
@@ -30,6 +16,17 @@ import fr.maif.thoth.sample.events.BankEventHandler;
 import fr.maif.thoth.sample.projections.transactional.GlobalBalanceProjection;
 import fr.maif.thoth.sample.state.Account;
 import io.vavr.Tuple0;
+import org.postgresql.ds.PGSimpleDataSource;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import reactor.kafka.sender.SenderOptions;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.concurrent.Executors;
 
 @Configuration
 public class BankConfiguration {
@@ -106,16 +103,14 @@ public class BankConfiguration {
     }
 
     @Bean
-    public ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings(
-            ActorSystem actorSystem,
+    public SenderOptions<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings(
             KafkaSettings kafkaSettings,
             JacksonEventFormat<String, BankEvent> eventFormat) {
-        return kafkaSettings.producerSettings(actorSystem, JsonSerializer.of(
+        return kafkaSettings.producerSettings(JsonSerializer.of(
                 eventFormat,
                 JacksonSimpleFormat.empty(),
                 JacksonSimpleFormat.empty()
-                )
-        );
+        ));
     }
 
     @Bean
@@ -129,24 +124,18 @@ public class BankConfiguration {
     }
 
     @Bean
-    public ActorSystem actorSystem() {
-        return ActorSystem.create();
-    }
-
-    @Bean
     public GlobalBalanceProjection dailyTotalWithdrawProjection() {
         return new GlobalBalanceProjection();
     }
 
     @Bean
     public EventProcessorImpl<String, Account, BankCommand, BankEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor(
-            ActorSystem actorSystem,
             GlobalBalanceProjection globalBalanceProjection,
             DataSource dataSource,
             JacksonEventFormat<String, BankEvent> eventFormat,
             TableNames tableNames,
-            ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings) {
-        return PostgresKafkaEventProcessor.withActorSystem(actorSystem)
+            SenderOptions<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings) {
+        return PostgresKafkaEventProcessor
                 .withDataSource(dataSource)
                 .withTables(tableNames)
                 .withTransactionManager(Executors.newFixedThreadPool(5))

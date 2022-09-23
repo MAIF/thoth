@@ -1,21 +1,20 @@
 package fr.maif.eventsourcing;
 
-import akka.actor.ActorSystem;
-import akka.kafka.ProducerSettings;
-import fr.maif.akka.AkkaExecutionContext;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.eventsourcing.impl.DefaultAggregateStore;
-import fr.maif.eventsourcing.impl.KafkaEventPublisher;
 import fr.maif.eventsourcing.impl.PostgresEventStore;
+import fr.maif.eventsourcing.impl.ReactorKafkaEventPublisher;
 import fr.maif.eventsourcing.impl.TableNames;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
+import reactor.kafka.sender.SenderOptions;
 
 import javax.sql.DataSource;
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.Connection;
+import java.util.concurrent.Executor;
 
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
 
@@ -23,12 +22,8 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
 
     private final PostgresKafkaEventProcessorConfig<Error, S, C, E, Message, Meta, Context> config;
 
-    public static PostgresKafkaEventProcessorBuilder.BuilderWithSystem withActorSystem(ActorSystem actorSystem) {
-        return new PostgresKafkaEventProcessorBuilder.BuilderWithSystem(actorSystem);
-    }
-
-    public static PostgresKafkaEventProcessorBuilder.BuilderWithSystem newActorSystem() {
-        return new PostgresKafkaEventProcessorBuilder.BuilderWithSystem(ActorSystem.create());
+    public static PostgresKafkaEventProcessorBuilder.BuilderWithPool withDataSource(DataSource dataSource) {
+        return new PostgresKafkaEventProcessorBuilder.BuilderWithPool(dataSource);
     }
 
     public PostgresKafkaEventProcessor(PostgresKafkaEventProcessorConfig<Error, S, C, E, Message, Meta, Context> config) {
@@ -58,15 +53,15 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
         public final CommandHandler<Error, S, C, E, Message, Connection> commandHandler;
         public final EventHandler<S, E> eventHandler;
         public final List<Projection<Connection, E, Meta, Context>> projections;
-        public final KafkaEventPublisher<E, Meta, Context> eventPublisher;
+        public final ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher;
 
         public PostgresKafkaEventProcessorConfig(
-                EventStore.ConcurrentReplayStrategy concurrentReplayStrategy, ActorSystem system,
+                EventStore.ConcurrentReplayStrategy concurrentReplayStrategy,
                 TableNames tableNames,
                 DataSource dataSource,
                 String topic,
-                ProducerSettings<String, EventEnvelope<E, Meta, Context>> producerSettings,
-                AkkaExecutionContext executionContext,
+                Executor executionContext,
+                SenderOptions<String, EventEnvelope<E, Meta, Context>> producerSettings,
                 TransactionManager<Connection> transactionManager,
                 AggregateStore<S, String, Connection> aggregateStore, CommandHandler<Error, S, C, E, Message, Connection> commandHandler,
                 EventHandler<S, E> eventHandler,
@@ -76,9 +71,8 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
                 Integer eventsBufferSize) {
             this.concurrentReplayStrategy = concurrentReplayStrategy;
             this.transactionManager = transactionManager;
-            this.eventPublisher = new KafkaEventPublisher<>(system, producerSettings, topic, eventsBufferSize);
+            this.eventPublisher = new ReactorKafkaEventPublisher<>(producerSettings, topic, eventsBufferSize);
             this.eventStore = new PostgresEventStore<>(
-                    system,
                     eventPublisher,
                     dataSource,
                     executionContext,
@@ -87,7 +81,7 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
                     metaFormat,
                     contextFormat
             );
-            this.aggregateStore = aggregateStore == null ? new DefaultAggregateStore<>(this.eventStore, eventHandler, system, transactionManager) : aggregateStore;
+            this.aggregateStore = aggregateStore == null ? new DefaultAggregateStore<>(this.eventStore, eventHandler, transactionManager) : aggregateStore;
             this.commandHandler = commandHandler;
             this.eventHandler = eventHandler;
             this.projections = projections;
@@ -95,12 +89,11 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
         }
 
         public PostgresKafkaEventProcessorConfig(
-                ActorSystem system,
                 TableNames tableNames,
                 DataSource dataSource,
                 String topic,
-                ProducerSettings<String, EventEnvelope<E, Meta, Context>> producerSettings,
-                AkkaExecutionContext executionContext,
+                SenderOptions<String, EventEnvelope<E, Meta, Context>> producerSettings,
+                Executor executionContext,
                 TransactionManager<Connection> transactionManager,
                 AggregateStore<S, String, Connection> aggregateStore,
                 CommandHandler<Error, S, C, E, Message, Connection> commandHandler,
@@ -109,16 +102,15 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
                 JacksonEventFormat<?, E> eventFormat,
                 JacksonSimpleFormat<Meta> metaFormat,
                 JacksonSimpleFormat<Context> contextFormat, EventStore.ConcurrentReplayStrategy concurrentReplayStrategy) {
-            this(system, tableNames, dataSource, topic, producerSettings, executionContext, transactionManager, commandHandler, eventHandler, projections, eventFormat, metaFormat, contextFormat, null, concurrentReplayStrategy);
+            this(tableNames, dataSource, topic, producerSettings, executionContext, transactionManager, commandHandler, eventHandler, projections, eventFormat, metaFormat, contextFormat, null, concurrentReplayStrategy);
         }
 
         public PostgresKafkaEventProcessorConfig(
-                ActorSystem system,
                 TableNames tableNames,
                 DataSource dataSource,
                 String topic,
-                ProducerSettings<String, EventEnvelope<E, Meta, Context>> producerSettings,
-                AkkaExecutionContext executionContext,
+                SenderOptions<String, EventEnvelope<E, Meta, Context>> producerSettings,
+                Executor executionContext,
                 TransactionManager<Connection> transactionManager,
                 CommandHandler<Error, S, C, E, Message, Connection> commandHandler, EventHandler<S, E> eventHandler,
                 List<Projection<Connection, E, Meta, Context>> projections,
@@ -126,7 +118,7 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
                 JacksonSimpleFormat<Meta> metaFormat,
                 JacksonSimpleFormat<Context> contextFormat,
                 Integer eventsBufferSize, EventStore.ConcurrentReplayStrategy concurrentReplayStrategy) {
-            this(concurrentReplayStrategy, system, tableNames, dataSource, topic, producerSettings, executionContext, transactionManager, null, commandHandler, eventHandler, projections, eventFormat, metaFormat, contextFormat, eventsBufferSize);
+            this(concurrentReplayStrategy, tableNames, dataSource, topic, executionContext, producerSettings, transactionManager, null, commandHandler, eventHandler, projections, eventFormat, metaFormat, contextFormat, eventsBufferSize);
         }
 
         public PostgresKafkaEventProcessorConfig(
@@ -136,7 +128,7 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
                 CommandHandler<Error, S, C, E, Message, Connection> commandHandler,
                 EventHandler<S, E> eventHandler,
                 List<Projection<Connection, E, Meta, Context>> projections,
-                KafkaEventPublisher<E, Meta, Context> eventPublisher) {
+                ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher) {
             this.concurrentReplayStrategy = concurrentReplayStrategy;
             this.eventStore = eventStore;
             this.transactionManager = transactionManager;
@@ -148,13 +140,13 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
         }
 
         public PostgresKafkaEventProcessorConfig(
-                EventStore.ConcurrentReplayStrategy concurrentReplayStrategy, ActorSystem actorSystem,
+                EventStore.ConcurrentReplayStrategy concurrentReplayStrategy,
                 PostgresEventStore<E, Meta, Context> eventStore,
                 TransactionManager<Connection> transactionManager,
                 CommandHandler<Error, S, C, E, Message, Connection> commandHandler,
                 EventHandler<S, E> eventHandler,
                 List<Projection<Connection, E, Meta, Context>> projections,
-                KafkaEventPublisher<E, Meta, Context> eventPublisher) {
+                ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher) {
             this.concurrentReplayStrategy = concurrentReplayStrategy;
             this.eventStore = eventStore;
             this.transactionManager = transactionManager;
@@ -162,7 +154,7 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
             this.eventHandler = eventHandler;
             this.projections = projections;
             this.eventPublisher = eventPublisher;
-            this.aggregateStore = new DefaultAggregateStore<>(this.eventStore, eventHandler, actorSystem, transactionManager);
+            this.aggregateStore = new DefaultAggregateStore<>(this.eventStore, eventHandler, transactionManager);
         }
     }
 }

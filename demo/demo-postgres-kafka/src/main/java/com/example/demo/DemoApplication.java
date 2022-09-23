@@ -1,17 +1,14 @@
 package com.example.demo;
 
-import akka.actor.ActorSystem;
-
 import java.math.BigDecimal;
 import java.sql.SQLException;
 
 public class DemoApplication {
 
 	public static void main(String[] args) throws SQLException {
-		ActorSystem actorSystem = ActorSystem.create();
 		BankCommandHandler commandHandler = new BankCommandHandler();
 		BankEventHandler eventHandler = new BankEventHandler();
-		Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
+		Bank bank = new Bank(commandHandler, eventHandler);
 
 		String id = bank.createAccount(BigDecimal.valueOf(100)).toCompletableFuture().join().get().currentState.get().id;
 

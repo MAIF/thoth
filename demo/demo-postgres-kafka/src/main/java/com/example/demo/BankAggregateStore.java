@@ -1,7 +1,5 @@
 package com.example.demo;
 
-import akka.actor.ActorSystem;
-import akka.stream.Materializer;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.EventHandler;
 import fr.maif.eventsourcing.EventStore;
@@ -9,7 +7,6 @@ import fr.maif.eventsourcing.TransactionManager;
 import fr.maif.eventsourcing.impl.DefaultAggregateStore;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
 
@@ -22,12 +19,8 @@ import java.util.concurrent.CompletionStage;
 
 public class BankAggregateStore extends DefaultAggregateStore<Account, BankEvent, Tuple0, Tuple0, Connection> {
 
-    public BankAggregateStore(EventStore<Connection, BankEvent, Tuple0, Tuple0> eventStore, EventHandler<Account, BankEvent> eventEventHandler, ActorSystem system, TransactionManager<Connection> transactionManager) {
-        super(eventStore, eventEventHandler, system, transactionManager);
-    }
-
-    public BankAggregateStore(EventStore<Connection, BankEvent, Tuple0, Tuple0> eventStore, EventHandler<Account, BankEvent> eventEventHandler, Materializer materializer, TransactionManager<Connection> transactionManager) {
-        super(eventStore, eventEventHandler, materializer, transactionManager);
+    public BankAggregateStore(EventStore<Connection, BankEvent, Tuple0, Tuple0> eventStore, EventHandler<Account, BankEvent> eventEventHandler, TransactionManager<Connection> transactionManager) {
+        super(eventStore, eventEventHandler, transactionManager);
     }
 
     @Override
