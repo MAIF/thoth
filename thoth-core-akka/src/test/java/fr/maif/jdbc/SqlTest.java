@@ -4,6 +4,8 @@ import akka.actor.ActorSystem;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
+import fr.maif.akka.jdbc.Convertions;
+import fr.maif.akka.jdbc.Sql;
 import io.vavr.collection.HashMap;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;

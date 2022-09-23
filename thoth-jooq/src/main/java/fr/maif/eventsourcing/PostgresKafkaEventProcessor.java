@@ -2,9 +2,9 @@ package fr.maif.eventsourcing;
 
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
-import fr.maif.eventsourcing.impl.DefaultAggregateStore;
+import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
 import fr.maif.eventsourcing.impl.PostgresEventStore;
-import fr.maif.eventsourcing.impl.ReactorKafkaEventPublisher;
+import fr.maif.reactor.eventsourcing.ReactorKafkaEventPublisher;
 import fr.maif.eventsourcing.impl.TableNames;
 import io.vavr.collection.List;
 import io.vavr.control.Option;

@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 import akka.stream.javadsl.Source;
-import fr.maif.eventsourcing.impl.DefaultAggregateStore;
+import fr.maif.akka.eventsourcing.DefaultAggregateStore;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 
@@ -16,7 +16,7 @@ import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventProcessorImpl;
 import fr.maif.eventsourcing.EventStore;
 import fr.maif.eventsourcing.TransactionManager;
-import fr.maif.eventsourcing.impl.InMemoryEventStore;
+import fr.maif.akka.eventsourcing.InMemoryEventStore;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 

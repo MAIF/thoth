@@ -7,7 +7,7 @@ import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.eventsourcing.impl.TableNames;
 import fr.maif.kafka.JsonSerializer;
-import fr.maif.kafka.KafkaSettings;
+import fr.maif.reactor.kafka.KafkaSettings;
 import fr.maif.thoth.sample.commands.BankCommand;
 import fr.maif.thoth.sample.commands.BankCommandHandler;
 import fr.maif.thoth.sample.events.BankEvent;

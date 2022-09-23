@@ -40,7 +40,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
         public Function<Disposable, Mono<Void>> onStopping;
         public Function<Throwable, Mono<Void>> onFailed;
 
-        private Config(Collection<String> topics, String groupId, ReceiverOptions<K, V> consumerSettings, Duration minBackoff,
+        private Config(Collection<String> topics, String groupId, ReceiverOptions<K, V> receiverOptions, Duration minBackoff,
                        Duration maxBackoff, Double randomFactor, Integer commitSize,
                        BiFunction<Disposable, Integer, Mono<Void>> onStarted,
                        Supplier<Mono<Void>> onStarting, Supplier<Mono<Void>> onStopped,
@@ -48,7 +48,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
                        Function<Throwable, Mono<Void>> onFailed) {
             this.topics = topics;
             this.groupId = groupId;
-            this.receiverOptions = consumerSettings;
+            this.receiverOptions = receiverOptions;
             this.minBackoff = minBackoff;
             this.maxBackoff = maxBackoff;
             this.randomFactor = randomFactor;
@@ -84,7 +84,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
                 return this;
             }
 
-            public ConfigBuilder<K, V> consumerSettings(ReceiverOptions<K, V> consumerSettings) {
+            public ConfigBuilder<K, V> receiverOptions(ReceiverOptions<K, V> consumerSettings) {
                 this.consumerSettings = consumerSettings;
                 return this;
             }
@@ -145,7 +145,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
 
         public static <K, V> Config<K, V> create(Collection<String> topics, String groupId, ReceiverOptions<K, V> consumerSettings) {
             return Config.<K, V>builder()
-                    .consumerSettings(consumerSettings)
+                    .receiverOptions(consumerSettings)
                     .groupId(groupId)
                     .topics(topics)
                     .build();
@@ -159,7 +159,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
             return Config.<K, V>builder()
                     .topics(this.topics)
                     .groupId(this.groupId)
-                    .consumerSettings(this.receiverOptions)
+                    .receiverOptions(this.receiverOptions)
                     .minBackoff(this.minBackoff)
                     .maxBackoff(this.maxBackoff)
                     .randomFactor(this.randomFactor)
@@ -338,7 +338,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
         LOGGER.info("Starting {} on topic '{}' with group id '{}'", name(), topics, groupId);
         AtomicInteger restartCount = new AtomicInteger(0);
         KafkaReceiver<K, V> kafkaReceiver = KafkaReceiver.create(this.receiverOptions);
-        Disposable disposable = kafkaReceiver.receive().publish()
+        Disposable disposable = kafkaReceiver.receive()
                 .doOnSubscribe(s -> {
                     updateStatus(Status.Started);
                     this.onStarted.apply(controlRef.get(), restartCount.get()).subscribe();

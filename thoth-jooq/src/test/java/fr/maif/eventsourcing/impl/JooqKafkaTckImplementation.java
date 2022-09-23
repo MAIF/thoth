@@ -51,7 +51,7 @@ import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.json.EventEnvelopeJson;
 import fr.maif.kafka.JsonSerializer;
-import fr.maif.kafka.KafkaSettings;
+import fr.maif.reactor.kafka.KafkaSettings;
 import io.vavr.Tuple0;
 import reactor.kafka.sender.SenderOptions;
 

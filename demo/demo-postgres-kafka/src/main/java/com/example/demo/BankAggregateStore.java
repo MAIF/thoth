@@ -4,7 +4,7 @@ import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.EventHandler;
 import fr.maif.eventsourcing.EventStore;
 import fr.maif.eventsourcing.TransactionManager;
-import fr.maif.eventsourcing.impl.DefaultAggregateStore;
+import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.control.Option;

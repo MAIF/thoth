@@ -1,7 +1,6 @@
 package fr.maif.jdbc;
 
-import fr.maif.jdbc.exceptions.ExceptionsHandler;
-import fr.maif.jdbc.exceptions.SqlException;
+import fr.maif.akka.jdbc.exceptions.ExceptionsHandler;
 import org.h2.jdbcx.JdbcConnectionPool;
 
 import javax.sql.DataSource;

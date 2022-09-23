@@ -15,11 +15,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import fr.maif.projections.EventuallyConsistentProjection;
+import fr.maif.reactor.projections.EventuallyConsistentProjection;
 import fr.maif.thoth.sample.events.BankEvent;
 import fr.maif.thoth.sample.events.BankEventFormat;
-import io.vavr.Tuple;
-import io.vavr.concurrent.Future;
 
 @Component
 public class MeanWithdrawProjection  {

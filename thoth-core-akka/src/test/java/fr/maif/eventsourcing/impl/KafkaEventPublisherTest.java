@@ -12,6 +12,7 @@ import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
 import com.fasterxml.jackson.databind.JsonNode;
+import fr.maif.akka.eventsourcing.KafkaEventPublisher;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;

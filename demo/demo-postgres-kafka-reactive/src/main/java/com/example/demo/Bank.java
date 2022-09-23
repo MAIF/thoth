@@ -10,7 +10,7 @@ import fr.maif.eventsourcing.TableNames;
 import fr.maif.jooq.reactor.PgAsyncPool;
 import fr.maif.jooq.reactor.PgAsyncTransaction;
 import fr.maif.kafka.JsonFormatSerDer;
-import fr.maif.kafka.KafkaSettings;
+import fr.maif.reactor.kafka.KafkaSettings;
 import io.vavr.Lazy;
 import io.vavr.Tuple0;
 import io.vavr.control.Either;
