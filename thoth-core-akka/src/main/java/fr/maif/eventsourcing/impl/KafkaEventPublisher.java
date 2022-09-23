@@ -81,6 +81,7 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
         this.eventsSource = pair.second();
     }
 
+    @Override
     public <TxCtx> void start(EventStore<TxCtx, E, Meta, Context> eventStore, ConcurrentReplayStrategy concurrentReplayStrategy) {
         killSwitch = RestartSource
                 .onFailuresWithBackoff(

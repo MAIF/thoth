@@ -66,6 +66,7 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
         this.kafkaSender = KafkaSender.create(senderOptions);
     }
 
+    @Override
     public <TxCtx> void start(EventStore<TxCtx, E, Meta, Context> eventStore, ConcurrentReplayStrategy concurrentReplayStrategy) {
         LOGGER.info("Starting/Restarting publishing event to kafka on topic {}", topic);
 

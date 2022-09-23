@@ -8,7 +8,6 @@ group = 'fr.maif'
 dependencies {
     implementation project(':commons-events')
     implementation project(':thoth-core')
-    implementation project(':thoth-core-reactor')
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("io.projectreactor:reactor-core:$reactorVersion")
     implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"

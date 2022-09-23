@@ -53,7 +53,7 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
         public final CommandHandler<Error, S, C, E, Message, Connection> commandHandler;
         public final EventHandler<S, E> eventHandler;
         public final List<Projection<Connection, E, Meta, Context>> projections;
-        public final ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher;
+        public final EventPublisher<E, Meta, Context> eventPublisher;
 
         public PostgresKafkaEventProcessorConfig(
                 EventStore.ConcurrentReplayStrategy concurrentReplayStrategy,
@@ -128,7 +128,7 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
                 CommandHandler<Error, S, C, E, Message, Connection> commandHandler,
                 EventHandler<S, E> eventHandler,
                 List<Projection<Connection, E, Meta, Context>> projections,
-                ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher) {
+                EventPublisher<E, Meta, Context> eventPublisher) {
             this.concurrentReplayStrategy = concurrentReplayStrategy;
             this.eventStore = eventStore;
             this.transactionManager = transactionManager;

@@ -183,11 +183,11 @@ public class PostgresKafkaEventProcessorBuilder {
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
         public final ConcurrentReplayStrategy concurrentReplayStrategy;
-        public final ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher;
+        public final EventPublisher<E, Meta, Context> eventPublisher;
         public final PostgresEventStore<E, Meta, Context> eventStore;
         public final ExecutorService executor;
 
-        BuilderWithKafkaSettings(DataSource dataSource, TableNames tableNames, TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, ConcurrentReplayStrategy concurrentReplayStrategy, ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher, PostgresEventStore<E, Meta, Context> eventStore, ExecutorService executor) {
+        BuilderWithKafkaSettings(DataSource dataSource, TableNames tableNames, TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, ConcurrentReplayStrategy concurrentReplayStrategy, EventPublisher<E, Meta, Context> eventPublisher, PostgresEventStore<E, Meta, Context> eventStore, ExecutorService executor) {
             
             this.dataSource = dataSource;
             this.tableNames = tableNames;
@@ -314,7 +314,7 @@ public class PostgresKafkaEventProcessorBuilder {
         public final JacksonEventFormat<?, E> eventFormat;
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
-        public final ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher;
+        public final EventPublisher<E, Meta, Context> eventPublisher;
         public final ConcurrentReplayStrategy concurrentReplayStrategy;
         public final PostgresEventStore<E, Meta, Context> eventStore;
         public final EventHandler<S, E> eventHandler;
@@ -322,7 +322,7 @@ public class PostgresKafkaEventProcessorBuilder {
         public BuilderWithEventHandler(DataSource dataSource, TableNames tableNames,
                 TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat,
                 JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat,
-                ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
+                EventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
                 PostgresEventStore<E, Meta, Context> eventStore, EventHandler<S, E> eventHandler) {
             
             this.dataSource = dataSource;
@@ -394,7 +394,7 @@ public class PostgresKafkaEventProcessorBuilder {
         public final JacksonEventFormat<?, E> eventFormat;
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
-        public final ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher;
+        public final EventPublisher<E, Meta, Context> eventPublisher;
         public final ConcurrentReplayStrategy concurrentReplayStrategy;
         public final PostgresEventStore<E, Meta, Context> eventStore;
         public final EventHandler<S, E> eventHandler;
@@ -403,7 +403,7 @@ public class PostgresKafkaEventProcessorBuilder {
         public BuilderWithAggregateStore(DataSource dataSource, TableNames tableNames,
                 TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat,
                 JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat,
-                ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
+                EventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
                 PostgresEventStore<E, Meta, Context> eventStore, EventHandler<S, E> eventHandler,
                 AggregateStore<S, String, Connection> aggregateStore) {
             
@@ -466,7 +466,7 @@ public class PostgresKafkaEventProcessorBuilder {
         public final JacksonEventFormat<?, E> eventFormat;
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
-        public final ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher;
+        public final EventPublisher<E, Meta, Context> eventPublisher;
         public final ConcurrentReplayStrategy concurrentReplayStrategy;
         public final PostgresEventStore<E, Meta, Context> eventStore;
         public final AggregateStore<S, String, Connection> aggregateStore;
@@ -476,7 +476,7 @@ public class PostgresKafkaEventProcessorBuilder {
         public BuilderWithCommandHandler(DataSource dataSource, TableNames tableNames,
                 TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat,
                 JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat,
-                ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
+                EventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
                 PostgresEventStore<E, Meta, Context> eventStore,
                 AggregateStore<S, String, Connection> aggregateStore, EventHandler<S, E> eventHandler,
                 CommandHandler<Error, S, C, E, Message, Connection> commandHandler) {
@@ -551,7 +551,7 @@ public class PostgresKafkaEventProcessorBuilder {
         public final JacksonEventFormat<?, E> eventFormat;
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
-        public final ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher;
+        public final EventPublisher<E, Meta, Context> eventPublisher;
         public final ConcurrentReplayStrategy concurrentReplayStrategy;
         public final PostgresEventStore<E, Meta, Context> eventStore;
         public final AggregateStore<S, String, Connection> aggregateStore;
@@ -562,7 +562,7 @@ public class PostgresKafkaEventProcessorBuilder {
         public BuilderWithProjections(DataSource dataSource, TableNames tableNames,
                 TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat,
                 JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat,
-                ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
+                EventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
                 PostgresEventStore<E, Meta, Context> eventStore,
                 AggregateStore<S, String, Connection> aggregateStore, EventHandler<S, E> eventHandler,
                 CommandHandler<Error, S, C, E, Message, Connection> commandHandler,
