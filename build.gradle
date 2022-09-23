@@ -25,9 +25,15 @@ subprojects {
     repositories {
         mavenCentral()
     }
-    artifacts {
-        archives sourcesJar
-    }
+//
+//    task sourcesJar(type: Jar) {
+//        classifier = 'sources'
+//        from sourceSets.main.allSource
+//    }
+//
+//    artifacts {
+//        archives sourcesJar
+//    }
     java {
         toolchain {
             languageVersion = JavaLanguageVersion.of(17)
@@ -62,9 +68,8 @@ subprojects {
         publications {
             mavenPublication(MavenPublication) {
                 from(components.java)
-                artifact sourcesJar
             }
-//        }
+        }
     }
 }
 
