@@ -150,13 +150,13 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
     }
 
     @Override
-    public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Void> publish(List<EventEnvelope<E, Meta, Context>> events) {
         LOGGER.debug("Publishing event in memory : \n{} ", events);
         return Source
                         .from(events)
                         .mapAsync(1, queue::offer)
                         .runWith(Sink.ignore(), materializer)
-                        .thenApply(__ -> Tuple.empty());
+                        .thenRun(() -> {});
     }
 
     @Override

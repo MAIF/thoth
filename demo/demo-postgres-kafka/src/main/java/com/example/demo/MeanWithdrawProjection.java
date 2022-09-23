@@ -10,6 +10,7 @@ import io.vavr.concurrent.Future;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 public class MeanWithdrawProjection implements Projection<Connection, BankEvent, Tuple0, Tuple0> {
@@ -17,8 +18,8 @@ public class MeanWithdrawProjection implements Projection<Connection, BankEvent,
     private long withdrawCount = 0L;
 
     @Override
-    public CompletionStage<Tuple0> storeProjection(Connection connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> envelopes) {
-        return CompletionStages.of(() -> {
+    public CompletionStage<Void> storeProjection(Connection connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> envelopes) {
+        return CompletableFuture.runAsync(() -> {
             envelopes.forEach(envelope -> {
                 BankEvent bankEvent = envelope.event;
                 if(envelope.event instanceof BankEvent.MoneyWithdrawn) {
@@ -26,8 +27,6 @@ public class MeanWithdrawProjection implements Projection<Connection, BankEvent,
                     withdrawCount ++;
                 }
             });
-
-            return Tuple.empty();
         });
     }
 

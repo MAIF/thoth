@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
 import akka.actor.ActorSystem;
 import akka.kafka.ProducerSettings;
 import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventProcessor;
+import fr.maif.eventsourcing.EventProcessorImpl;
 import fr.maif.eventsourcing.PostgresKafkaEventProcessor;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
@@ -139,7 +139,7 @@ public class BankConfiguration {
     }
 
     @Bean
-    public EventProcessor<String, Account, BankCommand, BankEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor(
+    public EventProcessorImpl<String, Account, BankCommand, BankEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor(
             ActorSystem actorSystem,
             GlobalBalanceProjection globalBalanceProjection,
             DataSource dataSource,

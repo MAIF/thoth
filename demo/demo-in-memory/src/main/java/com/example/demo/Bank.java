@@ -3,7 +3,7 @@ package com.example.demo;
 import akka.actor.ActorSystem;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
-import fr.maif.eventsourcing.EventProcessor;
+import fr.maif.eventsourcing.EventProcessorImpl;
 import fr.maif.eventsourcing.ProcessingSuccess;
 import fr.maif.eventsourcing.TransactionManager;
 import fr.maif.eventsourcing.impl.DefaultAggregateStore;
@@ -12,7 +12,6 @@ import io.vavr.Lazy;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 
@@ -21,7 +20,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 public class Bank {
-    private final EventProcessor<String, Account, BankCommand, BankEvent, Tuple0, Tuple0, Tuple0, Tuple0> eventProcessor;
+    private final EventProcessorImpl<String, Account, BankCommand, BankEvent, Tuple0, Tuple0, Tuple0, Tuple0> eventProcessor;
     private static final TimeBasedGenerator UUIDgenerator = Generators.timeBasedGenerator();
 
 
@@ -31,7 +30,7 @@ public class Bank {
                 ) {
         InMemoryEventStore<BankEvent, Tuple0, Tuple0> eventStore = InMemoryEventStore.create(actorSystem);
         TransactionManager<Tuple0> transactionManager = noOpTransactionManager();
-        this.eventProcessor = new EventProcessor<>(
+        this.eventProcessor = new EventProcessorImpl<>(
                 eventStore,
                 transactionManager,
                 new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager),

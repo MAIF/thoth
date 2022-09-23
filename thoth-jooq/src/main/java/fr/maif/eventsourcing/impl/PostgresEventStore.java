@@ -151,7 +151,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
     }
 
     @Override
-    public CompletionStage<Tuple0> commitOrRollback(Option<Throwable> mayBeCrash, Connection connection) {
+    public CompletionStage<Void> commitOrRollback(Option<Throwable> mayBeCrash, Connection connection) {
         return mayBeCrash.fold(
                 () -> CompletionStages.fromTry(() -> Try.of(() -> {
                     connection.commit();
@@ -163,11 +163,11 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                     connection.close();
                     return Tuple.empty();
                 }), executor)
-        );
+        ).thenRun(() -> {});
     }
 
     @Override
-    public CompletionStage<Tuple0> persist(Connection connection, List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Void> persist(Connection connection, List<EventEnvelope<E, Meta, Context>> events) {
 
         return CompletionStages.fromTry(() -> Try.of(() -> {
             DSLContext create = DSL.using(connection, SQLDialect.POSTGRES);
@@ -227,7 +227,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                     ).toJavaList()
             ).execute();
             return Tuple.empty();
-        }), executor);
+        }), executor).thenRun(() -> {});
     }
 
     @Override
@@ -238,7 +238,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
     }
 
     @Override
-    public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Void> publish(List<EventEnvelope<E, Meta, Context>> events) {
         return this.eventPublisher.publish(events);
     }
 

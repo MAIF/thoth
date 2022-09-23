@@ -13,7 +13,7 @@ import org.testng.annotations.BeforeMethod;
 import akka.actor.ActorSystem;
 import akka.stream.javadsl.Sink;
 import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventProcessor;
+import fr.maif.eventsourcing.EventProcessorImpl;
 import fr.maif.eventsourcing.EventStore;
 import fr.maif.eventsourcing.TransactionManager;
 import fr.maif.eventsourcing.impl.InMemoryEventStore;
@@ -23,14 +23,14 @@ import io.vavr.Tuple0;
 public class InMemoryDataStoreTest extends DataStoreVerification<Tuple0> {
     public ActorSystem actorSystem = ActorSystem.create();
     public InMemoryEventStore<TestEvent, Tuple0, Tuple0> eventStore;
-    public EventProcessor<String, TestState, TestCommand, TestEvent, Tuple0, Tuple0, Tuple0, Tuple0> eventProcessor;
+    public EventProcessorImpl<String, TestState, TestCommand, TestEvent, Tuple0, Tuple0, Tuple0, Tuple0> eventProcessor;
 
     @BeforeMethod(alwaysRun = true)
     public void init() {
         this.eventStore = Mockito.spy(InMemoryEventStore.create(actorSystem));
         TestEventHandler eventHandler = new TestEventHandler();
         TransactionManager<Tuple0> transactionManager = noOpTransactionManager();
-        this.eventProcessor = new EventProcessor<>(
+        this.eventProcessor = new EventProcessorImpl<>(
                 eventStore,
                 transactionManager,
                 new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager),
@@ -84,7 +84,7 @@ public class InMemoryDataStoreTest extends DataStoreVerification<Tuple0> {
     }
 
     @Override
-    public EventProcessor<String, TestState, TestCommand, TestEvent, Tuple0, Tuple0, Tuple0, Tuple0> eventProcessor(String topic) {
+    public EventProcessorImpl<String, TestState, TestCommand, TestEvent, Tuple0, Tuple0, Tuple0, Tuple0> eventProcessor(String topic) {
         return this.eventProcessor;
     }
 

@@ -112,7 +112,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
 
         when(eventStore.openTransaction()).thenReturn(CompletionStages.successful(Tuple.empty()));
-        when(eventStore.commitOrRollback(any(), any())).thenReturn(CompletionStages.successful(Tuple.empty()));
+        when(eventStore.commitOrRollback(any(), any())).thenReturn(CompletionStages.empty());
         when(eventStore.loadEventsUnpublished(any(), any())).thenReturn(emptyTxStream());
         when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any())).then(i -> CompletionStages.successful(i.getArgument(0)));
 
@@ -168,7 +168,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         KafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
         when(eventStore.openTransaction()).thenReturn(CompletionStages.successful(Tuple.empty()));
-        when(eventStore.commitOrRollback(any(), any())).thenReturn(CompletionStages.successful(Tuple.empty()));
+        when(eventStore.commitOrRollback(any(), any())).thenReturn(CompletionStages.empty());
         when(eventStore.loadEventsUnpublished(any(), any())).thenReturn(txStream(
                 eventEnvelope("value 1"),
                 eventEnvelope("value 2"),
@@ -215,7 +215,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         KafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
         when(eventStore.openTransaction()).thenReturn(CompletionStages.successful(Tuple.empty()));
-        when(eventStore.commitOrRollback(any(), any())).thenReturn(CompletionStages.successful(Tuple.empty()));
+        when(eventStore.commitOrRollback(any(), any())).thenReturn(CompletionStages.empty());
 
         EventEnvelope<TestEvent, Void, Void> envelope1 = eventEnvelope("value 1");
         EventEnvelope<TestEvent, Void, Void> envelope2 = eventEnvelope("value 2");

@@ -60,4 +60,7 @@ public class CompletionStages {
     public static <S> CompletionStage<S> failed(Throwable e) {
         return CompletableFuture.failedStage(e);
     }
+    public static CompletionStage<Void> empty() {
+        return CompletableFuture.runAsync(() -> {});
+    }
 }

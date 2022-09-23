@@ -69,8 +69,8 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
     }
 
     @Override
-    public CompletionStage<Tuple0> commitOrRollback(Option<Throwable> of, Tuple0 tx) {
-        return CompletableFuture.completedStage(Tuple.empty());
+    public CompletionStage<Void> commitOrRollback(Option<Throwable> of, Tuple0 tx) {
+        return CompletableFuture.runAsync(() -> {});
     }
 
     @Override
@@ -86,9 +86,9 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
     }
 
     @Override
-    public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Void> publish(List<EventEnvelope<E, Meta, Context>> events) {
         events.forEach(queue::offer);
-        return CompletableFuture.completedStage(Tuple.empty());
+        return CompletableFuture.runAsync(() -> {});
     }
 
     @Override
@@ -117,8 +117,8 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
     }
 
     @Override
-    public CompletionStage<Tuple0> persist(Tuple0 transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Void> persist(Tuple0 transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
         eventStore.addAll(events.toJavaList());
-        return CompletableFuture.completedStage(Tuple.empty());
+        return CompletableFuture.runAsync(() -> {});
     }
 }

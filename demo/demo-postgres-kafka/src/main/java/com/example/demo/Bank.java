@@ -5,7 +5,7 @@ import akka.kafka.ProducerSettings;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
 import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventProcessor;
+import fr.maif.eventsourcing.EventProcessorImpl;
 import fr.maif.eventsourcing.PostgresKafkaEventProcessor;
 import fr.maif.eventsourcing.ProcessingSuccess;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
@@ -19,7 +19,6 @@ import fr.maif.kafka.KafkaSettings;
 import io.vavr.Lazy;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import org.postgresql.ds.PGSimpleDataSource;
@@ -33,7 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Bank {
-    private final EventProcessor<String, Account, BankCommand, BankEvent, Connection, List<String>, Tuple0, Tuple0> eventProcessor;
+    private final EventProcessorImpl<String, Account, BankCommand, BankEvent, Connection, List<String>, Tuple0, Tuple0> eventProcessor;
     private final MeanWithdrawProjection meanWithdrawProjection;
     private static final TimeBasedGenerator UUIDgenerator = Generators.timeBasedGenerator();
     private final ActorSystem actorSystem;

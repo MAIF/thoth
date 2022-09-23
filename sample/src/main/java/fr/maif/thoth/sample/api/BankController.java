@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import fr.maif.eventsourcing.EventProcessor;
+import fr.maif.eventsourcing.EventProcessorImpl;
 import fr.maif.eventsourcing.ProcessingSuccess;
 import fr.maif.thoth.sample.commands.BankCommand;
 import fr.maif.thoth.sample.events.BankEvent;
@@ -36,12 +36,12 @@ import io.vavr.control.Either;
 @RestController
 @RequestMapping("/bank/api")
 public class BankController {
-    private final EventProcessor<String, Account, BankCommand, BankEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor;
+    private final EventProcessorImpl<String, Account, BankCommand, BankEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor;
     private final DataSource dataSource;
     private final MeanWithdrawProjection withdrawProjection;
 
     public BankController(
-            EventProcessor<String, Account, BankCommand, BankEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor,
+            EventProcessorImpl<String, Account, BankCommand, BankEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor,
             DataSource dataSource,
             MeanWithdrawProjection withdrawProjection) {
         this.eventProcessor = eventProcessor;

@@ -10,7 +10,6 @@ import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import fr.maif.eventsourcing.impl.InMemoryEventStore;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import org.assertj.core.api.Assertions;
@@ -18,7 +17,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -50,7 +48,7 @@ public class EventProcessorTest {
         //Set up
         VikingSnapshot vikingSnapshot = new VikingSnapshot();
         InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create(actorSystem);
-        EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0>  vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
+        EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
 
         //Test
         Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new CreateViking("1", "ragnar")).toCompletableFuture().join();
@@ -91,7 +89,7 @@ public class EventProcessorTest {
         //Set up
         InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create(actorSystem);
         VikingProjection projection = new VikingProjection();
-        EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessorWithProjection(inMemoryEventStore, List.of(projection));
+        EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessorWithProjection(inMemoryEventStore, List.of(projection));
 
         //Test
         Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new CreateViking("1", "ragnar")).toCompletableFuture().join();
@@ -132,7 +130,7 @@ public class EventProcessorTest {
     public void twoCommandShouldGenerateEventAndPersistState() {
         VikingSnapshot vikingSnapshot = new VikingSnapshot();
         InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create(actorSystem);
-        EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
+        EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
 
         vikingEventProcessor.processCommand(new VikingCommand.CreateViking("1", "ragnar")).toCompletableFuture().join();
         Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new UpdateViking("1", "Ragnar Lodbrock")).toCompletableFuture().join();
@@ -185,7 +183,7 @@ public class EventProcessorTest {
     public void createAndDeleteShouldGenerateEventAndPersistState() {
         VikingSnapshot vikingSnapshot = new VikingSnapshot();
         InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create(actorSystem);
-        EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
+        EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
 
         vikingEventProcessor.processCommand(new VikingCommand.CreateViking("1", "ragnar")).toCompletableFuture().join();
         Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new DeleteViking("1")).toCompletableFuture().join();
@@ -234,20 +232,21 @@ public class EventProcessorTest {
     }
 
 
-    private EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, VikingSnapshot vikingSnapshot) {
-        return new EventProcessor<>(
+    private EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, VikingSnapshot vikingSnapshot) {
+        return new EventProcessorImpl<>(
                 inMemoryEventStore,
                 new FakeTransactionManager(),
                 vikingSnapshot,
                 new VikingCommandHandler(),
-                new VikingEventHandler()
+                new VikingEventHandler(),
+                List.empty()
         );
     }
 
-    private EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessorWithProjection(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, List<Projection<Tuple0, VikingEvent, Tuple0, Tuple0>> projections) {
+    private EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessorWithProjection(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, List<Projection<Tuple0, VikingEvent, Tuple0, Tuple0>> projections) {
         VikingEventHandler vikingEventHandler = new VikingEventHandler();
         FakeTransactionManager fakeTransactionManager = new FakeTransactionManager();
-        return new EventProcessor<>(
+        return new EventProcessorImpl<>(
                 inMemoryEventStore,
                 fakeTransactionManager,
                 new DefaultAggregateStore<>(inMemoryEventStore, vikingEventHandler, actorSystem, fakeTransactionManager),
@@ -258,8 +257,8 @@ public class EventProcessorTest {
     }
 
 
-    private EventProcessor<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessorWithSnapshot(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, AggregateStore<Viking, String, Tuple0> aggregateStore, List<Projection<Tuple0, VikingEvent, Tuple0, Tuple0>> projections) {
-        return new EventProcessor<>(
+    private EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessorWithSnapshot(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, AggregateStore<Viking, String, Tuple0> aggregateStore, List<Projection<Tuple0, VikingEvent, Tuple0, Tuple0>> projections) {
+        return new EventProcessorImpl<>(
                 inMemoryEventStore,
                 new FakeTransactionManager(),
                 aggregateStore,

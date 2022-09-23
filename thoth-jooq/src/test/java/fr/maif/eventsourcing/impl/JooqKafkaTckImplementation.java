@@ -39,7 +39,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import akka.actor.ActorSystem;
 import akka.kafka.ProducerSettings;
 import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventProcessor;
+import fr.maif.eventsourcing.EventProcessorImpl;
 import fr.maif.eventsourcing.PostgresKafkaEventProcessor;
 import fr.maif.eventsourcing.datastore.DataStoreVerification;
 import fr.maif.eventsourcing.datastore.TestCommand;
@@ -119,7 +119,7 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
     }
 
     @Override
-    public EventProcessor<String, TestState, TestCommand, TestEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor(String topic) {
+    public EventProcessorImpl<String, TestState, TestCommand, TestEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor(String topic) {
 
         final PostgresKafkaEventProcessor<String, TestState, TestCommand, TestEvent, Tuple0, Tuple0, Tuple0> eventProcessor = PostgresKafkaEventProcessor
                 .withActorSystem(ActorSystem.create())

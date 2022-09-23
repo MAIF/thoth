@@ -19,7 +19,7 @@ import java.sql.Connection;
 
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
 
-public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, Message, Meta, Context> extends EventProcessor<Error, S, C, E, Connection, Message, Meta, Context> implements Closeable {
+public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, Message, Meta, Context> extends EventProcessorImpl<Error, S, C, E, Connection, Message, Meta, Context> implements Closeable {
 
     private final PostgresKafkaEventProcessorConfig<Error, S, C, E, Message, Meta, Context> config;
 
