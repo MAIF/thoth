@@ -15,6 +15,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
+import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
+import fr.maif.eventsourcing.EventStore;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -34,9 +37,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import akka.actor.ActorSystem;
-import akka.kafka.ProducerSettings;
 import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventProcessor;
+import fr.maif.eventsourcing.EventProcessorImpl;
 import fr.maif.eventsourcing.PostgresKafkaEventProcessor;
 import fr.maif.eventsourcing.datastore.DataStoreVerification;
 import fr.maif.eventsourcing.datastore.TestCommand;
@@ -49,14 +51,17 @@ import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.json.EventEnvelopeJson;
 import fr.maif.kafka.JsonSerializer;
-import fr.maif.kafka.KafkaSettings;
+import fr.maif.reactor.kafka.KafkaSettings;
 import io.vavr.Tuple0;
+import reactor.kafka.sender.SenderOptions;
 
 public class JooqKafkaTckImplementation extends DataStoreVerification<Connection> {
+
+    private ActorSystem actorSystem = ActorSystem.create();
     private PGSimpleDataSource dataSource;
     private TableNames tableNames;
     private TestEventFormat eventFormat;
-    private PostgreSQLContainer postgres;
+    private PostgreSQLContainer<?> postgres;
     private KafkaContainer kafka;
 
     private final String SCHEMA = "CREATE TABLE IF NOT EXISTS test_journal (\n" +
@@ -114,10 +119,9 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
     }
 
     @Override
-    public EventProcessor<String, TestState, TestCommand, TestEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor(String topic) {
+    public EventProcessorImpl<String, TestState, TestCommand, TestEvent, Connection, Tuple0, Tuple0, Tuple0> eventProcessor(String topic) {
 
         final PostgresKafkaEventProcessor<String, TestState, TestCommand, TestEvent, Tuple0, Tuple0, Tuple0> eventProcessor = PostgresKafkaEventProcessor
-                .withActorSystem(ActorSystem.create())
                 .withDataSource(dataSource)
                 .withTables(tableNames)
                 .withTransactionManager(Executors.newFixedThreadPool(4))
@@ -172,14 +176,13 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
         return KafkaSettings.newBuilder(kafka.getBootstrapServers()).build();
     }
 
-    private ProducerSettings<String, EventEnvelope<TestEvent, Tuple0, Tuple0>> producerSettings(
+    private SenderOptions<String, EventEnvelope<TestEvent, Tuple0, Tuple0>> producerSettings(
             KafkaSettings kafkaSettings,
             JacksonEventFormat<String, TestEvent> eventFormat) {
-        return kafkaSettings.producerSettings(actorSystem, JsonSerializer.of(
+        return kafkaSettings.producerSettings(JsonSerializer.of(
                 eventFormat,
                 JacksonSimpleFormat.empty(),
-                JacksonSimpleFormat.empty()
-                )
+                JacksonSimpleFormat.empty())
         );
     }
 
@@ -275,6 +278,15 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public List<EventEnvelope<TestEvent, Tuple0, Tuple0>> readFromDataStore(EventStore<Connection, TestEvent, Tuple0, Tuple0> eventStore) {
+        try {
+            return Source.fromPublisher(eventStore.loadAllEvents()).runWith(Sink.seq(), actorSystem).toCompletableFuture().get();
+        } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
     }

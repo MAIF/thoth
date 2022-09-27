@@ -1,41 +1,39 @@
 package com.example.demo;
 
-import akka.actor.ActorSystem;
-import akka.kafka.ProducerSettings;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
 import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventProcessor;
+import fr.maif.eventsourcing.EventProcessorImpl;
 import fr.maif.eventsourcing.PostgresKafkaEventProcessor;
 import fr.maif.eventsourcing.ProcessingSuccess;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.eventsourcing.impl.JdbcTransactionManager;
-import fr.maif.eventsourcing.impl.KafkaEventPublisher;
 import fr.maif.eventsourcing.impl.PostgresEventStore;
+import fr.maif.reactor.eventsourcing.ReactorKafkaEventPublisher;
 import fr.maif.eventsourcing.impl.TableNames;
 import fr.maif.kafka.JsonSerializer;
-import fr.maif.kafka.KafkaSettings;
+import fr.maif.reactor.kafka.KafkaSettings;
 import io.vavr.Lazy;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import org.postgresql.ds.PGSimpleDataSource;
+import reactor.kafka.sender.SenderOptions;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Bank {
-    private final EventProcessor<String, Account, BankCommand, BankEvent, Connection, List<String>, Tuple0, Tuple0> eventProcessor;
+    private final EventProcessorImpl<String, Account, BankCommand, BankEvent, Connection, List<String>, Tuple0, Tuple0> eventProcessor;
     private final MeanWithdrawProjection meanWithdrawProjection;
     private static final TimeBasedGenerator UUIDgenerator = Generators.timeBasedGenerator();
-    private final ActorSystem actorSystem;
     private final String SCHEMA = """
                     CREATE TABLE IF NOT EXISTS ACCOUNTS (
                       id varchar(100) PRIMARY KEY,
@@ -78,10 +76,10 @@ public class Bank {
         return KafkaSettings.newBuilder("localhost:29092").build();
     }
 
-    private ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings(
+    private SenderOptions<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings(
             KafkaSettings kafkaSettings,
             JacksonEventFormat<String, BankEvent> eventFormat) {
-        return kafkaSettings.producerSettings(actorSystem, JsonSerializer.of(
+        return kafkaSettings.producerSettings(JsonSerializer.of(
                 eventFormat,
                 JacksonSimpleFormat.empty(),
                 JacksonSimpleFormat.empty()
@@ -94,14 +92,12 @@ public class Bank {
     }
 
 
-    public Bank(ActorSystem actorSystem,
-                BankCommandHandler commandHandler,
+    public Bank(BankCommandHandler commandHandler,
                 BankEventHandler eventHandler
                 ) throws SQLException {
         String topic = "bank";
-        this.actorSystem = actorSystem;
         JacksonEventFormat<String, BankEvent> eventFormat = new BankEventFormat();
-        ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings = producerSettings(settings(), eventFormat);
+        SenderOptions<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings = producerSettings(settings(), eventFormat);
         DataSource dataSource = dataSource();
         dataSource.getConnection().prepareStatement(SCHEMA).execute();
         TableNames tableNames = tableNames();
@@ -112,7 +108,6 @@ public class Bank {
         JdbcTransactionManager transactionManager = new JdbcTransactionManager(dataSource(), executorService);
 
         this.eventProcessor = PostgresKafkaEventProcessor
-                .withActorSystem(actorSystem)
                 .withDataSource(dataSource())
                 .withTables(tableNames)
                 .withTransactionManager(transactionManager, executorService)
@@ -124,7 +119,6 @@ public class Bank {
                 .withAggregateStore(builder -> new BankAggregateStore(
                             builder.eventStore,
                             builder.eventHandler,
-                            builder.system,
                             builder.transactionManager
                     ))
                 .withCommandHandler(commandHandler)
@@ -132,46 +126,44 @@ public class Bank {
                 .build();
     }
 
-    private KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher(
-            ActorSystem actorSystem,
-            ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings,
+    private ReactorKafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher(
+            SenderOptions<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings,
             String topic) {
-        return new KafkaEventPublisher<>(actorSystem, producerSettings, topic);
+        return new ReactorKafkaEventPublisher<>(producerSettings, topic);
     }
 
     private PostgresEventStore<BankEvent, Tuple0, Tuple0> eventStore(
-            ActorSystem actorSystem,
-            KafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher,
+            ReactorKafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher,
             DataSource dataSource,
             ExecutorService executorService,
             TableNames tableNames,
             JacksonEventFormat<String, BankEvent> jacksonEventFormat) {
-        return PostgresEventStore.create(actorSystem, kafkaEventPublisher, dataSource, executorService, tableNames, jacksonEventFormat);
+        return PostgresEventStore.create(kafkaEventPublisher, dataSource, executorService, tableNames, jacksonEventFormat);
     }
 
 
-    public Future<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> createAccount(
+    public CompletionStage<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> createAccount(
             BigDecimal amount) {
         Lazy<String> lazyId = Lazy.of(() -> UUIDgenerator.generate().toString());
         return eventProcessor.processCommand(new BankCommand.OpenAccount(lazyId, amount));
     }
 
-    public Future<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> withdraw(
+    public CompletionStage<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> withdraw(
             String account, BigDecimal amount) {
         return eventProcessor.processCommand(new BankCommand.Withdraw(account, amount));
     }
 
-    public Future<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> deposit(
+    public CompletionStage<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> deposit(
             String account, BigDecimal amount) {
         return eventProcessor.processCommand(new BankCommand.Deposit(account, amount));
     }
 
-    public Future<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> close(
+    public CompletionStage<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> close(
             String account) {
         return eventProcessor.processCommand(new BankCommand.CloseAccount(account));
     }
 
-    public Future<Option<Account>> findAccountById(String id) {
+    public CompletionStage<Option<Account>> findAccountById(String id) {
         return eventProcessor.getAggregate(id);
     }
 

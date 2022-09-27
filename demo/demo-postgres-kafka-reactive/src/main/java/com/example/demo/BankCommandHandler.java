@@ -1,13 +1,13 @@
 package com.example.demo;
 
-import fr.maif.eventsourcing.CommandHandler;
 import fr.maif.eventsourcing.Events;
-import fr.maif.jooq.PgAsyncTransaction;
+import fr.maif.eventsourcing.ReactorCommandHandler;
+import fr.maif.jooq.reactor.PgAsyncTransaction;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 
@@ -21,13 +21,13 @@ import static io.vavr.API.List;
 import static io.vavr.API.Match;
 import static io.vavr.API.Right;
 
-public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, Tuple0, PgAsyncTransaction> {
+public class BankCommandHandler implements ReactorCommandHandler<String, Account, BankCommand, BankEvent, Tuple0, PgAsyncTransaction> {
     @Override
-    public Future<Either<String, Events<BankEvent, Tuple0>>> handleCommand(
+    public Mono<Either<String, Events<BankEvent, Tuple0>>> handleCommand(
             PgAsyncTransaction transactionContext,
             Option<Account> previousState,
             BankCommand command) {
-        return Future.of(() -> Match(command).of(
+        return Mono.fromRunnable(() -> Match(command).of(
             Case($Withdraw(), withdraw -> this.handleWithdraw(previousState, withdraw)),
             Case($Deposit(), deposit -> this.handleDeposit(previousState, deposit)),
             Case($OpenAccount(), this::handleOpening),

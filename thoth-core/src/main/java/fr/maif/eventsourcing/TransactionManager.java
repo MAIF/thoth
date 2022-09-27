@@ -10,6 +10,7 @@ import io.vavr.collection.List;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -18,7 +19,7 @@ public interface TransactionManager<TxCtx> {
 
     TimeBasedGenerator UUIDgen = Generators.timeBasedGenerator();
 
-    <T> Future<T> withTransaction(Function<TxCtx, Future<T>> callBack);
+    <T> CompletionStage<T> withTransaction(Function<TxCtx, CompletionStage<T>> callBack);
 
     default String transactionId() {
         return UUIDgen.generate().toString();
@@ -27,15 +28,15 @@ public interface TransactionManager<TxCtx> {
     class InTransactionResult<T> {
 
         public final T results;
-        public final Supplier<Future<Tuple0>> postTransactionProcess;
+        public final Supplier<CompletionStage<Tuple0>> postTransactionProcess;
 
-        public InTransactionResult(T results, Supplier<Future<Tuple0>> postTransactionProcess) {
+        public InTransactionResult(T results, Supplier<CompletionStage<Tuple0>> postTransactionProcess) {
             this.results = results;
             this.postTransactionProcess = postTransactionProcess;
         }
 
-        public Future<T> postTransaction() {
-            return postTransactionProcess.get().map(__ -> this.results);
+        public CompletionStage<T> postTransaction() {
+            return postTransactionProcess.get().thenApply(__ -> this.results);
         }
 
         public <V> InTransactionResult<V> map(Function<T, V> func) {
@@ -51,7 +52,7 @@ public interface TransactionManager<TxCtx> {
             return new InTransactionResult<>(
                     tuple,
                     () -> this.postTransactionProcess.get()
-                            .flatMap(r -> other.postTransactionProcess.get())
+                            .thenCompose(r -> other.postTransactionProcess.get())
             );
         }
     }

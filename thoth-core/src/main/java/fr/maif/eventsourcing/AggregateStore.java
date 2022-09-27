@@ -6,21 +6,24 @@ import io.vavr.collection.List;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Option;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
 public interface AggregateStore<S extends State<S>, Id, TxCtx> {
 
-    Future<Option<S>> getAggregate(Id entityId);
+    CompletionStage<Option<S>> getAggregate(Id entityId);
 
-    Future<Option<S>> getAggregate(TxCtx ctx, Id entityId);
+    CompletionStage<Option<S>> getAggregate(TxCtx ctx, Id entityId);
 
-    default Future<Tuple0> storeSnapshot(TxCtx transactionContext, Id id, Option<S> state) {
-        return Future.successful(Tuple.empty());
+    default CompletionStage<Tuple0> storeSnapshot(TxCtx transactionContext, Id id, Option<S> state) {
+        return CompletableFuture.completedStage(Tuple.empty());
     }
 
-    default Future<Option<S>> getSnapshot(TxCtx transactionContext, Id id) {
-        return Future.successful(Option.none());
+    default CompletionStage<Option<S>> getSnapshot(TxCtx transactionContext, Id id) {
+        return CompletableFuture.completedStage(Option.none());
     }
 
-    default <E extends Event> Future<Option<S>> buildAggregateAndStoreSnapshot(TxCtx ctx, EventHandler<S, E> eventHandler, Option<S> state, Id id, List<E> events, Option<Long> lastSequenceNum) {
+    default <E extends Event> CompletionStage<Option<S>> buildAggregateAndStoreSnapshot(TxCtx ctx, EventHandler<S, E> eventHandler, Option<S> state, Id id, List<E> events, Option<Long> lastSequenceNum) {
 
         Option<S> newState = eventHandler.deriveState(state, events.filter(event -> event.entityId().equals(id)));
 
@@ -28,7 +31,7 @@ public interface AggregateStore<S extends State<S>, Id, TxCtx> {
                 .map(num -> newState.map(s -> (S) s.withSequenceNum(num)))
                 .getOrElse(newState);
 
-        return storeSnapshot(ctx, id, newStatewithSequence).map(__ -> newState);
+        return storeSnapshot(ctx, id, newStatewithSequence).thenApply(__ -> newState);
     }
 
 }

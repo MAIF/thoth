@@ -6,13 +6,12 @@ dependencies {
 
     implementation project(':commons-events')
     implementation project(':thoth-core')
+    implementation project(':thoth-core-reactor')
     implementation project(':thoth-jooq')
-    implementation project(':thoth-kafka-goodies')
+    implementation project(':thoth-kafka-consumer-reactor')
+    implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("fr.maif:functional-json:$functionalJsonVersion")
     implementation("com.fasterxml.uuid:java-uuid-generator:4.0.1")
     implementation("org.postgresql:postgresql:42.2.5")
-    implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
-    implementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")
-
 }

@@ -8,9 +8,11 @@ group = 'fr.maif'
 dependencies {
     implementation project(':commons-events')
     implementation project(':thoth-core')
+    implementation project(':thoth-core-reactor')
     implementation("io.vavr:vavr:$vavrVersion")
-    implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
-    implementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")
+    implementation("io.projectreactor:reactor-core:$reactorVersion")
+    implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
+    implementation("org.slf4j:slf4j-api:1.7.36")
     implementation("org.postgresql:postgresql:42.2.5")
     implementation("org.jooq:jooq:$jooqVersion")
     implementation("javax.annotation:jsr250-api:1.0")
@@ -38,5 +40,9 @@ dependencies {
 }
 
 test {
-    useTestNG()
+    useJUnitPlatform()
+    useTestNG {
+        useDefaultListeners = true // Tells TestNG to execute its default reporting structure
+        suites 'src/test/resources/testng.xml' //location of our suite.xml
+    }
 }

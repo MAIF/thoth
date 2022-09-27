@@ -6,14 +6,14 @@ dependencies {
 
     implementation project(':commons-events')
     implementation project(':thoth-core')
+    implementation project(':thoth-core-reactor')
     implementation project(':thoth-jooq')
-    implementation project(':thoth-kafka-goodies')
+    implementation project(':thoth-kafka-consumer-reactor')
     implementation("io.vavr:vavr:$vavrVersion")
-    implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
-    implementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")
     implementation("fr.maif:functional-json:$functionalJsonVersion")
     implementation("org.springframework.boot:spring-boot-starter:2.4.3")
     implementation("org.springframework.boot:spring-boot-starter-web:2.4.3")
+    implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
     implementation("org.postgresql:postgresql:42.2.5")
 
     testImplementation("org.testcontainers:postgresql:1.15.2")
