@@ -1,7 +1,7 @@
 name: Publish
 on:
   push:
-    branches: ['version-2x']
+    branches: [master]
 jobs:
   publish:
     runs-on: ubuntu-20.04
