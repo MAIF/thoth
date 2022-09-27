@@ -149,7 +149,7 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
                         .withOnStarted((c, time) -> Mono.fromRunnable(() -> {
                             isStarted.set(true);
                         }))
-                        .withOnStopping(c -> Mono.fromRunnable(() -> {
+                        .withOnStopping(() -> Mono.fromRunnable(() -> {
                             isStopping.set(true);
                         }))
                         .withOnStopped(() -> Mono.fromRunnable(() -> {

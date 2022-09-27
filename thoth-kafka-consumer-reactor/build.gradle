@@ -21,7 +21,7 @@ dependencies {
     testImplementation("net.aichler:jupiter-interface:0.9.1")
     testImplementation("org.scalatest:scalatest_$scalaVersion:3.0.8")
     testImplementation("org.testcontainers:kafka:1.15.1")
-
+    testImplementation 'ch.qos.logback:logback-classic:1.4.1'
 }
 
 test {

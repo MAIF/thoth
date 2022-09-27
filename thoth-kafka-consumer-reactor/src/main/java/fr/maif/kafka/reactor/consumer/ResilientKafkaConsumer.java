@@ -16,6 +16,8 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -26,44 +28,27 @@ public abstract class ResilientKafkaConsumer<K, V> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ResilientKafkaConsumer.class);
 
-    public static class Config<K, V> {
-        public final Collection<String> topics;
-        public final String groupId;
-        public final ReceiverOptions<K, V> receiverOptions;
-        public Duration minBackoff;
-        public Duration maxBackoff;
-        public Double randomFactor;
-        public Integer commitSize;
-        public BiFunction<Disposable, Integer, Mono<Void>> onStarted;
-        public Supplier<Mono<Void>> onStarting;
-        public Supplier<Mono<Void>> onStopped;
-        public Function<Disposable, Mono<Void>> onStopping;
-        public Function<Throwable, Mono<Void>> onFailed;
+    public record Config<K, V>(
+            Collection<String> topics,
+            String groupId,
+            ReceiverOptions<K, V> receiverOptions,
+            Integer maxRestarts,
+            Duration minBackoff,
+            Duration maxBackoff,
+            Double randomFactor,
+            Integer commitSize,
+            BiFunction<Disposable, Integer, Mono<Void>> onStarted,
+            Supplier<Mono<Void>> onStarting,
+            Supplier<Mono<Void>> onStopped,
+            Supplier<Mono<Void>> onStopping,
+            Function<Throwable, Mono<Void>> onFailed) {
 
-        private Config(Collection<String> topics, String groupId, ReceiverOptions<K, V> receiverOptions, Duration minBackoff,
-                       Duration maxBackoff, Double randomFactor, Integer commitSize,
-                       BiFunction<Disposable, Integer, Mono<Void>> onStarted,
-                       Supplier<Mono<Void>> onStarting, Supplier<Mono<Void>> onStopped,
-                       Function<Disposable, Mono<Void>> onStopping,
-                       Function<Throwable, Mono<Void>> onFailed) {
-            this.topics = topics;
-            this.groupId = groupId;
-            this.receiverOptions = receiverOptions;
-            this.minBackoff = minBackoff;
-            this.maxBackoff = maxBackoff;
-            this.randomFactor = randomFactor;
-            this.commitSize = commitSize;
-            this.onStarted = onStarted;
-            this.onStarting = onStarting;
-            this.onStopped = onStopped;
-            this.onStopping = onStopping;
-            this.onFailed = onFailed;
-        }
 
         public static class ConfigBuilder<K, V> {
             Collection<String> topics;
             String groupId;
             ReceiverOptions<K, V> consumerSettings;
+            Integer maxRestarts;
             Duration minBackoff;
             Duration maxBackoff;
             Double randomFactor;
@@ -71,7 +56,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
             BiFunction<Disposable, Integer, Mono<Void>> onStarted;
             Supplier<Mono<Void>> onStarting;
             Supplier<Mono<Void>> onStopped;
-            Function<Disposable, Mono<Void>> onStopping;
+            Supplier<Mono<Void>> onStopping;
             Function<Throwable, Mono<Void>> onFailed;
 
             public ConfigBuilder<K, V> topics(Collection<String> topics) {
@@ -86,6 +71,11 @@ public abstract class ResilientKafkaConsumer<K, V> {
 
             public ConfigBuilder<K, V> receiverOptions(ReceiverOptions<K, V> consumerSettings) {
                 this.consumerSettings = consumerSettings;
+                return this;
+            }
+
+            public ConfigBuilder<K, V> maxRestarts(Integer maxRestarts) {
+                this.maxRestarts = maxRestarts;
                 return this;
             }
 
@@ -125,8 +115,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
                 return this;
             }
 
-            public ConfigBuilder<K, V> onStopping(
-                    Function<Disposable, Mono<Void>> onStopping) {
+            public ConfigBuilder<K, V> onStopping(Supplier<Mono<Void>> onStopping) {
                 this.onStopping = onStopping;
                 return this;
             }
@@ -137,7 +126,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
             }
 
             public Config<K, V> build() {
-                return new Config<>(this.topics, this.groupId, this.consumerSettings, this.minBackoff,
+                return new Config<>(this.topics, this.groupId, this.consumerSettings, this.maxRestarts, this.minBackoff,
                         this.maxBackoff, this.randomFactor, this.commitSize, this.onStarted,
                         this.onStarting, this.onStopped, this.onStopping, this.onFailed);
             }
@@ -171,6 +160,11 @@ public abstract class ResilientKafkaConsumer<K, V> {
                     .onFailed(this.onFailed);
         }
 
+
+        public Config<K, V> withMaxRestarts(Integer maxRestarts) {
+            return this.toBuilder().maxRestarts(maxRestarts).build();
+        }
+
         public Config<K, V> withMinBackoff(Duration minBackoff) {
             return this.toBuilder().minBackoff(minBackoff).build();
         }
@@ -201,7 +195,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
         }
 
         public Config<K, V> withOnStopping(
-                Function<Disposable, Mono<Void>> onStopping) {
+                Supplier<Mono<Void>> onStopping) {
             return this.toBuilder().onStopping(onStopping).build();
         }
 
@@ -212,6 +206,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
 
     protected final Collection<String> topics;
     protected final String groupId;
+    protected final Long maxRestarts;
     protected final Duration minBackoff;
     protected final Duration maxBackoff;
     protected final Integer commitSize;
@@ -219,15 +214,18 @@ public abstract class ResilientKafkaConsumer<K, V> {
     protected final BiFunction<Disposable, Integer, Mono<Void>> onStarted;
     protected final Supplier<Mono<Void>> onStarting;
     protected final Supplier<Mono<Void>> onStopped;
-    protected final Function<Disposable, Mono<Void>> onStopping;
+    protected final Supplier<Mono<Void>> onStopping;
     protected final Function<Throwable, Mono<Void>> onFailed;
 
-    protected final AtomicReference<Disposable> controlRef = new AtomicReference<>();
+    protected final AtomicReference<Disposable> disposableKafkaRef = new AtomicReference<>();
+    protected final AtomicReference<CountDownLatch> cdlRef = new AtomicReference<>();
     protected final AtomicReference<Status> innerStatus = new AtomicReference<>(Status.Stopped);
+    protected final AtomicReference<KafkaReceiver<K, V>> consumerRef = new AtomicReference<>();
 
     public ResilientKafkaConsumer(Config<K, V> config) {
         this.topics = config.topics;
         this.groupId = config.groupId;
+        this.maxRestarts = Objects.requireNonNullElse(config.maxRestarts, Long.MAX_VALUE).longValue();
         this.minBackoff = Objects.isNull(config.minBackoff) ? Duration.ofSeconds(30) : config.minBackoff;
         this.maxBackoff = Objects.isNull(config.maxBackoff) ? Duration.ofMinutes(30) : config.maxBackoff;
         this.commitSize = Objects.isNull(config.commitSize) ? 10 : config.commitSize;
@@ -240,7 +238,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
         this.onStarted = defaultIfNull(config.onStarted, (__, ___) -> Mono.just("").then());
         this.onStarting = defaultIfNull(config.onStarting, () -> Mono.just("").then());
         this.onStopped = defaultIfNull(config.onStopped, () -> Mono.just("").then());
-        this.onStopping = defaultIfNull(config.onStopping, (__) -> Mono.just("").then());
+        this.onStopping = defaultIfNull(config.onStopping, () -> Mono.just("").then());
         this.onFailed = defaultIfNull(config.onFailed, (__) -> Mono.just("").then());
         this.start();
     }
@@ -334,53 +332,89 @@ public abstract class ResilientKafkaConsumer<K, V> {
         }
         updateStatus(Status.Starting);
         this.onStarting.get().subscribe();
-
+        CountDownLatch cdl = new CountDownLatch(1);
+        cdlRef.set(cdl);
         LOGGER.info("Starting {} on topic '{}' with group id '{}'", name(), topics, groupId);
         AtomicInteger restartCount = new AtomicInteger(0);
         KafkaReceiver<K, V> kafkaReceiver = KafkaReceiver.create(this.receiverOptions);
-        Disposable disposable = kafkaReceiver.receive()
-                .doOnSubscribe(s -> {
-                    updateStatus(Status.Started);
-                    this.onStarted.apply(controlRef.get(), restartCount.get()).subscribe();
-                })
+        consumerRef.set(kafkaReceiver);
+        var connector = kafkaReceiver.receive()
+                .doOnSubscribe(s -> onStart(restartCount))
                 .groupBy(m -> m.receiverOffset().topicPartition())
-                .flatMap(
-                        partition ->
-                                partition.transform(messageHandling())
-                                        .doOnNext(r -> r.receiverOffset().acknowledge())
+                .flatMap(partition -> partition
+                        .transform(messageHandling()).doOnNext(r -> r.receiverOffset().acknowledge())
                 )
-                .retryWhen(Retry.backoff(10, minBackoff)
+                .retryWhen(Retry.backoff(maxRestarts, minBackoff)
                         .maxBackoff(maxBackoff)
-                        .maxAttempts(Long.MAX_VALUE)
+                        .onRetryExhaustedThrow((spec, rs) -> rs.failure())
                         .doBeforeRetry(s -> {
                             int count = restartCount.incrementAndGet();
-                            if (count > 1) {
-                                LOGGER.info("Stream for {} is restarting for the {} time", name(), count);
+                            if (count > 0) {
+                                LOGGER.info("Stream for %s is restarting for the %s time".formatted(name(), count), s.failure());
                             } else {
                                 LOGGER.info("Stream for {} is starting", name());
                             }
                         })
                 )
-                .doOnComplete(() -> {
-                    LOGGER.info("Stopping {}", name());
-                    updateStatus(Status.Stopped);
-                    this.onStopped.get().subscribe();
-                })
-                .doOnError(err -> {
-                    LOGGER.error("Error during " + name(), err);
-                    updateStatus(Status.Failed);
-                    this.onFailed.apply(err).subscribe();
-                })
-                .subscribe();
-        controlRef.set(disposable);
+                .publish();
+        connector
+                .subscribe(
+                        any -> {
+                        },
+                        e -> {
+                            onError(e);
+                            cdl.countDown();
+                        },
+                        () -> {
+                            onComplete();
+                            cdl.countDown();
+                        }
+                );
+        Disposable disposable = connector.connect();
+        disposableKafkaRef.set(disposable);
         return status();
     }
 
+    private void onStart(AtomicInteger restartCount) {
+        LOGGER.info("Starting {}", name());
+        updateStatus(Status.Started);
+        this.onStarted.apply(disposableKafkaRef.get(), restartCount.get()).subscribe();
+    }
+
+    private void onError(Throwable err) {
+        if (err instanceof CancellationException) {
+            onComplete();
+        } else {
+            LOGGER.error("Error during " + name(), err);
+            updateStatus(Status.Failed);
+            this.onFailed.apply(err).subscribe();
+        }
+    }
+
+    private void onComplete() {
+        LOGGER.info("{} is stopped", name());
+        updateStatus(Status.Stopped);
+        this.onStopped.get().subscribe();
+    }
+
     public Mono<Void> stop() {
-        return Mono.fromRunnable(() -> {
+        return Mono.create(s -> {
+            LOGGER.info("Stopping {}", name());
             updateStatus(Status.Stopping);
-            Optional.ofNullable(controlRef.get()).ifPresent(Disposable::dispose);
-            this.onStopping.apply(controlRef.get()).subscribe();
+            this.onStopping.get().subscribe();
+            Optional.ofNullable(disposableKafkaRef.get()).ifPresent(disposable -> {
+                if (!disposable.isDisposed()) {
+                    disposable.dispose();
+                }
+            });
+            Optional.ofNullable(cdlRef.get()).ifPresent(countDownLatch -> {
+                try {
+                    countDownLatch.await();
+                    s.success();
+                } catch (InterruptedException e) {
+                    s.error(e);
+                }
+            });
         });
     }
 }
