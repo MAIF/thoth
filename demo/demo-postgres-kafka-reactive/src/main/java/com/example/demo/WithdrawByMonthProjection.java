@@ -1,22 +1,22 @@
 package com.example.demo;
 
 import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.Projection;
-import fr.maif.jooq.PgAsyncPool;
-import fr.maif.jooq.PgAsyncTransaction;
-import io.vavr.Tuple;
+import fr.maif.eventsourcing.ReactorProjection;
+import fr.maif.jooq.reactor.PgAsyncPool;
+import fr.maif.jooq.reactor.PgAsyncTransaction;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
-import org.jooq.DSLContext;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 
+import static io.vavr.API.Case;
+import static io.vavr.API.Match;
+import static io.vavr.API.Tuple;
 import static io.vavr.PartialFunction.unlift;
 import static org.jooq.impl.DSL.val;
-import static io.vavr.API.*;
 
-public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction, BankEvent, Tuple0, Tuple0> {
+public class WithdrawByMonthProjection implements ReactorProjection<PgAsyncTransaction, BankEvent, Tuple0, Tuple0> {
 
     private final PgAsyncPool pgAsyncPool;
 
@@ -25,8 +25,8 @@ public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction,
     }
 
     @Override
-    public Future<Tuple0> storeProjection(PgAsyncTransaction connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> envelopes) {
-        return connection.executeBatch(dsl ->
+    public Mono<Void> storeProjection(PgAsyncTransaction connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> envelopes) {
+        return connection.executeBatchMono(dsl ->
                 envelopes
                         // Keep only MoneyWithdrawn events
                         .collect(unlift(eventEnvelope ->
@@ -45,11 +45,11 @@ public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction,
                                 val(t._1.emissionDate.getYear()),
                                 val(t._2.amount)
                         ))
-        ).map(__ -> Tuple.empty());
+        ).then();
     }
 
-    public Future<BigDecimal> meanWithdrawByClientAndMonth(String clientId, Integer year, String month) {
-        return pgAsyncPool.query(dsl -> dsl.resultQuery(
+    public Mono<BigDecimal> meanWithdrawByClientAndMonth(String clientId, Integer year, String month) {
+        return pgAsyncPool.queryMono(dsl -> dsl.resultQuery(
                 """
                     select round(withdraw / count::decimal, 2) 
                     from withdraw_by_month 
@@ -61,8 +61,8 @@ public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction,
         ).map(r -> r.head().get(0, BigDecimal.class));
     }
 
-    public Future<BigDecimal> meanWithdrawByClient(String clientId) {
-        return pgAsyncPool.query(dsl -> dsl
+    public Mono<BigDecimal> meanWithdrawByClient(String clientId) {
+        return pgAsyncPool.queryMono(dsl -> dsl
                 .resultQuery(
                         """
                             select round(sum(withdraw) / sum(count)::decimal, 2) as sum
@@ -73,9 +73,8 @@ public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction,
         ).map(r -> r.head().get("sum", BigDecimal.class));
     }
 
-
-    public Future<Integer> init() {
-        return this.pgAsyncPool.execute(dsl -> dsl.query("""
+    public Mono<Integer> init() {
+        return this.pgAsyncPool.executeMono(dsl -> dsl.query("""
                  CREATE TABLE IF NOT EXISTS WITHDRAW_BY_MONTH(
                     client_id text,
                     month text,
@@ -85,18 +84,18 @@ public class WithdrawByMonthProjection implements Projection<PgAsyncTransaction,
                  )
                 """))
                 .flatMap(__ ->
-                        pgAsyncPool.execute(dsl -> dsl.query("""
+                        pgAsyncPool.executeMono(dsl -> dsl.query("""
                         CREATE UNIQUE INDEX IF NOT EXISTS WITHDRAW_BY_MONTH_UNIQUE_IDX ON WITHDRAW_BY_MONTH(client_id, month, year);    
                     """))
                 )
                 .flatMap(__ ->
-                        pgAsyncPool.execute(dsl -> dsl.query("""
+                        pgAsyncPool.executeMono(dsl -> dsl.query("""
                         ALTER TABLE WITHDRAW_BY_MONTH
                         DROP CONSTRAINT IF EXISTS WITHDRAW_BY_MONTH_UNIQUE;    
                     """))
                 )
                 .flatMap(__ ->
-                        pgAsyncPool.execute(dsl -> dsl.query("""
+                        pgAsyncPool.executeMono(dsl -> dsl.query("""
                         ALTER TABLE WITHDRAW_BY_MONTH
                         ADD CONSTRAINT WITHDRAW_BY_MONTH_UNIQUE 
                         UNIQUE USING INDEX WITHDRAW_BY_MONTH_UNIQUE_IDX;    

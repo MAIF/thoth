@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
@@ -14,29 +15,23 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import akka.actor.ActorSystem;
-import fr.maif.projections.EventuallyConsistentProjection;
+import fr.maif.reactor.projections.EventuallyConsistentProjection;
 import fr.maif.thoth.sample.events.BankEvent;
 import fr.maif.thoth.sample.events.BankEventFormat;
-import io.vavr.Tuple;
-import io.vavr.concurrent.Future;
 
 @Component
 public class MeanWithdrawProjection  {
     private static final Logger LOGGER = LoggerFactory.getLogger(MeanWithdrawProjection.class);
 
-    private final ActorSystem actorSystem;
     private final String bootstrapServer;
     private final BankEventFormat eventFormat;
     private final DataSource dataSource;
 
     public MeanWithdrawProjection(
-            ActorSystem actorSystem,
             @Value("${kafka.port}") int port,
             @Value("${kafka.host}") String host,
             BankEventFormat eventFormat,
             DataSource dataSource) {
-        this.actorSystem = actorSystem;
         this.eventFormat = eventFormat;
         this.dataSource = dataSource;
         this.bootstrapServer = host + ":" + port;
@@ -44,33 +39,29 @@ public class MeanWithdrawProjection  {
 
     @PostConstruct
     public void init() {
-        EventuallyConsistentProjection.create(
-                actorSystem,
+        EventuallyConsistentProjection.simpleHandler(
                 "MeanWithdrawProjection",
                 EventuallyConsistentProjection.Config.create("bank", "MeanWithdrawProjection", bootstrapServer),
                 eventFormat,
-                envelope -> {
-                    return Future.of(() -> {
-                        if(envelope.event instanceof BankEvent.MoneyWithdrawn withdraw) {
-                            try(final PreparedStatement statement = dataSource.getConnection().prepareStatement("""
-                                insert into withdraw_by_month (client_id, month, year, withdraw, count) values (?, ?, ?, ?, 1)
-                                    on conflict on constraint WITHDRAW_BY_MONTH_UNIQUE
-                                    do update set withdraw = withdraw_by_month.withdraw + EXCLUDED.withdraw, count=withdraw_by_month.count + 1
-                            """)
-                            ) {
-                                statement.setString(1, envelope.entityId);
-                                statement.setString(2, envelope.emissionDate.getMonth().name().toUpperCase());
-                                statement.setInt(3, envelope.emissionDate.getYear());
-                                statement.setBigDecimal(4, withdraw.amount);
+                envelope -> CompletableFuture.runAsync(() -> {
+                    if(envelope.event instanceof BankEvent.MoneyWithdrawn withdraw) {
+                        try(final PreparedStatement statement = dataSource.getConnection().prepareStatement("""
+                            insert into withdraw_by_month (client_id, month, year, withdraw, count) values (?, ?, ?, ?, 1)
+                                on conflict on constraint WITHDRAW_BY_MONTH_UNIQUE
+                                do update set withdraw = withdraw_by_month.withdraw + EXCLUDED.withdraw, count=withdraw_by_month.count + 1
+                        """)
+                        ) {
+                            statement.setString(1, envelope.entityId);
+                            statement.setString(2, envelope.emissionDate.getMonth().name().toUpperCase());
+                            statement.setInt(3, envelope.emissionDate.getYear());
+                            statement.setBigDecimal(4, withdraw.amount);
 
-                                statement.execute();
-                            } catch (SQLException ex) {
-                                LOGGER.error("Failed to update stats projection", ex);
-                            }
+                            statement.execute();
+                        } catch (SQLException ex) {
+                            LOGGER.error("Failed to update stats projection", ex);
                         }
-                        return Tuple.empty();
-                    });
-                }
+                    }
+                })
         ).start();
     }
 

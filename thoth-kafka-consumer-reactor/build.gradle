@@ -1,0 +1,29 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+group = 'fr.maif'
+
+dependencies {
+    implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
+
+    testImplementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
+    testImplementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")
+    testImplementation("com.typesafe.akka:akka-testkit_$scalaVersion:$akkaVersion")
+    testImplementation("com.typesafe.akka:akka-stream-testkit_$scalaVersion:$akkaVersion")
+    testImplementation("com.typesafe.akka:akka-stream-kafka-testkit_$scalaVersion:$alpakkaKafkaVersion")
+    testImplementation("org.assertj:assertj-core:3.10.0")
+    testImplementation("org.junit.platform:junit-platform-launcher:1.4.2")
+    testImplementation("org.junit.platform:junit-platform-commons:1.4.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.4.2")
+    testImplementation("org.junit.vintage:junit-vintage-engine:5.4.2")
+    testImplementation("net.aichler:jupiter-interface:0.9.1")
+    testImplementation("org.scalatest:scalatest_$scalaVersion:3.0.8")
+    testImplementation("org.testcontainers:kafka:1.15.1")
+    testImplementation 'ch.qos.logback:logback-classic:1.4.1'
+}
+
+test {
+    useJUnitPlatform()
+}

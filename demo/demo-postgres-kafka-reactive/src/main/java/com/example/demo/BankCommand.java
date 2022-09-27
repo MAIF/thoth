@@ -6,7 +6,7 @@ import io.vavr.Lazy;
 
 import java.math.BigDecimal;
 
-public interface BankCommand extends SimpleCommand {
+public sealed interface BankCommand extends SimpleCommand {
     
     static Pattern0<Withdraw> $Withdraw() {
         return Pattern0.of(Withdraw.class);
@@ -24,7 +24,7 @@ public interface BankCommand extends SimpleCommand {
         return Pattern0.of(CloseAccount.class);
     }
 
-    class Withdraw implements BankCommand {
+    final class Withdraw implements BankCommand {
         public String account;
         public BigDecimal amount;
 
@@ -39,7 +39,7 @@ public interface BankCommand extends SimpleCommand {
         }
     }
 
-    class OpenAccount implements BankCommand {
+    final class OpenAccount implements BankCommand {
         public Lazy<String> id;
         public BigDecimal initialBalance;
 
@@ -59,7 +59,7 @@ public interface BankCommand extends SimpleCommand {
         }
     }
 
-    class Deposit implements BankCommand {
+    final class Deposit implements BankCommand {
         public String account;
         public BigDecimal amount;
 
@@ -74,7 +74,7 @@ public interface BankCommand extends SimpleCommand {
         }
     }
 
-    class CloseAccount implements BankCommand {
+    final class CloseAccount implements BankCommand {
         public String id;
 
         public CloseAccount(String id) {

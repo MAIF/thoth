@@ -6,6 +6,8 @@ import static io.vavr.API.Right;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import fr.maif.eventsourcing.CommandHandler;
 import fr.maif.eventsourcing.Events;
@@ -19,11 +21,11 @@ import io.vavr.control.Option;
 
 public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, Tuple0, Connection> {
     @Override
-    public Future<Either<String, Events<BankEvent, Tuple0>>> handleCommand(
+    public CompletionStage<Either<String, Events<BankEvent, Tuple0>>> handleCommand(
             Connection transactionContext,
             Option<Account> previousState,
             BankCommand command) {
-        return Future.of(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             if(command instanceof BankCommand.Withdraw withdraw) {
                 return this.handleWithdraw(previousState, withdraw);
             } else if(command instanceof BankCommand.Deposit deposit) {

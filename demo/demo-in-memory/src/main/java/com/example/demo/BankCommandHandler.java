@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.CommandHandler;
 import fr.maif.eventsourcing.Events;
 import io.vavr.API;
@@ -10,6 +11,7 @@ import io.vavr.control.Either;
 import io.vavr.control.Option;
 
 import java.math.BigDecimal;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import static com.example.demo.BankCommand.$CloseAccount;
@@ -20,11 +22,11 @@ import static io.vavr.API.*;
 
 public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, Tuple0, Tuple0> {
     @Override
-    public Future<Either<String, Events<BankEvent, Tuple0>>> handleCommand(
+    public CompletionStage<Either<String, Events<BankEvent, Tuple0>>> handleCommand(
             Tuple0 transactionContext,
             Option<Account> previousState,
             BankCommand command) {
-        return Future.of(() -> Match(command).option(
+        return CompletionStages.of(() -> Match(command).option(
                     Case($Withdraw(), withdraw -> this.handleWithdraw(previousState, withdraw)),
                     Case($Deposit(), deposit -> this.handleDeposit(previousState, deposit)),
                     Case($OpenAccount(), this::handleOpening),

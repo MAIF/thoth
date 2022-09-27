@@ -2,7 +2,7 @@ package fr.maif.eventsourcing.datastore;
 
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventProcessor;
+import fr.maif.eventsourcing.EventProcessorImpl;
 import fr.maif.eventsourcing.EventStore;
 import fr.maif.eventsourcing.ProcessingSuccess;
 import fr.maif.eventsourcing.State;
@@ -13,11 +13,11 @@ import io.vavr.control.Option;
 import java.util.List;
 
 public interface DataStoreVerificationRules<Ste extends State, Evt extends Event, Meta, Context, TxCtx> {
-    Either<String, ProcessingSuccess<TestState, TestEvent, Tuple0, Tuple0, Tuple0>> submitValidCommand(EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id);
-    void submitInvalidCommand(EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor,  String id);
-    void submitMultiEventsCommand(EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id);
-    Option<Ste> readState(EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id);
-    void submitDeleteCommand(EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id);
+    Either<String, ProcessingSuccess<TestState, TestEvent, Tuple0, Tuple0, Tuple0>> submitValidCommand(EventProcessorImpl<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id);
+    void submitInvalidCommand(EventProcessorImpl<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id);
+    void submitMultiEventsCommand(EventProcessorImpl<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id);
+    Option<Ste> readState(EventProcessorImpl<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id);
+    void submitDeleteCommand(EventProcessorImpl<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor, String id);
     List<EventEnvelope<TestEvent, Tuple0, Tuple0>> readPublishedEvents(String kafkaBootstrapUrl, String topic);
     void shutdownBroker();
     void restartBroker();
@@ -41,7 +41,7 @@ public interface DataStoreVerificationRules<Ste extends State, Evt extends Event
     List<EventEnvelope<Evt, Meta, Context>> readFromDataStore(EventStore<TxCtx, TestEvent, Tuple0, Tuple0> eventStore);
 
     default void cleanup(
-            EventProcessor<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor
+            EventProcessorImpl<String, TestState, TestCommand, TestEvent, TxCtx, Tuple0, Tuple0, Tuple0> eventProcessor
     ) {
         // Default implementation is NOOP
     }

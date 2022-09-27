@@ -1,23 +1,18 @@
 package com.example.demo;
 
-import akka.actor.ActorSystem;
-import akka.kafka.ProducerSettings;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
 import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventProcessor;
 import fr.maif.eventsourcing.ProcessingSuccess;
-import fr.maif.eventsourcing.ReactivePostgresKafkaEventProcessor;
+import fr.maif.eventsourcing.ReactiveEventProcessor;
+import fr.maif.eventsourcing.ReactorEventProcessor;
 import fr.maif.eventsourcing.TableNames;
-import fr.maif.jooq.PgAsyncPool;
-import fr.maif.jooq.PgAsyncTransaction;
-import fr.maif.jooq.reactive.ReactivePgAsyncPool;
+import fr.maif.jooq.reactor.PgAsyncPool;
+import fr.maif.jooq.reactor.PgAsyncTransaction;
 import fr.maif.kafka.JsonFormatSerDer;
-import fr.maif.kafka.KafkaSettings;
+import fr.maif.reactor.kafka.KafkaSettings;
 import io.vavr.Lazy;
-import io.vavr.Tuple;
 import io.vavr.Tuple0;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import io.vertx.core.Vertx;
@@ -26,6 +21,9 @@ import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.PoolOptions;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DefaultConfiguration;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.kafka.sender.SenderOptions;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -42,7 +40,7 @@ public class Bank implements Closeable {
                 balance money NOT NULL
             );""";
     private final String bankJournalTable = """
-                
+          
             CREATE TABLE IF NOT EXISTS bank_journal (
               id UUID primary key,
               entity_id varchar(100) not null,
@@ -64,30 +62,26 @@ public class Bank implements Closeable {
     private final String SEQUENCE = """
                     CREATE SEQUENCE if not exists bank_sequence_num;
             """;
-    private final ActorSystem actorSystem;
     private final PgAsyncPool pgAsyncPool;
     private final Vertx vertx;
     private PgPool pgPool;
-    private final EventProcessor<String, Account, BankCommand, BankEvent, PgAsyncTransaction, Tuple0, Tuple0, Tuple0> eventProcessor;
+    private final ReactorEventProcessor<String, Account, BankCommand, BankEvent, PgAsyncTransaction, Tuple0, Tuple0, Tuple0> eventProcessor;
     private final WithdrawByMonthProjection withdrawByMonthProjection;
 
-    public Bank(ActorSystem actorSystem,
-                BankCommandHandler commandHandler,
+    public Bank(BankCommandHandler commandHandler,
                 BankEventHandler eventHandler) {
-        this.actorSystem = actorSystem;
         this.vertx = Vertx.vertx();
         this.pgAsyncPool = pgAsyncPool(vertx);
         this.withdrawByMonthProjection = new WithdrawByMonthProjection(pgAsyncPool);
 
-        this.eventProcessor = ReactivePostgresKafkaEventProcessor
-                .withSystem(actorSystem)
+        this.eventProcessor = ReactiveEventProcessor
                 .withPgAsyncPool(pgAsyncPool)
                 .withTables(tableNames())
                 .withTransactionManager()
                 .withEventFormater(BankEventFormat.bankEventFormat.jacksonEventFormat())
                 .withNoMetaFormater()
                 .withNoContextFormater()
-                .withKafkaSettings("bank", producerSettings(settings()))
+                .withKafkaSettings("bank", senderOptions(settings()))
                 .withEventHandler(eventHandler)
                 .withDefaultAggregateStore()
                 .withCommandHandler(commandHandler)
@@ -95,16 +89,18 @@ public class Bank implements Closeable {
                 .build();
     }
 
-    public Future<Tuple0> init() {
+    public Mono<Void> init() {
         println("Initializing database");
-        return Future.traverse(List(accountTable, bankJournalTable, SEQUENCE), script -> pgAsyncPool.execute(d -> d.query(script)))
-                .onSuccess(__ -> println("Database initialized"))
-                .onFailure(e -> {
+        return Flux.fromIterable(List(accountTable, bankJournalTable, SEQUENCE))
+                .concatMap(script -> pgAsyncPool.executeMono(d -> d.query(script)))
+                .collectList()
+                .doOnSuccess(__ -> println("Database initialized"))
+                .doOnError(e -> {
                     println("Database initialization failed");
                     e.printStackTrace();
                 })
                 .flatMap(__ -> withdrawByMonthProjection.init())
-                .map(__ -> Tuple.empty());
+                .then();
     }
 
     @Override
@@ -126,15 +122,15 @@ public class Bank implements Closeable {
         PoolOptions poolOptions = new PoolOptions().setMaxSize(50);
         pgPool = PgPool.pool(vertx, options, poolOptions);
 
-        return new ReactivePgAsyncPool(pgPool, jooqConfig);
+        return PgAsyncPool.create(pgPool, jooqConfig);
     }
 
     private KafkaSettings settings() {
         return KafkaSettings.newBuilder("localhost:29092").build();
     }
 
-    private ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings(KafkaSettings kafkaSettings) {
-        return kafkaSettings.producerSettings(actorSystem, JsonFormatSerDer.of(BankEventFormat.bankEventFormat));
+    private SenderOptions<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> senderOptions(KafkaSettings kafkaSettings) {
+        return kafkaSettings.producerSettings(JsonFormatSerDer.of(BankEventFormat.bankEventFormat));
     }
 
     private TableNames tableNames() {
@@ -142,39 +138,39 @@ public class Bank implements Closeable {
     }
 
 
-    public Future<Either<String, Account>> createAccount(
+    public Mono<Either<String, Account>> createAccount(
             BigDecimal amount) {
         Lazy<String> lazyId = Lazy.of(() -> UUIDgenerator.generate().toString());
         return eventProcessor.processCommand(new BankCommand.OpenAccount(lazyId, amount))
                 .map(res -> res.flatMap(processingResult -> processingResult.currentState.toEither("Current state is missing")));
     }
 
-    public Future<Either<String, Account>> withdraw(
+    public Mono<Either<String, Account>> withdraw(
             String account, BigDecimal amount) {
         return eventProcessor.processCommand(new BankCommand.Withdraw(account, amount))
                 .map(res -> res.flatMap(processingResult -> processingResult.currentState.toEither("Current state is missing")));
     }
 
-    public Future<Either<String, Account>> deposit(
+    public Mono<Either<String, Account>> deposit(
             String account, BigDecimal amount) {
         return eventProcessor.processCommand(new BankCommand.Deposit(account, amount))
                 .map(res -> res.flatMap(processingResult -> processingResult.currentState.toEither("Current state is missing")));
     }
 
-    public Future<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, Tuple0>>> close(
+    public Mono<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, Tuple0>>> close(
             String account) {
         return eventProcessor.processCommand(new BankCommand.CloseAccount(account));
     }
 
-    public Future<Option<Account>> findAccountById(String id) {
+    public Mono<Option<Account>> findAccountById(String id) {
         return eventProcessor.getAggregate(id);
     }
 
-    public Future<BigDecimal> meanWithdrawByClientAndMonth(String clientId, Integer year, String month) {
+    public Mono<BigDecimal> meanWithdrawByClientAndMonth(String clientId, Integer year, String month) {
         return withdrawByMonthProjection.meanWithdrawByClientAndMonth(clientId, year, month);
     }
 
-    public Future<BigDecimal> meanWithdrawByClient(String clientId) {
+    public Mono<BigDecimal> meanWithdrawByClient(String clientId) {
         return withdrawByMonthProjection.meanWithdrawByClient(clientId);
     }
 }

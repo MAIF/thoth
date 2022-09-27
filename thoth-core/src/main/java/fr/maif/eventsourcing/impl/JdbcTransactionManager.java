@@ -1,6 +1,6 @@
 package fr.maif.eventsourcing.impl;
 
-import fr.maif.akka.AkkaExecutionContext;
+import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.TransactionManager;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Try;
@@ -9,6 +9,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
@@ -24,47 +27,56 @@ public class JdbcTransactionManager implements TransactionManager<Connection> {
     }
 
     @Override
-    public <T> Future<T> withTransaction(Function<Connection, Future<T>> callBack) {
+    public <T> CompletionStage<T> withTransaction(Function<Connection, CompletionStage<T>> callBack) {
 
-        return Future.of(executor, this.dataSource::getConnection)
-                .flatMap(connection ->
-                        Future.of(executor, () -> {
-                            connection.setAutoCommit(false);
+        return CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return this.dataSource.getConnection();
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }, executor)
+                .thenCompose(connection -> CompletableFuture
+                        .supplyAsync(() -> {
+                            try {
+                                connection.setAutoCommit(false);
+                            } catch (SQLException e) {
+                                throw new RuntimeException(e);
+                            }
                             return connection;
-                        })
-                        .flatMap(callBack)
-                        .flatMap(r -> commit(connection).map(__ -> r))
-                        .recoverWith(e -> {
+                        }, executor)
+                        .thenCompose(callBack)
+                        .thenCompose(r -> commit(connection).thenApply(__ -> r))
+                        .exceptionallyCompose(e -> {
                             LOGGER.error("Error, rollbacking, {}", e);
-                            return rollback(connection).flatMap(__ -> Future.failed(e));
+                            return rollback(connection).thenCompose(__ -> CompletableFuture.<T>failedStage(e));
                         })
-                        .flatMap(r -> closeConnection(connection).map(__ -> r))
-                        .recoverWith(e -> {
+                        .thenCompose(r -> closeConnection(connection).thenApply(__ -> r))
+                        .exceptionallyCompose(e -> {
                             LOGGER.error("Error, closing connection, {}", e);
-                            return closeConnection(connection).flatMap(__ -> Future.failed(e));
+                            return closeConnection(connection).thenCompose(__ -> CompletableFuture.<T>failedStage(e));
                         })
                 );
     }
 
-    private Future<Boolean> rollback(Connection connection) {
-        return Future.of(executor, () -> {
-
+    private CompletionStage<Boolean> rollback(Connection connection) {
+        return CompletionStages.fromTry(() -> Try.of(() -> {
                 connection.rollback();
                 return true;
-            });
+            }), executor);
     }
 
-    private Future<Boolean> commit(Connection connection) {
-        return Future.fromTry(executor, Try.of(() -> {
+    private CompletionStage<Boolean> commit(Connection connection) {
+        return CompletionStages.fromTry(() -> Try.of(() -> {
             connection.commit();
             return true;
-        }));
+        }), executor);
     }
 
-    private Future<Boolean> closeConnection(Connection connection) {
-        return Future.fromTry(executor, Try.of(() -> {
-                connection.close();
-                return true;
-        }));
+    private CompletionStage<Boolean> closeConnection(Connection connection) {
+        return CompletionStages.fromTry(() -> Try.of(() -> {
+            connection.close();
+            return true;
+        }), executor);
     }
 }
