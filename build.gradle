@@ -12,6 +12,8 @@ subprojects {
     apply plugin: 'signing'
     apply plugin: 'maven-publish'
 
+    group = 'fr.maif'
+
     repositories {
         mavenCentral()
     }
