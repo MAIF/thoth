@@ -1,6 +1,6 @@
 
 
-publishing.publications.remove(publishing.publications.mavenPublication)
+publishing.publications.remove(publishing.publications.mavenJava)
 
 dependencies {
 
