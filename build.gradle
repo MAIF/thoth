@@ -47,7 +47,7 @@ subprojects {
 
     publishing {
         publications {
-            mavenPublication(MavenPublication) {
+            mavenJava(MavenPublication) {
                 from(components.java)
                 pom {
                     name = "Thoth"
