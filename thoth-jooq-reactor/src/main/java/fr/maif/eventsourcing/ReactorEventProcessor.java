@@ -30,13 +30,13 @@ public interface ReactorEventProcessor<Error, S extends State<S>, C extends Comm
             }
 
             @Override
-            public EventStore<TxCtx, E, Meta, Context> eventStore() {
-                return eventProcessor.eventStore();
+            public ReactorEventStore<TxCtx, E, Meta, Context> eventStore() {
+                return ReactorEventStore.fromEventStore(eventProcessor.eventStore());
             }
 
             @Override
-            public AggregateStore<S, String, TxCtx> getAggregateStore() {
-                return eventProcessor.getAggregateStore();
+            public ReactorAggregateStore<S, String, TxCtx> getAggregateStore() {
+                return ReactorAggregateStore.fromAggregateStore(eventProcessor.getAggregateStore());
             }
         };
     }
@@ -49,7 +49,7 @@ public interface ReactorEventProcessor<Error, S extends State<S>, C extends Comm
 
     Mono<Option<S>> getAggregate(String id);
 
-    EventStore<TxCtx, E, Meta, Context> eventStore();
+    ReactorEventStore<TxCtx, E, Meta, Context> eventStore();
 
-    AggregateStore<S, String, TxCtx> getAggregateStore();
+    ReactorAggregateStore<S, String, TxCtx> getAggregateStore();
 }
