@@ -1,9 +1,3 @@
-plugins {
-    id 'java'
-    id 'maven-publish'
-}
-
-group = 'fr.maif'
 
 dependencies {
     implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
