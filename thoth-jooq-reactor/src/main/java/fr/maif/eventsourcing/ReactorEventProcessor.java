@@ -38,6 +38,11 @@ public interface ReactorEventProcessor<Error, S extends State<S>, C extends Comm
             public ReactorAggregateStore<S, String, TxCtx> getAggregateStore() {
                 return ReactorAggregateStore.fromAggregateStore(eventProcessor.getAggregateStore());
             }
+
+            @Override
+            public void close() {
+                eventProcessor.close();
+            }
         };
     }
 
@@ -52,4 +57,6 @@ public interface ReactorEventProcessor<Error, S extends State<S>, C extends Comm
     ReactorEventStore<TxCtx, E, Meta, Context> eventStore();
 
     ReactorAggregateStore<S, String, TxCtx> getAggregateStore();
+
+    void close();
 }

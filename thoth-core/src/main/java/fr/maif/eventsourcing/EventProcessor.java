@@ -18,4 +18,8 @@ public interface EventProcessor<Error, S extends State<S>, C extends Command<Met
     EventStore<TxCtx, E, Meta, Context> eventStore();
 
     AggregateStore<S, String, TxCtx> getAggregateStore();
+
+    default void close() {
+
+    };
 }
