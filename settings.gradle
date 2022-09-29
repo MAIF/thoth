@@ -8,7 +8,6 @@
  */
 
 rootProject.name = 'thoth'
-include 'root'
 include 'commons-events'
 include 'thoth-core'
 include 'thoth-jooq'

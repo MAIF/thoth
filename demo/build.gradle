@@ -1,0 +1,4 @@
+
+
+project.tasks.publishToSonatype.enabled = false
+tasks.withType(PublishToMavenRepository).configureEach { it.enabled = false }
