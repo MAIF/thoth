@@ -43,7 +43,7 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
         }
 
         public BuilderWithTx withTransactionManager() {
-            return new BuilderWithTx(pgAsyncPool, tableNames, new ReactorTransactionManager(pgAsyncPool));
+            return new BuilderWithTx(pgAsyncPool, tableNames, ReactorTransactionManager.create(pgAsyncPool));
         }
     }
 

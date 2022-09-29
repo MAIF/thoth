@@ -7,17 +7,22 @@ import reactor.core.publisher.Mono;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-public class ReactorTransactionManager implements TransactionManager<PgAsyncTransaction> {
+public interface ReactorTransactionManager<TxCtx> extends TransactionManager<TxCtx> {
 
-    private final PgAsyncPool pgAsyncPool;
+    static ReactorTransactionManager<PgAsyncTransaction> create(PgAsyncPool pgAsyncPool) {
+        return new ReactorTransactionManager<PgAsyncTransaction>() {
+            @Override
+            public <T> Mono<T> withTransactionMono(Function<PgAsyncTransaction, Mono<T>> callBack) {
+                return Mono.fromCompletionStage(() -> withTransaction(tx -> callBack.apply(tx).toFuture()));
+            }
 
-    public ReactorTransactionManager(PgAsyncPool pgAsyncPool) {
-        this.pgAsyncPool = pgAsyncPool;
+            @Override
+            public <T> CompletionStage<T> withTransaction(Function<PgAsyncTransaction, CompletionStage<T>> callBack) {
+                return pgAsyncPool.inTransactionMono(tx -> Mono.fromCompletionStage(() -> callBack.apply(tx))).toFuture();
+            }
+        };
     }
 
-    @Override
-    public <T> CompletionStage<T> withTransaction(Function<PgAsyncTransaction, CompletionStage<T>> callBack) {
-        return pgAsyncPool.inTransactionMono(tx -> Mono.fromCompletionStage(() -> callBack.apply(tx))).toFuture();
-    }
+    <T> Mono<T> withTransactionMono(Function<TxCtx, Mono<T>> callBack);
 
 }
