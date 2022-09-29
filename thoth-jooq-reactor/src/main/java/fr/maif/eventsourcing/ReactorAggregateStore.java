@@ -6,6 +6,8 @@ import io.vavr.collection.List;
 import io.vavr.control.Option;
 import reactor.core.publisher.Mono;
 
+import java.util.concurrent.CompletionStage;
+
 public interface ReactorAggregateStore<S extends State<S>, Id, TxCtx> {
 
     Mono<Option<S>> getAggregate(Id entityId);
@@ -30,6 +32,22 @@ public interface ReactorAggregateStore<S extends State<S>, Id, TxCtx> {
 
         return storeSnapshot(ctx, id, newStatewithSequence).map(__ -> newState);
     }
+
+    default AggregateStore<S, Id, TxCtx> toAggregateStore() {
+        var _this = this;
+        return new AggregateStore<S, Id, TxCtx>() {
+            @Override
+            public CompletionStage<Option<S>> getAggregate(Id entityId) {
+                return _this.getAggregate(entityId).toFuture();
+            }
+
+            @Override
+            public CompletionStage<Option<S>> getAggregate(TxCtx txCtx, Id entityId) {
+                return _this.getAggregate(txCtx, entityId).toFuture();
+            }
+        };
+    }
+
 
     static <S extends State<S>, Id, TxCtx> ReactorAggregateStore<S, Id, TxCtx> fromAggregateStore(AggregateStore<S, Id, TxCtx> aggregateStore) {
         return new ReactorAggregateStore<S, Id, TxCtx>() {

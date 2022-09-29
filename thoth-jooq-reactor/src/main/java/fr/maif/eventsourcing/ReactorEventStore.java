@@ -2,8 +2,11 @@ package fr.maif.eventsourcing;
 
 import io.vavr.collection.List;
 import io.vavr.control.Option;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.concurrent.CompletionStage;
 
 
 public interface ReactorEventStore<TxCtx, E extends Event, Meta, Context> {
@@ -49,6 +52,8 @@ public interface ReactorEventStore<TxCtx, E extends Event, Meta, Context> {
     Mono<TxCtx> openTransaction();
 
     Mono<Void> commitOrRollback(Option<Throwable> of, TxCtx tx);
+
+    EventStore<TxCtx, E, Meta, Context> toEventStore();
 
     static <TxCtx, E extends Event, Meta, Context> ReactorEventStore<TxCtx, E, Meta, Context> fromEventStore(EventStore<TxCtx, E, Meta, Context> eventStore) {
         return new ReactorEventStore<TxCtx, E, Meta, Context>() {
@@ -100,6 +105,11 @@ public interface ReactorEventStore<TxCtx, E extends Event, Meta, Context> {
             @Override
             public Mono<Void> commitOrRollback(Option<Throwable> of, TxCtx tx) {
                 return Mono.fromCompletionStage(() -> eventStore.commitOrRollback(of, tx));
+            }
+
+            @Override
+            public EventStore<TxCtx, E, Meta, Context> toEventStore() {
+                return eventStore;
             }
         };
     }

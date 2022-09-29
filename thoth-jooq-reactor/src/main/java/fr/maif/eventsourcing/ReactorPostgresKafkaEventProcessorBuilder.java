@@ -38,7 +38,7 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
             this.tableNames = tableNames;
         }
 
-        public BuilderWithTx withExistingTransactionManager(TransactionManager<PgAsyncTransaction> transactionManager) {
+        public BuilderWithTx withExistingTransactionManager(ReactorTransactionManager<PgAsyncTransaction> transactionManager) {
             return new BuilderWithTx(pgAsyncPool, tableNames, transactionManager);
         }
 
@@ -50,10 +50,10 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
     public static class BuilderWithTx {
         public final PgAsyncPool pgAsyncPool;
         public final TableNames tableNames;
-        public final TransactionManager<PgAsyncTransaction> transactionManager;
+        public final ReactorTransactionManager<PgAsyncTransaction> transactionManager;
 
         public BuilderWithTx(PgAsyncPool pgAsyncPool, TableNames tableNames,
-                TransactionManager<PgAsyncTransaction> transactionManager) {
+                ReactorTransactionManager<PgAsyncTransaction> transactionManager) {
             this.pgAsyncPool = pgAsyncPool;
             this.tableNames = tableNames;
             this.transactionManager = transactionManager;
@@ -68,11 +68,11 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
 
         public final PgAsyncPool pgAsyncPool;
         public final TableNames tableNames;
-        public final TransactionManager<PgAsyncTransaction> transactionManager;
+        public final ReactorTransactionManager<PgAsyncTransaction> transactionManager;
         public final JacksonEventFormat<?, E> eventFormat;
 
         public BuilderWithEventFormat(PgAsyncPool pgAsyncPool, TableNames tableNames,
-                TransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat) {
+                ReactorTransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat) {
             this.pgAsyncPool = pgAsyncPool;
             this.tableNames = tableNames;
             this.transactionManager = transactionManager;
@@ -92,12 +92,12 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
 
         public final PgAsyncPool pgAsyncPool;
         public final TableNames tableNames;
-        public final TransactionManager<PgAsyncTransaction> transactionManager;
+        public final ReactorTransactionManager<PgAsyncTransaction> transactionManager;
         public final JacksonEventFormat<?, E> eventFormat;
         public final JacksonSimpleFormat<Meta> metaFormat;
 
         public BuilderWithMetaFormat(PgAsyncPool pgAsyncPool, TableNames tableNames,
-                TransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat,
+                ReactorTransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat,
                 JacksonSimpleFormat<Meta> metaFormat) {
 
             this.pgAsyncPool = pgAsyncPool;
@@ -120,13 +120,13 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
 
         public final PgAsyncPool pgAsyncPool;
         public final TableNames tableNames;
-        public final TransactionManager<PgAsyncTransaction> transactionManager;
+        public final ReactorTransactionManager<PgAsyncTransaction> transactionManager;
         public final JacksonEventFormat<?, E> eventFormat;
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
 
         public BuilderWithContextFormat(PgAsyncPool pgAsyncPool, TableNames tableNames,
-                TransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat,
+                ReactorTransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat,
                 JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat) {
 
             this.pgAsyncPool = pgAsyncPool;
@@ -162,15 +162,15 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
 
         public final PgAsyncPool pgAsyncPool;
         public final TableNames tableNames;
-        public final TransactionManager<PgAsyncTransaction> transactionManager;
+        public final ReactorTransactionManager<PgAsyncTransaction> transactionManager;
         public final JacksonEventFormat<?, E> eventFormat;
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
         public final ConcurrentReplayStrategy concurrentReplayStrategy;
         public final ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher;
-        public final ReactivePostgresEventStore<PgAsyncTransaction, E, Meta, Context> eventStore;
+        public final ReactorEventStore<PgAsyncTransaction, E, Meta, Context> eventStore;
 
-        private BuilderWithKafkaSettings(PgAsyncPool pgAsyncPool, TableNames tableNames, TransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, ConcurrentReplayStrategy concurrentReplayStrategy, ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher, ReactivePostgresEventStore<PgAsyncTransaction, E, Meta, Context> eventStore) {
+        private BuilderWithKafkaSettings(PgAsyncPool pgAsyncPool, TableNames tableNames, ReactorTransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, ConcurrentReplayStrategy concurrentReplayStrategy, ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher, ReactorEventStore<PgAsyncTransaction, E, Meta, Context> eventStore) {
 
             this.pgAsyncPool = pgAsyncPool;
             this.tableNames = tableNames;
@@ -183,7 +183,7 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
             this.eventStore = eventStore;
         }
 
-        BuilderWithKafkaSettings(PgAsyncPool pgAsyncPool, TableNames tableNames, TransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, String topic, SenderOptions<String, EventEnvelope<E, Meta, Context>> producerSettings, Integer bufferSize, ConcurrentReplayStrategy concurrentReplayStrategy) {
+        BuilderWithKafkaSettings(PgAsyncPool pgAsyncPool, TableNames tableNames, ReactorTransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, String topic, SenderOptions<String, EventEnvelope<E, Meta, Context>> producerSettings, Integer bufferSize, ConcurrentReplayStrategy concurrentReplayStrategy) {
 
             this.pgAsyncPool = pgAsyncPool;
             this.tableNames = tableNames;
@@ -193,14 +193,14 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
             this.contextFormat = contextFormat;
             this.eventPublisher = new ReactorKafkaEventPublisher<E, Meta, Context>(producerSettings, topic, bufferSize);
             this.concurrentReplayStrategy = Option.of(concurrentReplayStrategy).getOrElse(ConcurrentReplayStrategy.WAIT);
-            this.eventStore = ReactivePostgresEventStore.create(
+            this.eventStore = ReactorEventStore.fromEventStore(ReactivePostgresEventStore.create(
                     eventPublisher,
                     pgAsyncPool,
                     tableNames,
                     eventFormat,
                     metaFormat,
                     contextFormat
-            );
+            ));
         }
 
         public BuilderWithKafkaSettings<E, Meta, Context> withSkipConcurrentReplayStrategy() {
@@ -280,20 +280,20 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
 
             public final PgAsyncPool pgAsyncPool;
             public final TableNames tableNames;
-            public final TransactionManager<PgAsyncTransaction> transactionManager;
+            public final ReactorTransactionManager<PgAsyncTransaction> transactionManager;
             public final JacksonEventFormat<?, E> eventFormat;
             public final JacksonSimpleFormat<Meta> metaFormat;
             public final JacksonSimpleFormat<Context> contextFormat;
             public final ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher;
             public final ConcurrentReplayStrategy concurrentReplayStrategy;
-            public final ReactivePostgresEventStore<PgAsyncTransaction, E, Meta, Context> eventStore;
+            public final ReactorEventStore<PgAsyncTransaction, E, Meta, Context> eventStore;
             public final EventHandler<S, E> eventHandler;
 
             public BuilderWithEventHandler(PgAsyncPool pgAsyncPool, TableNames tableNames,
-                                           TransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat,
+                                           ReactorTransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat,
                                            JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat,
                                            ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
-                                           ReactivePostgresEventStore<PgAsyncTransaction, E, Meta, Context> eventStore, EventHandler<S, E> eventHandler) {
+                                           ReactorEventStore<PgAsyncTransaction, E, Meta, Context> eventStore, EventHandler<S, E> eventHandler) {
 
                 this.pgAsyncPool = pgAsyncPool;
                 this.tableNames = tableNames;
@@ -307,7 +307,7 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
                 this.eventHandler = eventHandler;
             }
 
-            public BuilderWithAggregateStore<S, E, Meta, Context> withAggregateStore(Function<BuilderWithEventHandler<S, E, Meta, Context>, AggregateStore<S, String, PgAsyncTransaction>> builder) {
+            public BuilderWithAggregateStore<S, E, Meta, Context> withAggregateStore(Function<BuilderWithEventHandler<S, E, Meta, Context>, ReactorAggregateStore<S, String, PgAsyncTransaction>> builder) {
             return new BuilderWithAggregateStore<>(
                     pgAsyncPool,
                     tableNames,
@@ -322,7 +322,7 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
                     builder.apply(this));
         }
 
-        public BuilderWithAggregateStore<S, E, Meta, Context> withAggregateStore(AggregateStore<S, String, PgAsyncTransaction> aggregateStore) {
+        public BuilderWithAggregateStore<S, E, Meta, Context> withAggregateStore(ReactorAggregateStore<S, String, PgAsyncTransaction> aggregateStore) {
             return new BuilderWithAggregateStore<>(
                     pgAsyncPool,
                     tableNames,
@@ -349,7 +349,7 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
                     concurrentReplayStrategy,
                     eventStore,
                     eventHandler,
-                    new DefaultAggregateStore<>(eventStore, eventHandler, transactionManager));
+                    new DefaultReactorAggregateStore<>(eventStore, eventHandler, transactionManager));
         }
     }
 
@@ -358,22 +358,22 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
 
         public final PgAsyncPool pgAsyncPool;
         public final TableNames tableNames;
-        public final TransactionManager<PgAsyncTransaction> transactionManager;
+        public final ReactorTransactionManager<PgAsyncTransaction> transactionManager;
         public final JacksonEventFormat<?, E> eventFormat;
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
         public final ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher;
         public final ConcurrentReplayStrategy concurrentReplayStrategy;
-        public final ReactivePostgresEventStore<PgAsyncTransaction, E, Meta, Context> eventStore;
+        public final ReactorEventStore<PgAsyncTransaction, E, Meta, Context> eventStore;
         public final EventHandler<S, E> eventHandler;
-        public final AggregateStore<S, String, PgAsyncTransaction> aggregateStore;
+        public final ReactorAggregateStore<S, String, PgAsyncTransaction> aggregateStore;
 
         public BuilderWithAggregateStore(PgAsyncPool pgAsyncPool, TableNames tableNames,
-                                         TransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat,
+                                         ReactorTransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat,
                                          JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat,
                                          ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
-                                         ReactivePostgresEventStore<PgAsyncTransaction, E, Meta, Context> eventStore, EventHandler<S, E> eventHandler,
-                                         AggregateStore<S, String, PgAsyncTransaction> aggregateStore) {
+                                         ReactorEventStore<PgAsyncTransaction, E, Meta, Context> eventStore, EventHandler<S, E> eventHandler,
+                                         ReactorAggregateStore<S, String, PgAsyncTransaction> aggregateStore) {
 
             this.pgAsyncPool = pgAsyncPool;
             this.tableNames = tableNames;
@@ -427,23 +427,23 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
 
         public final PgAsyncPool pgAsyncPool;
         public final TableNames tableNames;
-        public final TransactionManager<PgAsyncTransaction> transactionManager;
+        public final ReactorTransactionManager<PgAsyncTransaction> transactionManager;
         public final JacksonEventFormat<?, E> eventFormat;
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
         public final ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher;
         public final ConcurrentReplayStrategy concurrentReplayStrategy;
-        public final ReactivePostgresEventStore<PgAsyncTransaction, E, Meta, Context> eventStore;
-        public final AggregateStore<S, String, PgAsyncTransaction> aggregateStore;
+        public final ReactorEventStore<PgAsyncTransaction, E, Meta, Context> eventStore;
+        public final ReactorAggregateStore<S, String, PgAsyncTransaction> aggregateStore;
         public final EventHandler<S, E> eventHandler;
         public final CommandHandler<Error, S, C, E, Message, PgAsyncTransaction> commandHandler;
 
         public BuilderWithCommandHandler(PgAsyncPool pgAsyncPool, TableNames tableNames,
-                                         TransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat,
+                                         ReactorTransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat,
                                          JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat,
                                          ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
-                                         ReactivePostgresEventStore<PgAsyncTransaction, E, Meta, Context> eventStore,
-                                         AggregateStore<S, String, PgAsyncTransaction> aggregateStore, EventHandler<S, E> eventHandler,
+                                         ReactorEventStore<PgAsyncTransaction, E, Meta, Context> eventStore,
+                                         ReactorAggregateStore<S, String, PgAsyncTransaction> aggregateStore, EventHandler<S, E> eventHandler,
                                          CommandHandler<Error, S, C, E, Message, PgAsyncTransaction> commandHandler) {
 
             this.pgAsyncPool = pgAsyncPool;
@@ -509,24 +509,24 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
 
         public final PgAsyncPool pgAsyncPool;
         public final TableNames tableNames;
-        public final TransactionManager<PgAsyncTransaction> transactionManager;
+        public final ReactorTransactionManager<PgAsyncTransaction> transactionManager;
         public final JacksonEventFormat<?, E> eventFormat;
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
         public final ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher;
         public final ConcurrentReplayStrategy concurrentReplayStrategy;
-        public final ReactivePostgresEventStore<PgAsyncTransaction, E, Meta, Context> eventStore;
-        public final AggregateStore<S, String, PgAsyncTransaction> aggregateStore;
+        public final ReactorEventStore<PgAsyncTransaction, E, Meta, Context> eventStore;
+        public final ReactorAggregateStore<S, String, PgAsyncTransaction> aggregateStore;
         public final EventHandler<S, E> eventHandler;
         public final CommandHandler<Error, S, C, E, Message, PgAsyncTransaction> commandHandler;
         public final List<Projection<PgAsyncTransaction, E, Meta, Context>> projections;
 
         public BuilderWithProjections(PgAsyncPool pgAsyncPool, TableNames tableNames,
-                                      TransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat,
+                                      ReactorTransactionManager<PgAsyncTransaction> transactionManager, JacksonEventFormat<?, E> eventFormat,
                                       JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat,
                                       ReactorKafkaEventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
-                                      ReactivePostgresEventStore<PgAsyncTransaction, E, Meta, Context> eventStore,
-                                      AggregateStore<S, String, PgAsyncTransaction> aggregateStore, EventHandler<S, E> eventHandler,
+                                      ReactorEventStore<PgAsyncTransaction, E, Meta, Context> eventStore,
+                                      ReactorAggregateStore<S, String, PgAsyncTransaction> aggregateStore, EventHandler<S, E> eventHandler,
                                       CommandHandler<Error, S, C, E, Message, PgAsyncTransaction> commandHandler,
                                       List<Projection<PgAsyncTransaction, E, Meta, Context>> projections) {
 
@@ -546,15 +546,16 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
         }
 
         public ReactorEventProcessor<Error, S, C, E, PgAsyncTransaction, Message, Meta, Context> build() {
+            EventStore<PgAsyncTransaction, E, Meta, Context> underlyingEventStore = eventStore.toEventStore();
             var ES = new EventProcessorImpl<Error, S, C, E, PgAsyncTransaction, Message, Meta, Context>(
-                    eventStore,
-                    transactionManager,
-                    aggregateStore,
+                    underlyingEventStore,
+                    transactionManager.toTransactionManager(),
+                    aggregateStore.toAggregateStore(),
                     commandHandler,
                     eventHandler,
                     projections
             );
-            eventPublisher.start(eventStore, concurrentReplayStrategy);
+            eventPublisher.start(underlyingEventStore, concurrentReplayStrategy);
             return ReactorEventProcessor.create(ES);
         }
 
