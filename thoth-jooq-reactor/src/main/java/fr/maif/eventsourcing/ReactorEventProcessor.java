@@ -5,7 +5,10 @@ import io.vavr.control.Either;
 import io.vavr.control.Option;
 import reactor.core.publisher.Mono;
 
-public interface ReactorEventProcessor<Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, TxCtx, Message, Meta, Context> {
+import java.io.Closeable;
+import java.io.IOException;
+
+public interface ReactorEventProcessor<Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, TxCtx, Message, Meta, Context> extends Closeable {
 
     static <Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, TxCtx, Message, Meta, Context> ReactorEventProcessor<Error, S, C, E, TxCtx, Message, Meta, Context> create(EventProcessor<Error, S, C, E, TxCtx, Message, Meta, Context> eventProcessor) {
         return new ReactorEventProcessor<Error, S, C, E, TxCtx, Message, Meta, Context>() {
@@ -40,7 +43,7 @@ public interface ReactorEventProcessor<Error, S extends State<S>, C extends Comm
             }
 
             @Override
-            public void close() {
+            public void close() throws IOException {
                 eventProcessor.close();
             }
         };
@@ -58,5 +61,4 @@ public interface ReactorEventProcessor<Error, S extends State<S>, C extends Comm
 
     ReactorAggregateStore<S, String, TxCtx> getAggregateStore();
 
-    void close();
 }

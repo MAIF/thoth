@@ -4,9 +4,11 @@ import io.vavr.collection.List;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.concurrent.CompletionStage;
 
-public interface EventProcessor<Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, TxCtx, Message, Meta, Context> {
+public interface EventProcessor<Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, TxCtx, Message, Meta, Context> extends Closeable {
     CompletionStage<Either<Error, ProcessingSuccess<S, E, Meta, Context, Message>>> processCommand(C command);
 
     CompletionStage<List<Either<Error, ProcessingSuccess<S, E, Meta, Context, Message>>>> batchProcessCommand(List<C> commands);
@@ -19,7 +21,7 @@ public interface EventProcessor<Error, S extends State<S>, C extends Command<Met
 
     AggregateStore<S, String, TxCtx> getAggregateStore();
 
-    default void close() {
+    default void close() throws IOException {
 
     };
 }
