@@ -4,6 +4,7 @@ import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.ReactorProjection;
 import fr.maif.jooq.reactor.PgAsyncPool;
 import fr.maif.jooq.reactor.PgAsyncTransaction;
+import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import reactor.core.publisher.Mono;
@@ -25,7 +26,7 @@ public class WithdrawByMonthProjection implements ReactorProjection<PgAsyncTrans
     }
 
     @Override
-    public Mono<Void> storeProjection(PgAsyncTransaction connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> envelopes) {
+    public Mono<Tuple0> storeProjection(PgAsyncTransaction connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> envelopes) {
         return connection.executeBatchMono(dsl ->
                 envelopes
                         // Keep only MoneyWithdrawn events
@@ -45,7 +46,7 @@ public class WithdrawByMonthProjection implements ReactorProjection<PgAsyncTrans
                                 val(t._1.emissionDate.getYear()),
                                 val(t._2.amount)
                         ))
-        ).then();
+        ).thenReturn(Tuple.empty());
     }
 
     public Mono<BigDecimal> meanWithdrawByClientAndMonth(String clientId, Integer year, String month) {

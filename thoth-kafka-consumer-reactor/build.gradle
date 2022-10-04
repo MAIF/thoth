@@ -1,6 +1,7 @@
 
 dependencies {
     implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
+    implementation "io.vavr:vavr:$vavrVersion"
 
     testImplementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
     testImplementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")

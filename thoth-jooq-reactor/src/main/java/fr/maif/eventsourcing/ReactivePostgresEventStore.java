@@ -11,6 +11,8 @@ import fr.maif.jooq.QueryResult;
 import fr.maif.json.Json;
 import fr.maif.json.MapperSingleton;
 import io.vavr.API;
+import io.vavr.Tuple;
+import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.collection.Seq;
 import io.vavr.control.Either;
@@ -132,7 +134,7 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
     }
 
     @Override
-    public CompletionStage<Void> commitOrRollback(Option<Throwable> mayBeCrash, Tx pgAsyncTransaction) {
+    public CompletionStage<Tuple0> commitOrRollback(Option<Throwable> mayBeCrash, Tx pgAsyncTransaction) {
         return mayBeCrash.fold(
                 pgAsyncTransaction::commit,
                 e -> pgAsyncTransaction.rollback()
@@ -140,7 +142,7 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
     }
 
     @Override
-    public CompletionStage<Void> persist(Tx transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Tuple0> persist(Tx transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
         List<Field<?>> fields = List.of(
                 ID,
                 ENTITY_ID,
@@ -190,7 +192,7 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
                             emissionDate
                     );
                 })
-        ).thenRun(() -> {});
+        ).thenApply(__ -> Tuple.empty());
     }
 
     @Override
@@ -294,7 +296,7 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
     }
 
     @Override
-    public CompletionStage<Void> publish(List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
         LOGGER.debug("Publishing event {}", events);
         return this.eventPublisher.publish(events);
     }

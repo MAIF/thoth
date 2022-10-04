@@ -5,6 +5,8 @@ import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventPublisher;
 import fr.maif.eventsourcing.EventStore;
+import io.vavr.Tuple;
+import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -122,12 +124,13 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
     }
 
     @Override
-    public CompletionStage<Void> publish(List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
         LOGGER.debug("Publishing event in memory : \n{} ", events);
         return Flux
                 .fromIterable(events)
                 .map(queue::tryEmitNext)
-                .then()
+                .collectList()
+                .thenReturn(Tuple.empty())
                 .toFuture();
     }
 

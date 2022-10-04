@@ -1,5 +1,7 @@
 package fr.maif.kafka.reactor.consumer;
 
+import io.vavr.Tuple;
+import io.vavr.Tuple0;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,11 +39,11 @@ public abstract class ResilientKafkaConsumer<K, V> {
             Duration maxBackoff,
             Double randomFactor,
             Integer commitSize,
-            BiFunction<Disposable, Integer, Mono<Void>> onStarted,
-            Supplier<Mono<Void>> onStarting,
-            Supplier<Mono<Void>> onStopped,
-            Supplier<Mono<Void>> onStopping,
-            Function<Throwable, Mono<Void>> onFailed) {
+            BiFunction<Disposable, Integer, Mono<Tuple0>> onStarted,
+            Supplier<Mono<Tuple0>> onStarting,
+            Supplier<Mono<Tuple0>> onStopped,
+            Supplier<Mono<Tuple0>> onStopping,
+            Function<Throwable, Mono<Tuple0>> onFailed) {
 
 
         public static class ConfigBuilder<K, V> {
@@ -53,11 +55,11 @@ public abstract class ResilientKafkaConsumer<K, V> {
             Duration maxBackoff;
             Double randomFactor;
             Integer commitSize;
-            BiFunction<Disposable, Integer, Mono<Void>> onStarted;
-            Supplier<Mono<Void>> onStarting;
-            Supplier<Mono<Void>> onStopped;
-            Supplier<Mono<Void>> onStopping;
-            Function<Throwable, Mono<Void>> onFailed;
+            BiFunction<Disposable, Integer, Mono<Tuple0>> onStarted;
+            Supplier<Mono<Tuple0>> onStarting;
+            Supplier<Mono<Tuple0>> onStopped;
+            Supplier<Mono<Tuple0>> onStopping;
+            Function<Throwable, Mono<Tuple0>> onFailed;
 
             public ConfigBuilder<K, V> topics(Collection<String> topics) {
                 this.topics = topics;
@@ -100,27 +102,27 @@ public abstract class ResilientKafkaConsumer<K, V> {
             }
 
             public ConfigBuilder<K, V> onStarted(
-                    BiFunction<Disposable, Integer, Mono<Void>> onStarted) {
+                    BiFunction<Disposable, Integer, Mono<Tuple0>> onStarted) {
                 this.onStarted = onStarted;
                 return this;
             }
 
-            public ConfigBuilder<K, V> onStarting(Supplier<Mono<Void>> onStarting) {
+            public ConfigBuilder<K, V> onStarting(Supplier<Mono<Tuple0>> onStarting) {
                 this.onStarting = onStarting;
                 return this;
             }
 
-            public ConfigBuilder<K, V> onStopped(Supplier<Mono<Void>> onStopped) {
+            public ConfigBuilder<K, V> onStopped(Supplier<Mono<Tuple0>> onStopped) {
                 this.onStopped = onStopped;
                 return this;
             }
 
-            public ConfigBuilder<K, V> onStopping(Supplier<Mono<Void>> onStopping) {
+            public ConfigBuilder<K, V> onStopping(Supplier<Mono<Tuple0>> onStopping) {
                 this.onStopping = onStopping;
                 return this;
             }
 
-            public ConfigBuilder<K, V> onFailed(Function<Throwable, Mono<Void>> onFailed) {
+            public ConfigBuilder<K, V> onFailed(Function<Throwable, Mono<Tuple0>> onFailed) {
                 this.onFailed = onFailed;
                 return this;
             }
@@ -182,24 +184,24 @@ public abstract class ResilientKafkaConsumer<K, V> {
         }
 
         public Config<K, V> withOnStarted(
-                BiFunction<Disposable, Integer, Mono<Void>> onStarted) {
+                BiFunction<Disposable, Integer, Mono<Tuple0>> onStarted) {
             return this.toBuilder().onStarted(onStarted).build();
         }
 
-        public Config<K, V> withOnStarting(Supplier<Mono<Void>> onStarting) {
+        public Config<K, V> withOnStarting(Supplier<Mono<Tuple0>> onStarting) {
             return this.toBuilder().onStarting(onStarting).build();
         }
 
-        public Config<K, V> withOnStopped(Supplier<Mono<Void>> onStopped) {
+        public Config<K, V> withOnStopped(Supplier<Mono<Tuple0>> onStopped) {
             return this.toBuilder().onStopped(onStopped).build();
         }
 
         public Config<K, V> withOnStopping(
-                Supplier<Mono<Void>> onStopping) {
+                Supplier<Mono<Tuple0>> onStopping) {
             return this.toBuilder().onStopping(onStopping).build();
         }
 
-        public Config<K, V> withOnFailed(Function<Throwable, Mono<Void>> onFailed) {
+        public Config<K, V> withOnFailed(Function<Throwable, Mono<Tuple0>> onFailed) {
             return this.toBuilder().onFailed(onFailed).build();
         }
     }
@@ -211,11 +213,11 @@ public abstract class ResilientKafkaConsumer<K, V> {
     protected final Duration maxBackoff;
     protected final Integer commitSize;
     protected final ReceiverOptions<K, V> receiverOptions;
-    protected final BiFunction<Disposable, Integer, Mono<Void>> onStarted;
-    protected final Supplier<Mono<Void>> onStarting;
-    protected final Supplier<Mono<Void>> onStopped;
-    protected final Supplier<Mono<Void>> onStopping;
-    protected final Function<Throwable, Mono<Void>> onFailed;
+    protected final BiFunction<Disposable, Integer, Mono<Tuple0>> onStarted;
+    protected final Supplier<Mono<Tuple0>> onStarting;
+    protected final Supplier<Mono<Tuple0>> onStopped;
+    protected final Supplier<Mono<Tuple0>> onStopping;
+    protected final Function<Throwable, Mono<Tuple0>> onFailed;
 
     protected final AtomicReference<Disposable> disposableKafkaRef = new AtomicReference<>();
     protected final AtomicReference<CountDownLatch> cdlRef = new AtomicReference<>();
@@ -235,11 +237,11 @@ public abstract class ResilientKafkaConsumer<K, V> {
                 .consumerProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
                 .consumerProperty(ConsumerConfig.GROUP_ID_CONFIG, config.groupId);
 
-        this.onStarted = defaultIfNull(config.onStarted, (__, ___) -> Mono.just("").then());
-        this.onStarting = defaultIfNull(config.onStarting, () -> Mono.just("").then());
-        this.onStopped = defaultIfNull(config.onStopped, () -> Mono.just("").then());
-        this.onStopping = defaultIfNull(config.onStopping, () -> Mono.just("").then());
-        this.onFailed = defaultIfNull(config.onFailed, (__) -> Mono.just("").then());
+        this.onStarted = defaultIfNull(config.onStarted, (__, ___) -> Mono.just(Tuple.empty()));
+        this.onStarting = defaultIfNull(config.onStarting, () -> Mono.just(Tuple.empty()));
+        this.onStopped = defaultIfNull(config.onStopped, () -> Mono.just(Tuple.empty()));
+        this.onStopping = defaultIfNull(config.onStopping, () -> Mono.just(Tuple.empty()));
+        this.onFailed = defaultIfNull(config.onFailed, (__) -> Mono.just(Tuple.empty()));
         this.start();
     }
 
@@ -261,7 +263,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
 
     public static <K, V> ResilientKafkaConsumer<K, V> create(String name,
                                                              Config<K, V> config,
-                                                             Function<ReceiverRecord<K, V>, Mono<Void>> handleMessage) {
+                                                             Function<ReceiverRecord<K, V>, Mono<Tuple0>> handleMessage) {
         return new ResilientKafkaConsumer<K, V>(config) {
             @Override
             protected String name() {
@@ -397,7 +399,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
         this.onStopped.get().subscribe();
     }
 
-    public Mono<Void> stop() {
+    public Mono<Tuple0> stop() {
         return Mono.create(s -> {
             LOGGER.info("Stopping {}", name());
             updateStatus(Status.Stopping);

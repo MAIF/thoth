@@ -17,8 +17,8 @@ import io.vavr.concurrent.Future;
 public class GlobalBalanceProjection implements Projection<Connection, BankEvent, Tuple0, Tuple0> {
 
     @Override
-    public CompletionStage<Void> storeProjection(Connection connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> events) {
-        return CompletableFuture.runAsync(() -> {
+    public CompletionStage<Tuple0> storeProjection(Connection connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> events) {
+        return CompletableFuture.supplyAsync(() -> {
             try(PreparedStatement incrementStatement = connection.prepareStatement("UPDATE global_balance SET balance=balance+?::money");
                     PreparedStatement decrementStatement = connection.prepareStatement("UPDATE global_balance SET balance=balance-?::money")) {
                 for(var envelope: events) {
@@ -40,6 +40,7 @@ public class GlobalBalanceProjection implements Projection<Connection, BankEvent
             } catch (SQLException ex) {
                 throw new RuntimeException("Failed to update projection", ex);
             }
+            return Tuple.empty();
         });
     }
 }

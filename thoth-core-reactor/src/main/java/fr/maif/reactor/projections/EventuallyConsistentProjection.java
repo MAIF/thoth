@@ -6,6 +6,7 @@ import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.kafka.JsonDeserializer;
 import fr.maif.kafka.reactor.consumer.ResilientKafkaConsumer;
+import io.vavr.Tuple0;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import reactor.core.publisher.Flux;
@@ -187,7 +188,7 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
     public static <E extends Event, Meta, Context> EventuallyConsistentProjection<E, Meta, Context> simpleHandler(String name,
                                                                                                            Config<E, Meta, Context> config,
                                                                                                            JacksonEventFormat<?, E> eventFormat,
-                                                                                                           Function<EventEnvelope<E, Meta, Context>, CompletionStage<Void>> messageHandling) {
+                                                                                                           Function<EventEnvelope<E, Meta, Context>, CompletionStage<Tuple0>> messageHandling) {
         return simpleHandler(name, config, eventFormat, JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty(), messageHandling);
     }
 
@@ -196,7 +197,7 @@ public abstract class EventuallyConsistentProjection<E extends Event, Meta, Cont
                                                                                                            JacksonEventFormat<?, E> eventFormat,
                                                                                                            JacksonSimpleFormat<Meta> metaFormat,
                                                                                                            JacksonSimpleFormat<Context> contextFormat,
-                                                                                                           Function<EventEnvelope<E, Meta, Context>, CompletionStage<Void>> messageHandling) {
+                                                                                                           Function<EventEnvelope<E, Meta, Context>, CompletionStage<Tuple0>> messageHandling) {
         return create(
                 name,
                 config,

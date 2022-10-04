@@ -18,8 +18,8 @@ public class MeanWithdrawProjection implements Projection<Connection, BankEvent,
     private long withdrawCount = 0L;
 
     @Override
-    public CompletionStage<Void> storeProjection(Connection connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> envelopes) {
-        return CompletableFuture.runAsync(() -> {
+    public CompletionStage<Tuple0> storeProjection(Connection connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> envelopes) {
+        return CompletableFuture.supplyAsync(() -> {
             envelopes.forEach(envelope -> {
                 BankEvent bankEvent = envelope.event;
                 if(envelope.event instanceof BankEvent.MoneyWithdrawn) {
@@ -27,6 +27,7 @@ public class MeanWithdrawProjection implements Projection<Connection, BankEvent,
                     withdrawCount ++;
                 }
             });
+            return Tuple.empty();
         });
     }
 

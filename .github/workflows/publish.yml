@@ -17,6 +17,7 @@ jobs:
           gpg --batch --pinentry-mode=loopback --yes --passphrase ${{ secrets.PGP_PASSPHRASE }} --export-secret-key 5B6BE1966878E3AE16B85BC975B8BA741462DEA9 > ~/.gradle/secring.gpg
       - name: Publish
         run: |
+          ./gradlew build -x test
           ./gradlew publishToSonatype -Psigning.keyId=1462DEA9 -Psigning.password=${{secrets.PGP_PASSPHRASE}} -Psigning.secretKeyRingFile=$(echo ~/.gradle/secring.gpg) closeAndReleaseSonatypeStagingRepository --warn --stacktrace
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}

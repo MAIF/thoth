@@ -328,7 +328,7 @@ public class Helpers {
     public static class VikingProjection implements Projection<Tuple0, VikingEvent, Tuple0, Tuple0> {
         public ConcurrentHashMap<String, Integer> data = new ConcurrentHashMap<>();
         @Override
-        public CompletionStage<Void> storeProjection(Tuple0 unit, List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> events) {
+        public CompletionStage<Tuple0> storeProjection(Tuple0 unit, List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> events) {
             events.forEach(event -> {
                 int i = data.getOrDefault(event.entityId, 0) + events.size();
                 data.put(event.entityId, i);

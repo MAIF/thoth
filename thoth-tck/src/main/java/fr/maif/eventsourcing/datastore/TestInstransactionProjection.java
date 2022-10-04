@@ -11,7 +11,7 @@ import java.util.concurrent.CompletionStage;
 
 public class TestInstransactionProjection implements Projection<Connection, TestEvent, Tuple0, Tuple0> {
     @Override
-    public CompletionStage<Void> storeProjection(Connection connection, List<EventEnvelope<TestEvent, Tuple0, Tuple0>> events) {
+    public CompletionStage<Tuple0> storeProjection(Connection connection, List<EventEnvelope<TestEvent, Tuple0, Tuple0>> events) {
         // TODO écrire des trucs en base
         return CompletionStages.empty();
     }

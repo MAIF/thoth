@@ -1,5 +1,7 @@
 package fr.maif.concurrent;
 
+import io.vavr.Tuple;
+import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Try;
 
@@ -60,7 +62,7 @@ public class CompletionStages {
     public static <S> CompletionStage<S> failed(Throwable e) {
         return CompletableFuture.failedStage(e);
     }
-    public static CompletionStage<Void> empty() {
-        return CompletableFuture.runAsync(() -> {});
+    public static CompletionStage<Tuple0> empty() {
+        return CompletableFuture.completedStage(Tuple.empty());
     }
 }

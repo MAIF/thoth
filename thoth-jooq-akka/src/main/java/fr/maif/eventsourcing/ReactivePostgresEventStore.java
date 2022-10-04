@@ -113,7 +113,7 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
     }
 
     @Override
-    public CompletionStage<Void> commitOrRollback(Option<Throwable> mayBeCrash, PgAsyncTransaction pgAsyncTransaction) {
+    public CompletionStage<Tuple0> commitOrRollback(Option<Throwable> mayBeCrash, PgAsyncTransaction pgAsyncTransaction) {
         return mayBeCrash.fold(
                 () -> pgAsyncTransaction.commit().toCompletableFuture(),
                 e -> pgAsyncTransaction.rollback().toCompletableFuture()
@@ -121,7 +121,7 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
     }
 
     @Override
-    public CompletionStage<Void> persist(PgAsyncTransaction transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Tuple0> persist(PgAsyncTransaction transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
         List<Field<?>> fields = List.of(
                 ID,
                 ENTITY_ID,
@@ -171,7 +171,7 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
                             emissionDate
                     );
                 })
-        ).thenRun(() -> {});
+        ).thenApply(__ -> Tuple.empty());
     }
 
     @Override
@@ -279,7 +279,7 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
     }
 
     @Override
-    public CompletionStage<Void> publish(List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
         LOGGER.debug("Publishing event {}", events);
         return this.eventPublisher.publish(events);
     }

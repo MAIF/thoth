@@ -12,6 +12,7 @@ import fr.maif.jooq.reactor.PgAsyncTransaction;
 import fr.maif.kafka.JsonFormatSerDer;
 import fr.maif.reactor.kafka.KafkaSettings;
 import io.vavr.Lazy;
+import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
@@ -89,7 +90,7 @@ public class Bank implements Closeable {
                 .build();
     }
 
-    public Mono<Void> init() {
+    public Mono<Tuple0> init() {
         println("Initializing database");
         return Flux.fromIterable(List(accountTable, bankJournalTable, SEQUENCE))
                 .concatMap(script -> pgAsyncPool.executeMono(d -> d.query(script)))
@@ -100,7 +101,7 @@ public class Bank implements Closeable {
                     e.printStackTrace();
                 })
                 .flatMap(__ -> withdrawByMonthProjection.init())
-                .then();
+                .thenReturn(Tuple.empty());
     }
 
     @Override

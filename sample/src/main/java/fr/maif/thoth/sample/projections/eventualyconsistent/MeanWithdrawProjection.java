@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
+import io.vavr.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,7 +44,7 @@ public class MeanWithdrawProjection  {
                 "MeanWithdrawProjection",
                 EventuallyConsistentProjection.Config.create("bank", "MeanWithdrawProjection", bootstrapServer),
                 eventFormat,
-                envelope -> CompletableFuture.runAsync(() -> {
+                envelope -> CompletableFuture.supplyAsync(() -> {
                     if(envelope.event instanceof BankEvent.MoneyWithdrawn withdraw) {
                         try(final PreparedStatement statement = dataSource.getConnection().prepareStatement("""
                             insert into withdraw_by_month (client_id, month, year, withdraw, count) values (?, ?, ?, ?, 1)
@@ -61,6 +62,7 @@ public class MeanWithdrawProjection  {
                             LOGGER.error("Failed to update stats projection", ex);
                         }
                     }
+                    return Tuple.empty();
                 })
         ).start();
     }

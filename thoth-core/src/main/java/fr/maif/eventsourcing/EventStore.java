@@ -13,7 +13,7 @@ import java.util.concurrent.CompletionStage;
 
 public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
-    CompletionStage<Void> persist(TxCtx transactionContext, List<EventEnvelope<E, Meta, Context>> events);
+    CompletionStage<Tuple0> persist(TxCtx transactionContext, List<EventEnvelope<E, Meta, Context>> events);
 
     Publisher<EventEnvelope<E, Meta, Context>> loadEventsUnpublished(TxCtx tx, ConcurrentReplayStrategy concurrentReplayStrategy);
 
@@ -31,7 +31,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
     CompletionStage<Long> nextSequence(TxCtx tx);
 
-    CompletionStage<Void> publish(List<EventEnvelope<E, Meta, Context>> events);
+    CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events);
 
     CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(TxCtx tx, EventEnvelope<E, Meta, Context> eventEnvelope);
 
@@ -47,7 +47,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
     CompletionStage<TxCtx> openTransaction();
 
-    CompletionStage<Void> commitOrRollback(Option<Throwable> of, TxCtx tx);
+    CompletionStage<Tuple0> commitOrRollback(Option<Throwable> of, TxCtx tx);
 
     /**
      * Strategy to choose when replaying journal in case of crash when there is two or more nodes that want to replay concurrently.

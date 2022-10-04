@@ -12,6 +12,7 @@ import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.json.MapperSingleton;
 import io.vavr.Tuple;
+import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.collection.Seq;
 import io.vavr.collection.Traversable;
@@ -132,7 +133,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
     }
 
     @Override
-    public CompletionStage<Void> commitOrRollback(Option<Throwable> mayBeCrash, Connection connection) {
+    public CompletionStage<Tuple0> commitOrRollback(Option<Throwable> mayBeCrash, Connection connection) {
         return mayBeCrash.fold(
                 () -> CompletionStages.fromTry(() -> Try.of(() -> {
                     connection.commit();
@@ -144,12 +145,11 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                     connection.close();
                     return Tuple.empty();
                 }), executor)
-        ).thenRun(() -> {
-        });
+        ).thenApply(__ -> Tuple.empty());
     }
 
     @Override
-    public CompletionStage<Void> persist(Connection connection, List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Tuple0> persist(Connection connection, List<EventEnvelope<E, Meta, Context>> events) {
 
         return CompletionStages.fromTry(() -> Try.of(() -> {
             DSLContext create = DSL.using(connection, SQLDialect.POSTGRES);
@@ -209,8 +209,8 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                     ).toJavaList()
             ).execute();
             return Tuple.empty();
-        }), executor).thenRun(() -> {
-        });
+        }), executor)
+        .thenApply(__ -> Tuple.empty());
     }
 
     @Override
@@ -221,7 +221,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
     }
 
     @Override
-    public CompletionStage<Void> publish(List<EventEnvelope<E, Meta, Context>> events) {
+    public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
         return this.eventPublisher.publish(events);
     }
 

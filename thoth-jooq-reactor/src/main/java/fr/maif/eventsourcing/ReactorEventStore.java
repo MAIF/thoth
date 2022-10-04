@@ -1,17 +1,15 @@
 package fr.maif.eventsourcing;
 
+import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.concurrent.CompletionStage;
 
 
 public interface ReactorEventStore<TxCtx, E extends Event, Meta, Context> {
 
-    Mono<Void> persist(TxCtx transactionContext, List<EventEnvelope<E, Meta, Context>> events);
+    Mono<Tuple0> persist(TxCtx transactionContext, List<EventEnvelope<E, Meta, Context>> events);
 
     Flux<EventEnvelope<E, Meta, Context>> loadEventsUnpublished(TxCtx tx, EventStore.ConcurrentReplayStrategy concurrentReplayStrategy);
 
@@ -29,7 +27,7 @@ public interface ReactorEventStore<TxCtx, E extends Event, Meta, Context> {
 
     Mono<Long> nextSequence(TxCtx tx);
 
-    Mono<Void> publish(List<EventEnvelope<E, Meta, Context>> events);
+    Mono<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events);
 
     Mono<EventEnvelope<E, Meta, Context>> markAsPublished(TxCtx tx, EventEnvelope<E, Meta, Context> eventEnvelope);
 
@@ -51,14 +49,14 @@ public interface ReactorEventStore<TxCtx, E extends Event, Meta, Context> {
 
     Mono<TxCtx> openTransaction();
 
-    Mono<Void> commitOrRollback(Option<Throwable> of, TxCtx tx);
+    Mono<Tuple0> commitOrRollback(Option<Throwable> of, TxCtx tx);
 
     EventStore<TxCtx, E, Meta, Context> toEventStore();
 
     static <TxCtx, E extends Event, Meta, Context> ReactorEventStore<TxCtx, E, Meta, Context> fromEventStore(EventStore<TxCtx, E, Meta, Context> eventStore) {
         return new ReactorEventStore<TxCtx, E, Meta, Context>() {
             @Override
-            public Mono<Void> persist(TxCtx transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
+            public Mono<Tuple0> persist(TxCtx transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
                 return Mono.fromCompletionStage(() -> eventStore.persist(transactionContext, events));
             }
 
@@ -83,7 +81,7 @@ public interface ReactorEventStore<TxCtx, E extends Event, Meta, Context> {
             }
 
             @Override
-            public Mono<Void> publish(List<EventEnvelope<E, Meta, Context>> events) {
+            public Mono<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
                 return Mono.fromCompletionStage(() -> eventStore.publish(events));
             }
 
@@ -103,7 +101,7 @@ public interface ReactorEventStore<TxCtx, E extends Event, Meta, Context> {
             }
 
             @Override
-            public Mono<Void> commitOrRollback(Option<Throwable> of, TxCtx tx) {
+            public Mono<Tuple0> commitOrRollback(Option<Throwable> of, TxCtx tx) {
                 return Mono.fromCompletionStage(() -> eventStore.commitOrRollback(of, tx));
             }
 
