@@ -27,7 +27,7 @@ public class BankCommandHandler implements ReactorCommandHandler<String, Account
             PgAsyncTransaction transactionContext,
             Option<Account> previousState,
             BankCommand command) {
-        return Mono.fromRunnable(() -> Match(command).of(
+        return Mono.fromCallable(() -> Match(command).of(
             Case($Withdraw(), withdraw -> this.handleWithdraw(previousState, withdraw)),
             Case($Deposit(), deposit -> this.handleDeposit(previousState, deposit)),
             Case($OpenAccount(), this::handleOpening),
