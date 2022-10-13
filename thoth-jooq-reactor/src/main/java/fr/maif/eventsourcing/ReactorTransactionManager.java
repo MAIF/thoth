@@ -10,12 +10,7 @@ import java.util.function.Function;
 public interface ReactorTransactionManager<TxCtx> {
 
     static ReactorTransactionManager<PgAsyncTransaction> create(PgAsyncPool pgAsyncPool) {
-        return new ReactorTransactionManager<PgAsyncTransaction>() {
-            @Override
-            public <T> Mono<T> withTransaction(Function<PgAsyncTransaction, Mono<T>> callBack) {
-                return pgAsyncPool.inTransactionMono(callBack);
-            }
-        };
+        return new DefaultReactorTransactionManager(pgAsyncPool);
     }
 
     <T> Mono<T> withTransaction(Function<TxCtx, Mono<T>> callBack);
