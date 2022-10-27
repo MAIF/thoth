@@ -5,6 +5,7 @@ import com.fasterxml.uuid.impl.TimeBasedGenerator;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.TransactionManager.InTransactionResult;
 import io.vavr.Tuple;
+import io.vavr.Tuple0;
 import io.vavr.Tuple3;
 import io.vavr.Value;
 import io.vavr.collection.List;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 import static fr.maif.concurrent.CompletionStages.traverse;
 import static io.vavr.API.List;
@@ -56,7 +58,9 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
         LOGGER.debug("Processing commands {}", commands);
         return transactionManager
                 .withTransaction(ctx -> batchProcessCommand(ctx, commands))
-                .thenCompose(InTransactionResult::postTransaction);
+                .thenCompose(listInTransactionResult ->
+                        listInTransactionResult.postTransaction()
+                );
     }
 
     @Override
@@ -106,6 +110,7 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
                                     // Persist states
                                     traverse(success, s -> {
                                         LOGGER.debug("Storing state {} to DB", s);
+                                        List<Long> sequences = envelopes.filter(env -> env.entityId.equals(s.command.entityId().get())).map(env -> env.sequenceNum);
                                         return aggregateStore
                                                 .buildAggregateAndStoreSnapshot(
                                                         ctx,
@@ -113,7 +118,7 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
                                                         s.getState(),
                                                         s.getCommand().entityId().get(),
                                                         s.getEvents(),
-                                                        s.getSequenceNum()
+                                                        sequences.max()
                                                 )
                                                 .thenApply(mayBeNextState ->
                                                         new ProcessingSuccess<>(s.state, mayBeNextState, s.getEventEnvelopes(), s.getMessage())
@@ -132,16 +137,20 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
                             errors.appendAll(results.map(Either::right))
                     );
                 })
-                .thenApply(results -> new InTransactionResult<>(
-                        results,
-                        () -> {
-                            List<EventEnvelope<E, Meta, Context>> envelopes = results.flatMap(Value::toList).flatMap(ProcessingSuccess::getEvents);
-                            LOGGER.debug("Publishing events {} to kafka", envelopes);
-                            return eventStore.publish(envelopes)
-                                    .thenApply(__ -> Tuple.empty())
-                                    .exceptionally(e -> Tuple.empty());
-                        }
-                ));
+                .thenApply(results -> {
+                    Supplier<CompletionStage<Tuple0>> postTransactionProcess = () -> {
+                        List<EventEnvelope<E, Meta, Context>> envelopes = results.flatMap(Value::toList).flatMap(ProcessingSuccess::getEvents);
+                        LOGGER.debug("Publishing events {} to kafka", envelopes);
+                        return eventStore.publish(envelopes)
+                                .thenApply(__ -> Tuple.empty())
+                                .exceptionally(e -> Tuple.empty());
+                    };
+                    var inTransactionResult = new InTransactionResult<>(
+                            results,
+                            postTransactionProcess
+                    );
+                    return inTransactionResult;
+                });
     }
 
     CompletionStage<List<EventEnvelope<E, Meta, Context>>> buildEnvelopes(TxCtx tx, C command, List<E> events) {
