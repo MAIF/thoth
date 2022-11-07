@@ -7,51 +7,16 @@ import io.vavr.Lazy;
 
 import java.math.BigDecimal;
 
-public interface BankCommand extends SimpleCommand {
-    Type<Withdraw> WithdrawV1 = Type.create(Withdraw.class, 1L);
-    Type<OpenAccount> OpenAccountV1 = Type.create(OpenAccount.class, 1L);
-    Type<Deposit> DepositV1 = Type.create(Deposit.class, 1L);
-    Type<CloseAccount> CloseAccountV1 = Type.create(CloseAccount.class, 1L);
+public sealed interface BankCommand extends SimpleCommand {
 
-    static API.Match.Pattern0<Withdraw> $Withdraw() {
-        return API.Match.Pattern0.of(Withdraw.class);
-    }
-
-    static API.Match.Pattern0<OpenAccount> $OpenAccount() {
-        return API.Match.Pattern0.of(OpenAccount.class);
-    }
-
-    static API.Match.Pattern0<Deposit> $Deposit() {
-        return API.Match.Pattern0.of(Deposit.class);
-    }
-
-    static API.Match.Pattern0<CloseAccount> $CloseAccount() {
-        return API.Match.Pattern0.of(CloseAccount.class);
-    }
-
-    class Withdraw implements BankCommand {
-        public String account;
-        public BigDecimal amount;
-
-        public Withdraw(String account, BigDecimal amount) {
-            this.account = account;
-            this.amount = amount;
-        }
-
+    record Withdraw(String account, BigDecimal amount) implements BankCommand {
         @Override
         public Lazy<String> entityId() {
             return Lazy.of(() -> account);
         }
     }
 
-    class OpenAccount implements BankCommand {
-        public Lazy<String> id;
-        public BigDecimal initialBalance;
-
-        public OpenAccount(Lazy<String> id, BigDecimal initialBalance) {
-            this.initialBalance = initialBalance;
-            this.id = id;
-        }
+    record OpenAccount(Lazy<String> id, BigDecimal initialBalance) implements BankCommand {
 
         @Override
         public Lazy<String> entityId() {
@@ -64,28 +29,14 @@ public interface BankCommand extends SimpleCommand {
         }
     }
 
-    class Deposit implements BankCommand {
-        public String account;
-        public BigDecimal amount;
-
-        public Deposit(String account, BigDecimal amount) {
-            this.account = account;
-            this.amount = amount;
-        }
-
+    record Deposit(String account, BigDecimal amount) implements BankCommand {
         @Override
         public Lazy<String> entityId() {
             return Lazy.of(() -> account);
         }
     }
 
-    class CloseAccount implements BankCommand {
-        public String id;
-
-        public CloseAccount(String id) {
-            this.id = id;
-        }
-
+    record CloseAccount(String id) implements BankCommand {
         @Override
         public Lazy<String> entityId() {
             return Lazy.of(() -> id);

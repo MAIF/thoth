@@ -12,6 +12,15 @@ public interface Type<T> {
     Class<T> clazz();
     String name();
     Long version();
+
+    default boolean match(String name, Long version) {
+        return name().equals(name) && version().equals(version);
+    }
+
+    default boolean match(Tuple2<String, Long> t) {
+        return name().equals(t._1) && version().equals(t._2);
+    }
+
     API.Match.Pattern0<? extends T> pattern();
     API.Match.Pattern2<Tuple2<String, Long>, String, Long> pattern2();
 
@@ -44,6 +53,14 @@ public interface Type<T> {
             @Override
             public API.Match.Pattern2<Tuple2<String, Long>, String, Long> pattern2() {
                 return $Tuple2($(name), $(version));
+            }
+
+            public boolean equals(Object o) {
+                if (o instanceof Type<?> type) {
+                    return type.name().equals(name) && type.version().equals(version);
+                } else {
+                    return false;
+                }
             }
         };
     }
