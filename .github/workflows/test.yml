@@ -17,7 +17,7 @@ jobs:
         run: sbt publishLocal 
       - name: Run test
         id: test
-        run: ./gradlew test
+        run: JAVA_OPTS="--enable-preview" ./gradlew test
       - name: Stop docker
         run: docker-compose -f docker-compose.test.yml down
       - name: Run sample application test
