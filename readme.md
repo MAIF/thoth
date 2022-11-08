@@ -51,16 +51,17 @@ See our [documentation](https://maif.github.io/thoth/manual/).
 ### Compile / Test 
 
 ```bash
-sbt compile
+./gradlew compileJava
 ```
 
 ```bash
 docker-compose -f docker-compose.test.yml up 
-sbt test
+./gradlew test
 ```
 
-Test rerun on each changes 
+### Generate the documentation 
 
 ```bash
-sbt ~test
+cd thoth-documentation
+sbt generateDoc
 ```

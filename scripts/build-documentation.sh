@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
-sbt 'thoth-documentation/generateDoc'
+cd thoth-documentation
+sbt generateDoc
