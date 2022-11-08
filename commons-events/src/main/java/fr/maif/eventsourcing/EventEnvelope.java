@@ -4,23 +4,74 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * The EventEnvelope is a wrapper for event containing metadatas
+ * @param <E>
+ * @param <Meta>
+ * @param <Context>
+ */
 public class EventEnvelope<E extends Event, Meta, Context> {
 
+    /**
+     * The unique id of the event
+     */
     public final UUID id;
+    /**
+     * The order num of the event
+     */
     public final Long sequenceNum;
+    /**
+     * The type of the event
+     */
     public final String eventType;
+    /**
+     * The date when the event is produced
+     */
     public final LocalDateTime emissionDate;
+    /**
+     * The id of the transaction if there is more than one event published in the transaction
+     */
     public final String transactionId;
+    /**
+     * Metadatas can be stored allog the event
+     */
     public final Meta metadata;
+    /**
+     * The event
+     */
     public final E event;
+    /**
+     * a Context can be stored allog the event
+     */
     public final Context context;
+    /**
+     * The version of the event used to deserialize the event and handle multi versions
+     */
     public final Long version;
+    /**
+     * Is the event published to kafka
+     */
     public final Boolean published;
+    /**
+     * Number of messages in the transaction for this entity
+     */
     public final Integer totalMessageInTransaction;
+    /**
+     * Number of the current messages in the transaction for this entity
+     */
     public final Integer numMessageInTransaction;
 
+    /**
+     * The id of the entity
+     */
     public final String entityId;
+    /**
+     * The id of the user that produces this event
+     */
     public final String userId;
+    /**
+     * The id of the system that produces this event
+     */
     public final String systemId;
 
     public EventEnvelope(UUID id, Long sequenceNum, String eventType, LocalDateTime emissionDate, String transactionId, Meta metadata, E event, Context context, Long version, Boolean published, Integer totalMessageInTransaction, Integer numMessageInTransaction, String entityId, String userId, String systemId) {
