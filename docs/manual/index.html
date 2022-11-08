@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -93,7 +93,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -160,49 +160,65 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p><img src="img/thoth_event_sourcing.jpg" /></p>
 <h2><a href="#documentation" name="documentation" class="anchor"><span class="anchor-link"></span></a>Documentation</h2>
 <p>This documentation focuses on implementing event-sourcing on a simple use case : a banking application.</p>
-<h2><a href="#installation" name="installation" class="anchor"><span class="anchor-link"></span></a>Installation</h2><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "1.1.4*"
+<h2><a href="#installation" name="installation" class="anchor"><span class="anchor-link"></span></a>Installation</h2><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
 libraryDependencies ++= Seq(
   "fr.maif" % "common-events" % ThothVersion,
-  "fr.maif" %% "thoth-core" % ThothVersion,
-  "fr.maif" %% "thoth-jooq" % ThothVersion,
-  "fr.maif" %% "thoth-jooq-async" % ThothVersion,
-  "fr.maif" %% "thoth-kafka-goodies" % ThothVersion
+  "fr.maif" % "thoth-core-akka" % ThothVersion,
+  "fr.maif" % "thoth-core-reactor" % ThothVersion,
+  "fr.maif" % "thoth-jooq" % ThothVersion,
+  "fr.maif" % "thoth-jooq-akka" % ThothVersion,
+  "fr.maif" % "thoth-kafka-consumer-akka" % ThothVersion,
+  "fr.maif" % "thoth-kafka-consumer-reactor" % ThothVersion
 )</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
-  &lt;thoth.version&gt;1.1.4*&lt;/thoth.version&gt;
+  &lt;thoth.version&gt;0.1.0*&lt;/thoth.version&gt;
 &lt;/properties&gt;
-&lt;dependency&gt;
-  &lt;groupId&gt;fr.maif&lt;/groupId&gt;
-  &lt;artifactId&gt;common-events&lt;/artifactId&gt;
-  &lt;version&gt;${thoth.version}&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-  &lt;groupId&gt;fr.maif&lt;/groupId&gt;
-  &lt;artifactId&gt;thoth-core_2.12&lt;/artifactId&gt;
-  &lt;version&gt;${thoth.version}&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-  &lt;groupId&gt;fr.maif&lt;/groupId&gt;
-  &lt;artifactId&gt;thoth-jooq_2.12&lt;/artifactId&gt;
-  &lt;version&gt;${thoth.version}&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-  &lt;groupId&gt;fr.maif&lt;/groupId&gt;
-  &lt;artifactId&gt;thoth-jooq-async_2.12&lt;/artifactId&gt;
-  &lt;version&gt;${thoth.version}&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-  &lt;groupId&gt;fr.maif&lt;/groupId&gt;
-  &lt;artifactId&gt;thoth-kafka-goodies_2.12&lt;/artifactId&gt;
-  &lt;version&gt;${thoth.version}&lt;/version&gt;
-&lt;/dependency&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">versions += [
-  ThothVersion: "1.1.4*"
+&lt;dependencies&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;common-events&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;thoth-core-akka&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;thoth-core-reactor&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;thoth-jooq&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;thoth-jooq-akka&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;thoth-kafka-consumer-akka&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;thoth-kafka-consumer-reactor&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+&lt;/dependencies&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">def versions = [
+  ThothVersion: "0.1.0*"
 ]
 dependencies {
-  compile group: 'fr.maif', name: 'common-events', version: versions.ThothVersion,
-  compile group: 'fr.maif', name: 'thoth-core_2.12', version: versions.ThothVersion,
-  compile group: 'fr.maif', name: 'thoth-jooq_2.12', version: versions.ThothVersion,
-  compile group: 'fr.maif', name: 'thoth-jooq-async_2.12', version: versions.ThothVersion,
-  compile group: 'fr.maif', name: 'thoth-kafka-goodies_2.12', version: versions.ThothVersion
+  implementation "fr.maif:common-events:${versions.ThothVersion}"
+  implementation "fr.maif:thoth-core-akka:${versions.ThothVersion}"
+  implementation "fr.maif:thoth-core-reactor:${versions.ThothVersion}"
+  implementation "fr.maif:thoth-jooq:${versions.ThothVersion}"
+  implementation "fr.maif:thoth-jooq-akka:${versions.ThothVersion}"
+  implementation "fr.maif:thoth-kafka-consumer-akka:${versions.ThothVersion}"
+  implementation "fr.maif:thoth-kafka-consumer-reactor:${versions.ThothVersion}"
 }</code></pre></dd></dl>
 <div class="toc ">
 <ul>
@@ -253,10 +269,6 @@ dependencies {
   </ul></li>
 </ul>
 </div>
-<div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/index.md">here</a>.
-</div>
-
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="technical-considerations.html">Technical considerations</a></p>
 </div>
@@ -315,7 +327,7 @@ The source code for this page can be found <a href="https://github.com/maif/thot
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2021</span>
+<span class="text">&copy; 2022</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->

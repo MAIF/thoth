@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -93,7 +93,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -168,21 +168,9 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <li>open</li>
 </ul>
 <p>Let&rsquo;s start small with &ldquo;open&rdquo; commands :</p>
-<pre class="prettyprint"><code class="language-java">public interface BankCommand extends SimpleCommand {
+<pre class="prettyprint"><code class="language-java">public sealed interface BankCommand extends SimpleCommand {
 
-    static Pattern0&lt;OpenAccount&gt; $OpenAccount() {
-        return Pattern0.of(OpenAccount.class);
-    }
-
-    class OpenAccount implements BankCommand {
-        public Lazy&lt;String&gt; id;
-        public BigDecimal initialBalance;
-
-        public OpenAccount(Lazy&lt;String&gt; id, BigDecimal initialBalance) {
-            this.initialBalance = initialBalance;
-            this.id = id;
-        }
-
+    record OpenAccount(Lazy&lt;String&gt; id, BigDecimal initialBalance) implements BankCommand {
         @Override
         public Lazy&lt;String&gt; entityId() {
             return id;
@@ -204,63 +192,38 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <li>
   <p>Our class needs to implement an <code>entityId</code> method that should return something that identifies uniquely our account. This method returns a <a href="https://docs.vavr.io/#_lazy">Vavr Lazy</a> object, which is useful when id isn&rsquo;t known yet.</p></li>
   <li>
-  <p>We need to declare a <code>$OpenAccount()</code> for each command that will be used for <a href="https://docs.vavr.io/#_the_basics_of_match_for_java">Vavr pattern matching</a>. </p></li>
+  <p>We used the <code>sealed</code> syntax from the last jdk versions. With this you can have an exhaustive list of class that implements the interface. </p></li>
   <li>
   <p><code>OpenAccount</code> implementation is slightly different from others : we take a <code>Lazy&lt;String&gt;</code> instead of a String for id field, and overload <code>hasId</code> method. In our system, account id will be generated as random UUID, and we don&rsquo;t want to generate an id while we didn&rsquo;t check the correctness of the <code>OpenAccount</code> command. That&rsquo;s why we use a <code>Lazy</code> for the id : to defer id generation. The overload of <code>hasId</code> method to make it return <code>false</code> indicates that our command does not yet have an id.</p></li>
 </ul>
 <h2><a href="#event" name="event" class="anchor"><span class="anchor-link"></span></a>Event</h2>
 <p>Our system will generate an event when receiving our withdraw command (if correct).</p>
 <p>One possible naming convention for events is using passive way, so let&rsquo;s call our events <code>AccountOpened</code>, <code>MoneyWithdrawn</code> and <code>MoneyDeposited</code>.</p>
-<pre class="prettyprint"><code class="language-java">public abstract class BankEvent implements Event {
-    public static Type&lt;AccountOpened&gt; AccountOpenedV1 = Type.create(AccountOpened.class, 1L);
-    public static Type&lt;MoneyDeposited&gt; MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);
-    /**
-     * Boilerplate code to facilitate pattern matching   
-    */
-    public static Pattern0&lt;AccountOpened&gt; $AccountOpened() {
-        return Pattern0.of(AccountOpened.class);
-    }
-    public static Pattern0&lt;MoneyWithdrawn&gt; $MoneyWithdrawn() {
-        return Pattern0.of(MoneyWithdrawn.class);
-    }
+<pre class="prettyprint"><code class="language-java">public sealed interface BankEvent extends Event {
+  Type&lt;AccountOpened&gt; AccountOpenedV1 = Type.create(AccountOpened.class, 1L);
+  Type&lt;MoneyDeposited&gt; MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);
 
+  String accountId();
 
-    protected final String accountId;
+  default String entityId() {
+    return accountId();
+  }
 
-    public BankEvent(String accountId) {
-        this.accountId = accountId;
-    }
-
+  record AccountOpened(String accountId) implements BankEvent {
     @Override
-    public String entityId() {
-        return accountId;
+    public Type&lt;AccountOpened&gt; type() {
+      return AccountOpenedV1;
     }
+  }
 
-    public static class AccountOpened extends BankEvent {
-        public AccountOpened(String id) {
-            super(id);
-        }
-
-        @Override
-        public Type&lt;?&gt; type() {
-            return AccountOpenedV1;
-        }
+  record MoneyDeposited(String accountId, BigDecimal amount) implements BankEvent {
+    @Override
+    public Type&lt;MoneyDeposited&gt; type() {
+      return MoneyDepositedV1;
     }
-
-    public static class MoneyDeposited extends BankEvent {
-        public final BigDecimal amount;
-
-        public MoneyDeposited(String id, BigDecimal amount) {
-            super(id);
-            this.amount = amount;
-        }
-
-        @Override
-        public Type&lt;?&gt; type() {
-            return MoneyWithdrawnV1;
-        }
-    }
+  }
 }
+
 </code></pre>
 <p>Let&rsquo;s decompose this snippet:</p>
 <ul>
@@ -268,37 +231,37 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <li>Event must implement two methods</li>
   <li>entityId that must identify uniquely an account</li>
   <li>a type, that can be used to perform <a href="https://docs.vavr.io/#_the_basics_of_match_for_java">Vavr pattern matching</a>, in addition to the name of the event, the type store its version, facilitating version bump of events.</li>
-  <li>a `$AccountOpened(), that can be used to perform <a href="https://docs.vavr.io/#_the_basics_of_match_for_java">Vavr pattern matching</a>.</li>
 </ul>
 <h2><a href="#from-command-to-event" name="from-command-to-event" class="anchor"><span class="anchor-link"></span></a>From command to event</h2>
 <p>Now that we got a state representation, some commands and events, it&rsquo;s time to implement our first command handler.</p>
 <p>Let&rsquo;s start small with account creation:</p>
-<pre class="prettyprint"><code class="language-java">public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, Tuple0, Tuple0&gt; {
-    @Override
-    public Future&lt;Either&lt;String, Events&lt;BankEvent, Tuple0&gt;&gt;&gt; handleCommand(
-            Tuple0 transactionContext,
-            Option&lt;Account&gt; previousState,
-            BankCommand command) {
-        return Future.of(() -&gt; Match(command).option(
-                Case($OpenAccount(), this::handleOpening)
-            ).toEither(() -&gt; &quot;Unknown command&quot;).flatMap(Function.identity())
-        );
+<pre class="prettyprint"><code class="language-java">import java.util.concurrent.CompletableFuture;
+
+public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, Tuple0, Tuple0&gt; {
+  @Override
+  public CompletableFuture&lt;Either&lt;String, Events&lt;BankEvent, Tuple0&gt;&gt;&gt; handleCommand(
+          Tuple0 transactionContext,
+          Option&lt;Account&gt; previousState,
+          BankCommand command) {
+    return CompletableFuture.supplyAsync(() -&gt; switch (command) {
+      case OpenAccount openAccount -&gt; this.handleOpening(openAccount);
+    });
+  }
+
+  private Either&lt;String, Events&lt;BankEvent, Tuple0&gt;&gt; handleOpening(
+          BankCommand.OpenAccount opening) {
+    if (opening.initialBalance.compareTo(BigDecimal.ZERO) &lt; 0) {
+      return Left(&quot;Initial balance can&#39;t be negative&quot;);
     }
 
-    private Either&lt;String, Events&lt;BankEvent, Tuple0&gt;&gt; handleOpening(
-            BankCommand.OpenAccount opening) {
-        if(opening.initialBalance.compareTo(BigDecimal.ZERO) &lt; 0) {
-            return Left(&quot;Initial balance can&#39;t be negative&quot;);
-        }
-
-        String newId = opening.id.get();
-        List&lt;BankEvent&gt; events = List(new BankEvent.AccountOpened(newId));
-        if(opening.initialBalance.compareTo(BigDecimal.ZERO) &gt; 0) {
-            events = events.push(new BankEvent.MoneyDeposited(newId, opening.initialBalance));
-        }
-
-        return Right(Events.events(events));
+    String newId = opening.id.get();
+    List&lt;BankEvent&gt; events = List(new BankEvent.AccountOpened(newId));
+    if (opening.initialBalance.compareTo(BigDecimal.ZERO) &gt; 0) {
+      events = events.push(new BankEvent.MoneyDeposited(newId, opening.initialBalance));
     }
+
+    return Right(Events.events(events));
+  }
 }
 </code></pre>
 <p>This implementation may look cumbersome, so let&rsquo;s decompose it again:</p>
@@ -311,8 +274,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <li>fifth one can be used to represent some additional information (such as warnings) resulting from command processing, as we intend to keep this example as simple as possible, it is not used here</li>
   <li>sixth one can be used to provide a transaction context that can be used to validate command (for instance a JDBC connection, or a Cassandra session) we don&rsquo;t need this yet</li>
   <li>implementations of <code>CommandHandler</code> must implement <code>handleCommand</code> method</li>
-  <li>this method returns a <code>Future</code> because some times we need to perform some I/O operation to validate commands (e.g. make an HTTP call, or read something in a database)</li>
-  <li>this <code>Future</code> wraps an <code>Either</code> that can contain an error (if command processing failed) or an instance of <code>Events</code> class,  which is just a package containing a list of <code>Event</code> generated from the command and additional information if needed.</li>
+  <li>this method returns a <code>CompletionStage</code> because some times we need to perform some I/O operation to validate commands (e.g. make an HTTP call, or read something in a database)</li>
+  <li>this <code>CompletionStage</code> wraps an <code>Either</code> that can contain an error (if command processing failed) or an instance of <code>Events</code> class,  which is just a package containing a list of <code>Event</code> generated from the command and additional information if needed.</li>
   <li>this method provides 3 arguments:
     <ul>
       <li>a transaction context (not used in this example)</li>
@@ -320,7 +283,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
       <li>the command to process</li>
     </ul>
   </li>
-  <li>we used <a href="https://docs.vavr.io/#_the_basics_of_match_for_java">Vavr pattern matching</a> using previously defined <code>Type</code> to determinate type of the command. You should always use <code>Match(command).either</code> instead of <code>Match(command).of</code> to handle unknown commands.</li>
+  <li>we used the new java switch to pattern match the command, the compiler will raise an error if the exhaustiveness of cases is not handled.</li>
   <li>our implementation of account creation checks that initial balance is positive, and then retrieve id of the new account (random UUID is generated at this moment). In this case we don&rsquo;t have to bother with previous state : since our command indicates that it has no id, there is no previous state to retrieve.</li>
   <li>handling of account creation command can generate one or two events : when initial balance is positive, an event of deposit is generated in addition to the creation event</li>
 </ul>
@@ -331,12 +294,10 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     public Option&lt;Account&gt; applyEvent(
             Option&lt;Account&gt; previousState,
             BankEvent event) {
-        return Match(event).of(
-                Case($AccountOpened(), BankEventHandler::handleAccountOpened),
-                Case($MoneyDeposited(),
-                        deposit -&gt; BankEventHandler.handleMoneyDeposited(previousState, deposit)
-                )
-        );
+        return switch(event) {
+            case AccountOpened accountOpened -&gt; BankEventHandler.handleAccountOpened(accountOpened);
+            case MoneyDeposited deposit -&gt; BankEventHandler.handleMoneyDeposited(previousState, deposit);
+        };
     }
 
     private static Option&lt;Account&gt; handleAccountOpened(BankEvent.AccountOpened event) {
@@ -371,11 +332,12 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
                 BankCommandHandler commandHandler,
                 BankEventHandler eventHandler
                 ) {
-        InMemoryEventStore&lt;Tuple0, BankEvent, Tuple0, Tuple0&gt; eventStore = InMemoryEventStore.create(actorSystem);
-        this.eventProcessor = new EventProcessor&lt;&gt;(
-                actorSystem,
+        InMemoryEventStore&lt;BankEvent, Tuple0, Tuple0&gt; eventStore = InMemoryEventStore.create(actorSystem);
+        TransactionManager&lt;Tuple0&gt; transactionManager = noOpTransactionManager();
+        this.eventProcessor = new EventProcessorImpl&lt;&gt;(
                 eventStore,
-                noOpTransactionManager(),
+                transactionManager,
+                new DefaultAggregateStore&lt;&gt;(eventStore, eventHandler, actorSystem, transactionManager),
                 commandHandler,
                 eventHandler,
                 List.empty()
@@ -385,18 +347,18 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     private TransactionManager&lt;Tuple0&gt; noOpTransactionManager() {
         return new TransactionManager&lt;&gt;() {
             @Override
-            public &lt;T&gt; Future&lt;T&gt; withTransaction(Function&lt;Tuple0, Future&lt;T&gt;&gt; function) {
+            public &lt;T&gt; CompletionStage&lt;T&gt; withTransaction(Function&lt;Tuple0, CompletionStage&lt;T&gt;&gt; function) {
                 return function.apply(Tuple.empty());
             }
         };
     }
 
-    public Future&lt;Either&lt;String, ProcessingSuccess&lt;Account, BankEvent, Tuple0, Tuple0, Tuple0&gt;&gt;&gt; createAccount(BigDecimal amount) {
+    public CompletionStage&lt;Either&lt;String, ProcessingSuccess&lt;Account, BankEvent, Tuple0, Tuple0, Tuple0&gt;&gt;&gt; createAccount(BigDecimal amount) {
         Lazy&lt;String&gt; lazyId = Lazy.of(() -&gt; UUIDgenerator.generate().toString());
         return eventProcessor.processCommand(new BankCommand.OpenAccount(lazyId, amount));
     }
 
-    public Future&lt;Option&lt;Account&gt;&gt; findAccountById(String id) {
+    public CompletionStage&lt;Option&lt;Account&gt;&gt; findAccountById(String id) {
         return eventProcessor.getAggregate(id);
     }
 }
@@ -404,29 +366,27 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>This <code>Bank</code> class is the one the rest of our application should use.</p>
 <p>It instantiates an <code>EventProcessor</code> that takes 8 parameters: * Error representation: <code>String</code> as usual * State representation: <code>Account</code> * Command representation: <code>BankCommand</code> * Event representation: <code>BankEvent</code> * TransactionContext, Message, Metadata and Context : all <code>Tuple0</code> since they are not used in this example</p>
 <p>This EventProcessor takes our EventHandler and CommandHandler. This class is the one that really wires everything up.</p>
-<p>When we call <code>processCommand</code> method, an EventProcessor: 1. give it to its <code>CommandHanler</code> (here <code>BankCommandHandler</code>) along with the previous state (if any) to get events 2. store events in an <code>EventStore</code>: in this example an <code>InMemoryEventStore</code>, in a real use case it would be a database based event store (like <code>PostgresEventStore</code>) 3. update projection with events (more on that later) 4. publish events to Kafka: this is done by the <code>EventStore</code>, but since we used an <code>InMemoryEventStore</code>it&rsquo;s not done in this example 5. returns a <code>Future&lt;Either&lt;String, ProcessingSuccess&lt;...&gt;&gt;&gt;</code> :  * a <code>Future</code> since all above operations usually includes I/O  * an <code>Either</code> to indicate that result could be an error (e.g. if command is incorrect)  * a <code>ProcessingError</code> that contains various information about the process : current (new) state, previous state, events, &hellip;</p>
+<p>When we call <code>processCommand</code> method, an EventProcessor: 1. give it to its <code>CommandHanler</code> (here <code>BankCommandHandler</code>) along with the previous state (if any) to get events 2. store events in an <code>EventStore</code>: in this example an <code>InMemoryEventStore</code>, in a real use case it would be a database based event store (like <code>PostgresEventStore</code>) 3. update projection with events (more on that later) 4. publish events to Kafka: this is done by the <code>EventStore</code>, but since we used an <code>InMemoryEventStore</code>it&rsquo;s not done in this example 5. returns a <code>CompletionStage&lt;Either&lt;String, ProcessingSuccess&lt;...&gt;&gt;&gt;</code> :  * a <code>CompletionStage</code> since all above operations usually includes I/O  * an <code>Either</code> to indicate that result could be an error (e.g. if command is incorrect)  * a <code>ProcessingError</code> that contains various information about the process : current (new) state, previous state, events, &hellip;</p>
 <p>When we call <code>getAggregate</code>, an EventProcessor: 1. load all events for the given entityId 2. sequentially apply all events to an empty state 3. return the final state as an <code>Option</code> (it may be empty, for instance if the account is closed)</p>
 <h2><a href="#usage" name="usage" class="anchor"><span class="anchor-link"></span></a>Usage</h2>
-<pre class="prettyprint"><code class="language-java">ActorSystem actorSystem = ActorSystem.create();
-BankCommandHandler commandHandler = new BankCommandHandler();
+<pre class="prettyprint"><code class="language-java">BankCommandHandler commandHandler = new BankCommandHandler();
 BankEventHandler eventHandler = new BankEventHandler();
 Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
 
 bank.createAccount(BigDecimal.valueOf(100))
-    .peek(either -&gt;
-        either.map(result -&gt; result.currentState
-                    .peek(account -&gt; System.out.println(account.balance))
-                )
-                .peekLeft(System.err::println)
-    )
-.onFailure(Throwable::printStackTrace);
+        .whenComplete((either, e) -&gt; {
+          if (Objects.nonNull(e)) {
+            either.map(result -&gt; result.currentState
+                .peek(account -&gt; System.out.println(account.balance))
+            )
+            .peekLeft(System.err::println);
+          } else {
+            e.printStackTrace();
+          }
+        });
 </code></pre>
 <h2><a href="#complete-example" name="complete-example" class="anchor"><span class="anchor-link"></span></a>Complete example</h2>
 <p>See <a href="https://github.com/MAIF/thoth/tree/master/demo/demo-in-memory">complete example</a> of some other commands (withdraw, deposit, close, &hellip;).</p>
-<div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/banking.md">here</a>.
-</div>
-
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="standard/index.html">Standard JOOQ/Kafka implementation</a></p>
 </div>
@@ -489,7 +449,7 @@ The source code for this page can be found <a href="https://github.com/maif/thot
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2021</span>
+<span class="text">&copy; 2022</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->

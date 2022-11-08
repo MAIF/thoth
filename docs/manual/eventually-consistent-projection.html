@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -93,7 +93,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -148,13 +148,38 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <h1><a href="#eventually-consistent-projections" name="eventually-consistent-projections" class="anchor"><span class="anchor-link"></span></a>Eventually consistent projections</h1>
 <p>Eventually consistent projections are built by consuming kafka events.</p>
 <p>It&rsquo;s possible using any Kafka client, however Thoth provides an helper for such use cases.</p>
-<pre class="prettyprint"><code class="language-java">EventuallyConsistentProjection.create(
-    actorSystem,
+<p>You can use it adding one of these dependencies depending on your stack. </p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
+libraryDependencies ++= Seq(
+  "fr.maif" % "thoth-core-akka" % ThothVersion,
+  "fr.maif" % "thoth-core-reactor" % ThothVersion
+)</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
+  &lt;thoth.version&gt;0.1.0*&lt;/thoth.version&gt;
+&lt;/properties&gt;
+&lt;dependencies&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;thoth-core-akka&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;thoth-core-reactor&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+&lt;/dependencies&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">def versions = [
+  ThothVersion: "0.1.0*"
+]
+dependencies {
+  implementation "fr.maif:thoth-core-akka:${versions.ThothVersion}"
+  implementation "fr.maif:thoth-core-reactor:${versions.ThothVersion}"
+}</code></pre></dd></dl>
+<p>Here is an example using the reactor one : </p>
+<pre class="prettyprint"><code class="language-java">EventuallyConsistentProjection.simpleHandler(
     &quot;MeanWithdrawProjection&quot;,
-    EventuallyConsistentProjection.Config.create(&quot;bank&quot;, &quot;MeanWithdrawProjection&quot;, bootstrapServer),
+    Config.create(topic, groupId, bootstrapServers()),
     eventFormat,
-    envelope -&gt; {
-        if(envelope.event instanceof BankEvent.MoneyWithdrawn withdraw) {
+    event -&gt; {
+        if(event.value().event instanceof BankEvent.MoneyWithdrawn withdraw) {
             try(final PreparedStatement statement = dataSource.getConnection().prepareStatement(&quot;&quot;&quot;
                     insert into withdraw_by_month (client_id, month, year, withdraw, count) values (?, ?, ?, ?, 1)
                         on conflict on constraint WITHDRAW_BY_MONTH_UNIQUE
@@ -171,14 +196,10 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
                 LOGGER.error(&quot;Failed to update stats projection&quot;, ex);
             }
         }
-        return Future.successful(Tuple.empty());
+        return CompletionStages.empty();
     }
 ).start();
 </code></pre>
-<div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/eventually-consistent-projection.md">here</a>.
-</div>
-
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="kafka-consumption.html">Using published events</a></p>
 </div>
@@ -221,7 +242,7 @@ The source code for this page can be found <a href="https://github.com/maif/thot
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2021</span>
+<span class="text">&copy; 2022</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->

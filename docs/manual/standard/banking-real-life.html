@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -93,7 +93,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -185,26 +185,38 @@ CREATE SEQUENCE if not exists bank_sequence_num;
   <li>A <code>BANK_SEQUENCE_NUM</code> to generate sequence_num of our events</li>
 </ul>
 <h1><a href="#code" name="code" class="anchor"><span class="anchor-link"></span></a>Code</h1>
-<p>First of all let&rsquo;s swap <code>thoth-core</code> dependency with <code>thoth-jooq</code>. This new dependency provides everything we need to set up postgres / kafka connection.</p>
-<pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
+<p>First of all let&rsquo;s swap <code>thoth-core</code> dependency with <code>thoth-jooq</code>. This new dependency provides everything we need to set up postgres / kafka connection.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
+libraryDependencies += "fr.maif" % "thoth-jooq" % ThothVersion</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
+  &lt;thoth.version&gt;0.1.0*&lt;/thoth.version&gt;
+&lt;/properties&gt;
+&lt;dependencies&gt
+  &lt;dependency&gt;
     &lt;groupId&gt;fr.maif&lt;/groupId&gt;
-    &lt;artifactId&gt;thoth-jooq_2.13&lt;/artifactId&gt;
-    &lt;version&gt;...&lt;/version&gt;
-&lt;/dependency&gt;
-</code></pre>
+    &lt;artifactId&gt;thoth-jooq&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+&lt;/dependencies&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">def versions = [
+  ThothVersion: "0.1.0*"
+]
+dependencies {
+  implementation "fr.maif:thoth-jooq:${versions.ThothVersion}"
+}</code></pre></dd></dl>
 <h2><a href="#event-serialization" name="event-serialization" class="anchor"><span class="anchor-link"></span></a>Event serialization</h2>
 <p>Let&rsquo;s start with event reading and writing. We need to declare a serializer to read / write events to DB.</p>
 <pre class="prettyprint"><code class="language-java">public class BankEventFormat implements JacksonEventFormat&lt;String, BankEvent&gt; {
     @Override
     public Either&lt;String, BankEvent&gt; read(String type, Long version, JsonNode json) {
-        return API.Match(Tuple.of(type, version)).option(
-                Case(BankEvent.MoneyDepositedV1.pattern2(), () -&gt; Json.fromJson(json, BankEvent.MoneyDeposited.class)),
-                Case(BankEvent.MoneyWithdrawnV1.pattern2(), () -&gt; Json.fromJson(json, BankEvent.MoneyWithdrawn.class)),
-                Case(BankEvent.AccountClosedV1.pattern2(), () -&gt; Json.fromJson(json, BankEvent.AccountClosed.class)),
-                Case(BankEvent.AccountOpenedV1.pattern2(), () -&gt; Json.fromJson(json, BankEvent.AccountOpened.class))
-        )
-                .toEither(() -&gt; &quot;Unknown event type &quot; + type + &quot;(v&quot; + version + &quot;)&quot;)
-                .flatMap(jsResult -&gt; jsResult.toEither().mapLeft(errs -&gt; errs.mkString(&quot;,&quot;)));
+        return Either.narrow(switch (Tuple.of(type, version)) {
+            case Tuple2&lt;String, Long&gt; t &amp;&amp; MoneyDepositedV1.match(t) -&gt;
+                    Json.fromJson(json, BankEvent.MoneyDeposited.class).toEither().mapLeft(errs -&gt; errs.mkString(&quot;,&quot;));
+            case Tuple2&lt;String, Long&gt; t &amp;&amp; MoneyWithdrawnV1.match(t) -&gt;
+                    Json.fromJson(json, BankEvent.MoneyWithdrawn.class).toEither().mapLeft(errs -&gt; errs.mkString(&quot;,&quot;));
+            case Tuple2&lt;String, Long&gt; t &amp;&amp; AccountClosedV1.match(t) -&gt;
+                    Json.fromJson(json, BankEvent.AccountClosed.class).toEither().mapLeft(errs -&gt; errs.mkString(&quot;,&quot;));
+            case Tuple2&lt;String, Long&gt; t &amp;&amp; AccountOpenedV1.match(t) -&gt;
+                    Json.fromJson(json, BankEvent.AccountOpened.class).toEither().mapLeft(errs -&gt; errs.mkString(&quot;,&quot;));
+            default -&gt; Either.&lt;String, BankEvent&gt;left(&quot;Unknown event type &quot; + type + &quot;(v&quot; + version + &quot;)&quot;);
+        });
     }
 
     @Override
@@ -215,71 +227,42 @@ CREATE SEQUENCE if not exists bank_sequence_num;
 </code></pre>
 <p>We implemented this using <a href="https://github.com/MAIF/functional-json">functionnal-json</a> library, since it provides nice utilities to handle / aggregate deserialization errors.</p>
 <p>To allow event serialization / deserialization we also need to add some Jackson annotations (<code>@JsonCreator</code> and <code>@JsonProperty</code>) to events&rsquo; constructors.</p>
-<pre class="prettyprint"><code class="language-java">public abstract class BankEvent implements Event {
-    public static Type&lt;MoneyWithdrawn&gt; MoneyWithdrawnV1 = Type.create(MoneyWithdrawn.class, 1L);
-    public static Type&lt;AccountOpened&gt; AccountOpenedV1 = Type.create(AccountOpened.class, 1L);
-    public static Type&lt;MoneyDeposited&gt; MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);
-    public static Type&lt;AccountClosed&gt; AccountClosedV1 = Type.create(AccountClosed.class, 1L);
+<pre class="prettyprint"><code class="language-java">public sealed interface BankEvent extends Event {
+    Type&lt;MoneyWithdrawn&gt; MoneyWithdrawnV1 = Type.create(MoneyWithdrawn.class, 1L);
+    Type&lt;AccountOpened&gt; AccountOpenedV1 = Type.create(AccountOpened.class, 1L);
+    Type&lt;MoneyDeposited&gt; MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);
+    Type&lt;AccountClosed&gt; AccountClosedV1 = Type.create(AccountClosed.class, 1L);
 
-    public final String accountId;
+    String accountId();
 
-    public BankEvent(String accountId) {
-        this.accountId = accountId;
+    default String entityId() {
+        return accountId();
     }
 
-    @Override
-    public String entityId() {
-        return accountId;
-    }
-
-    public static class MoneyWithdrawn extends BankEvent {
-        public final BigDecimal amount;
-        @JsonCreator
-        public MoneyWithdrawn(@JsonProperty(&quot;accountId&quot;)String account, @JsonProperty(&quot;amount&quot;)BigDecimal amount) {
-            super(account);
-            this.amount = amount;
-        }
-
+    record MoneyWithdrawn(String accountId, BigDecimal amount) implements BankEvent {
         @Override
-        public Type&lt;?&gt; type() {
+        public Type&lt;MoneyWithdrawn&gt; type() {
             return MoneyWithdrawnV1;
         }
     }
 
-    public static class AccountOpened extends BankEvent {
-        @JsonCreator
-        public AccountOpened(@JsonProperty(&quot;accountId&quot;)String id) {
-            super(id);
-        }
-
+    record AccountOpened(String accountId) implements BankEvent {
         @Override
-        public Type&lt;?&gt; type() {
+        public Type&lt;AccountOpened&gt; type() {
             return AccountOpenedV1;
         }
     }
 
-    public static class MoneyDeposited extends BankEvent {
-        public final BigDecimal amount;
-        @JsonCreator
-        public MoneyDeposited(@JsonProperty(&quot;accountId&quot;)String id, @JsonProperty(&quot;amount&quot;)BigDecimal amount) {
-            super(id);
-            this.amount = amount;
-        }
-
+    record MoneyDeposited(String accountId, BigDecimal amount) implements BankEvent {
         @Override
-        public Type&lt;?&gt; type() {
+        public Type&lt;MoneyDeposited&gt; type() {
             return MoneyDepositedV1;
         }
     }
 
-    public static class AccountClosed extends BankEvent {
-        @JsonCreator
-        public AccountClosed(@JsonProperty(&quot;accountId&quot;)String id) {
-            super(id);
-        }
-
+    record AccountClosed(String accountId) implements BankEvent {
         @Override
-        public Type&lt;?&gt; type() {
+        public Type&lt;AccountClosed&gt; type() {
             return AccountClosedV1;
         }
     }
@@ -325,14 +308,14 @@ CREATE SEQUENCE if not exists bank_sequence_num;
         return KafkaSettings.newBuilder(&quot;localhost:29092&quot;).build();
     }
 
-    private ProducerSettings&lt;String, EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; producerSettings(
+    private SenderOptions&lt;String, EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; producerSettings(
             KafkaSettings kafkaSettings,
             JacksonEventFormat&lt;String, BankEvent&gt; eventFormat) {
-        return kafkaSettings.producerSettings(actorSystem, JsonSerializer.of(
-                eventFormat,
-                JacksonSimpleFormat.empty(),
-                JacksonSimpleFormat.empty()
-            )
+        return kafkaSettings.producerSettings(JsonSerializer.of(
+                        eventFormat,
+                        JacksonSimpleFormat.empty(),
+                        JacksonSimpleFormat.empty()
+                )
         );
     }
     //...
@@ -343,22 +326,18 @@ CREATE SEQUENCE if not exists bank_sequence_num;
 <p>To instantiate this new EventProcessor, we&rsquo;ll need everything we defined previously, and additional instances: * </p>
 <pre class="prettyprint"><code class="language-java">public class Bank {
     //...
-    public Bank(ActorSystem actorSystem,
-                    BankCommandHandler commandHandler,
-                    BankEventHandler eventHandler
-                    ) throws SQLException {
+    public Bank(BankCommandHandler commandHandler, BankEventHandler eventHandler) throws SQLException {
         String topic = &quot;bank&quot;;
-        this.actorSystem = actorSystem;
         JacksonEventFormat&lt;String, BankEvent&gt; eventFormat = new BankEventFormat();
-        ProducerSettings&lt;String, EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; producerSettings = producerSettings(settings(), eventFormat);
+        SenderOptions&lt;String, EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; producerSettings = producerSettings(settings(), eventFormat);
         DataSource dataSource = dataSource();
+        dataSource.getConnection().prepareStatement(SCHEMA).execute();
         TableNames tableNames = tableNames();
 
         ExecutorService executorService = Executors.newFixedThreadPool(5);
         JdbcTransactionManager transactionManager = new JdbcTransactionManager(dataSource(), executorService);
-        
+
         this.eventProcessor = PostgresKafkaEventProcessor
-                .withActorSystem(actorSystem)
                 .withDataSource(dataSource())
                 .withTables(tableNames)
                 .withTransactionManager(transactionManager, executorService)
@@ -367,15 +346,12 @@ CREATE SEQUENCE if not exists bank_sequence_num;
                 .withNoContextFormater()
                 .withKafkaSettings(topic, producerSettings)
                 .withEventHandler(eventHandler)
-                .withAggregateStore(b -&gt; new BankAggregateStore(
-                            b.eventStore,
-                            b.eventHandler,
-                            b.system,
-                            b.transactionManager
-                    )
-                )
+                .withAggregateStore(builder -&gt; new BankAggregateStore(
+                        builder.eventStore,
+                        builder.eventHandler,
+                        builder.transactionManager
+                ))
                 .withCommandHandler(commandHandler)
-                .withProjections(meanWithdrawProjection)
                 .build();
     }
     //...
@@ -385,14 +361,13 @@ CREATE SEQUENCE if not exists bank_sequence_num;
 <p>Usage remains the same as in <a href="../banking.html">in memory example</a>.</p>
 <p>A <a href="https://github.com/MAIF/thoth/tree/master/docker-compose.yml">docker-compose.yml</a> file is available to set-up dev environment.</p>
 <p>It exposes a PostgreSQL server on <a href="http://localhost:5432/">http://localhost:5432/</a> and a kafdrop instance on <a href="http://localhost:9000/">http://localhost:9000/</a>.</p>
-<pre class="prettyprint"><code class="language-java">ActorSystem actorSystem = ActorSystem.create();
-BankCommandHandler commandHandler = new BankCommandHandler();
+<pre class="prettyprint"><code class="language-java">BankCommandHandler commandHandler = new BankCommandHandler();
 BankEventHandler eventHandler = new BankEventHandler();
 Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
 
-String id = bank.createAccount(BigDecimal.valueOf(100)).get().get().currentState.get().id;
+String id = bank.createAccount(BigDecimal.valueOf(100)).toCompletableFuture().join().get().currentState.get().id;
 
-bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
+    bank.withdraw(id, BigDecimal.valueOf(50)).toCompletableFuture().join().get().currentState.get();
 </code></pre>
 <p>The above code puts the following events in bank_journal table in postgres :</p>
 <pre><code>eventsourcing=&gt; select * from bank_journal;
@@ -488,10 +463,6 @@ bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
   <li><code>systemId</code>: can be use to identify system that emitted events</li>
 </ul>
 <p><a href="https://github.com/MAIF/thoth/tree/master/demo/demo-postgres-kafka">Complete executable example.</a></p>
-<div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/standard/banking-real-life.md">here</a>.
-</div>
-
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../standard/projections.html">Projections</a></p>
 </div>
@@ -548,7 +519,7 @@ The source code for this page can be found <a href="https://github.com/maif/thot
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2021</span>
+<span class="text">&copy; 2022</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->

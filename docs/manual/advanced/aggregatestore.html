@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -93,7 +93,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -156,7 +156,9 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>In a real world bank system, we would have several thousands of events.</p>
 <p>In such a scenario, applying all events would have a high performance cost.</p>
 <p>To fix this issue, one solution is to implement an <code>AggregateStore</code>.</p>
-<pre class="prettyprint"><code class="language-java">public class BankAggregateStore extends DefaultAggregateStore&lt;Account, BankEvent, Tuple0, Tuple0, Connection&gt; {
+<pre class="prettyprint"><code class="language-java">import java.util.concurrent.CompletableFuture;
+
+public class BankAggregateStore extends DefaultAggregateStore&lt;Account, BankEvent, Tuple0, Tuple0, Connection&gt; {
 
     public BankAggregateStore(EventStore&lt;Connection, BankEvent, Tuple0, Tuple0&gt; eventStore, EventHandler&lt;Account, BankEvent&gt; eventEventHandler, ActorSystem system, TransactionManager&lt;Connection&gt; transactionManager) {
         super(eventStore, eventEventHandler, system, transactionManager);
@@ -167,18 +169,18 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     }
 
     @Override
-    public Future&lt;Tuple0&gt; storeSnapshot(
+    public CompletionStage&lt;Tuple0&gt; storeSnapshot(
             Connection connection,
             String id,
             Option&lt;Account&gt; maybeState) {
-        return Future.of(() -&gt; {
+        return CompletableFuture.supplyAsync(() -&gt; {
 
             maybeState.peek(state -&gt; {
                 try {
                     PreparedStatement statement = connection.prepareStatement(&quot;&quot;&quot;
-                        INSERT INTO ACCOUNTS(ID, BALANCE) VALUES(?, ?)
-                        ON CONFLICT (id) DO UPDATE SET balance = ?
-                    &quot;&quot;&quot;);
+                                INSERT INTO ACCOUNTS(ID, BALANCE) VALUES(?, ?)
+                                ON CONFLICT (id) DO UPDATE SET balance = ?
+                            &quot;&quot;&quot;);
                     statement.setString(1, id);
                     statement.setBigDecimal(2, state.balance);
                     statement.setBigDecimal(3, state.balance);
@@ -193,23 +195,23 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     }
 
     @Override
-    public Future&lt;Option&lt;Account&gt;&gt; getAggregate(Connection connection, String entityId) {
-        return Future.of(() -&gt; {
-                PreparedStatement statement = connection.prepareStatement(&quot;SELECT balance FROM ACCOUNTS WHERE id=?&quot;);
-                statement.setString(1, entityId);
-                ResultSet resultSet = statement.executeQuery();
+    public CompletionStage&lt;Option&lt;Account&gt;&gt; getAggregate(Connection connection, String entityId) {
+        return CompletableFuture.supplyAsync(() -&gt; {
+            PreparedStatement statement = connection.prepareStatement(&quot;SELECT balance FROM ACCOUNTS WHERE id=?&quot;);
+            statement.setString(1, entityId);
+            ResultSet resultSet = statement.executeQuery();
 
-                if(resultSet.next()) {
-                    BigDecimal amount = resultSet.getBigDecimal(&quot;balance&quot;);
+            if (resultSet.next()) {
+                BigDecimal amount = resultSet.getBigDecimal(&quot;balance&quot;);
 
-                    Account account = new Account();
-                    account.id = entityId;
-                    account.balance = amount;
+                Account account = new Account();
+                account.id = entityId;
+                account.balance = amount;
 
-                    return Option.some(account);
-                } else {
-                    return Option.none();
-                }
+                return Option.some(account);
+            } else {
+                return Option.none();
+            }
         });
     }
 }
@@ -237,10 +239,6 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 </code></pre>
 <p><em>IMPORTANT NOTE</em>: This aggregate store should only be used when having performance issues on state reading. It&rsquo;s a tradeoff where we accept to have slower write to get faster read. </p>
 <p>To implement an alternative read model (i.e. CQRS), <a href="../standard/projections.html">projections</a> should be used.</p>
-<div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/advanced/aggregatestore.md">here</a>.
-</div>
-
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../advanced/event-replay.html">Event replay</a></p>
 </div>
@@ -283,7 +281,7 @@ The source code for this page can be found <a href="https://github.com/maif/thot
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2021</span>
+<span class="text">&copy; 2022</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->

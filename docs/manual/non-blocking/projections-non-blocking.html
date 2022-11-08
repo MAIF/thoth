@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -93,7 +93,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -163,59 +163,60 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 CREATE UNIQUE INDEX IF NOT EXISTS WITHDRAW_BY_MONTH_UNIQUE_IDX ON WITHDRAW_BY_MONTH(client_id, month, year);
 ALTER TABLE WITHDRAW_BY_MONTH ADD CONSTRAINT WITHDRAW_BY_MONTH_UNIQUE UNIQUE USING INDEX WITHDRAW_BY_MONTH_UNIQUE_IDX;
 </code></pre>
-<pre class="prettyprint"><code class="language-java">public class WithdrawByMonthProjection implements Projection&lt;PgAsyncTransaction, BankEvent, Tuple0, Tuple0&gt; {
+<pre class="prettyprint"><code class="language-java">public class WithdrawByMonthProjection implements ReactorProjection&lt;PgAsyncTransaction, BankEvent, Tuple0, Tuple0&gt; {
 
     private final PgAsyncPool pgAsyncPool;
 
-    public MeanWithdrawProjection(PgAsyncPool pgAsyncPool) {
+    public WithdrawByMonthProjection(PgAsyncPool pgAsyncPool) {
         this.pgAsyncPool = pgAsyncPool;
     }
 
     @Override
-    public Future&lt;Tuple0&gt; storeProjection(PgAsyncTransaction connection, List&lt;EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; envelopes) {
-        return connection.executeBatch(dsl -&gt;
+    public Mono&lt;Tuple0&gt; storeProjection(PgAsyncTransaction connection, List&lt;EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; envelopes) {
+        return connection.executeBatchMono(dsl -&gt;
                 envelopes
                         // Keep only MoneyWithdrawn events
                         .collect(unlift(eventEnvelope -&gt;
-                            Match(eventEnvelope.event).option(
-                                Case(BankEvent.$MoneyWithdrawn(), e -&gt; Tuple(eventEnvelope, e))
-                            )
+                                switch (eventEnvelope.event) {
+                                    case BankEvent.MoneyWithdrawn e -&gt; Some(Tuple(eventEnvelope, e));
+                                    default -&gt; None();
+                                }
                         ))
                         // Store withdraw by month
                         .map(t -&gt; dsl.query(&quot;&quot;&quot;
-                                        insert into withdraw_by_month (client_id, month, year, withdraw, count) values ({0}, {1}, {2}, {3}, 1)
-                                        on conflict on constraint WITHDRAW_BY_MONTH_UNIQUE
-                                        do update set withdraw = withdraw_by_month.withdraw + EXCLUDED.withdraw, count=withdraw_by_month.count + 1
-                                    &quot;&quot;&quot;,
-                                    val(t._2.entityId()),
-                                    val(t._1.emissionDate.getMonth().name()),
-                                    val(t._1.emissionDate.getYear()),
-                                    val(t._2.amount)
+                                            insert into withdraw_by_month (client_id, month, year, withdraw, count) values ({0}, {1}, {2}, {3}, 1)
+                                            on conflict on constraint WITHDRAW_BY_MONTH_UNIQUE
+                                            do update set withdraw = withdraw_by_month.withdraw + EXCLUDED.withdraw, count=withdraw_by_month.count + 1
+                                        &quot;&quot;&quot;,
+                                val(t._2.entityId()),
+                                val(t._1.emissionDate.getMonth().name()),
+                                val(t._1.emissionDate.getYear()),
+                                val(t._2.amount())
                         ))
-            ).map(__ -&gt; Tuple.empty());
+        ).thenReturn(Tuple.empty());
     }
 
-    public Future&lt;BigDecimal&gt; meanWithdrawByClientAndMonth(String clientId, Integer year, String month) {
-        return pgAsyncPool.query(dsl -&gt; dsl.resultQuery(
+    public Mono&lt;BigDecimal&gt; meanWithdrawByClientAndMonth(String clientId, Integer year, String month) {
+        return pgAsyncPool.queryMono(dsl -&gt; dsl.resultQuery(
                 &quot;&quot;&quot;
-                    select round(withdraw / count::decimal, 2) 
-                    from withdraw_by_month 
-                    where  client_id = {0} and year = {1} and month = {2}                   
-                    &quot;&quot;&quot;,
+                        select round(withdraw / count::decimal, 2) 
+                        from withdraw_by_month 
+                        where  client_id = {0} and year = {1} and month = {2}                   
+                        &quot;&quot;&quot;,
                 val(clientId),
                 val(year),
                 val(month))
         ).map(r -&gt; r.head().get(0, BigDecimal.class));
     }
 
-    public Future&lt;BigDecimal&gt; meanWithdrawByClient(String clientId) {
-        return pgAsyncPool.query(dsl -&gt; dsl
+    public Mono&lt;BigDecimal&gt; meanWithdrawByClient(String clientId) {
+        return pgAsyncPool.queryMono(dsl -&gt; dsl
                 .resultQuery(
-                &quot;&quot;&quot;
-                    select round(sum(withdraw) / sum(count)::decimal, 2) as sum
-                    from withdraw_by_month 
-                    where  client_id = {0}
-                    &quot;&quot;&quot;, val(clientId)
+                        &quot;&quot;&quot;
+                                select round(sum(withdraw) / sum(count)::decimal, 2) as sum
+                                from withdraw_by_month 
+                                where  client_id = {0}
+                                &quot;&quot;&quot;, val(clientId)
                 )
         ).map(r -&gt; r.head().get(&quot;sum&quot;, BigDecimal.class));
     }
@@ -226,19 +227,19 @@ ALTER TABLE WITHDRAW_BY_MONTH ADD CONSTRAINT WITHDRAW_BY_MONTH_UNIQUE UNIQUE USI
 <pre class="prettyprint"><code class="language-java">public class Bank {
     private final WithdrawByMonthProjection withdrawByMonthProjection;
     //...
-    public Bank() {
-        //...
+    public Bank(BankCommandHandler commandHandler, BankEventHandler eventHandler) {
+        this.vertx = Vertx.vertx();
+        this.pgAsyncPool = pgAsyncPool(vertx);
         this.withdrawByMonthProjection = new WithdrawByMonthProjection(pgAsyncPool);
 
-        this.eventProcessor = ReactivePostgresKafkaEventProcessor
-                .withSystem(actorSystem)
+        this.eventProcessor = ReactiveEventProcessor
                 .withPgAsyncPool(pgAsyncPool)
                 .withTables(tableNames())
                 .withTransactionManager()
                 .withEventFormater(BankEventFormat.bankEventFormat.jacksonEventFormat())
                 .withNoMetaFormater()
                 .withNoContextFormater()
-                .withKafkaSettings(&quot;bank&quot;, producerSettings(settings()))
+                .withKafkaSettings(&quot;bank&quot;, senderOptions(settings()))
                 .withEventHandler(eventHandler)
                 .withDefaultAggregateStore()
                 .withCommandHandler(commandHandler)
@@ -252,18 +253,60 @@ ALTER TABLE WITHDRAW_BY_MONTH ADD CONSTRAINT WITHDRAW_BY_MONTH_UNIQUE UNIQUE USI
 }
 </code></pre>
 <h3><a href="#usage" name="usage" class="anchor"><span class="anchor-link"></span></a>Usage</h3>
-<pre class="prettyprint"><code class="language-java">public class DemoApplication {
+<pre class="prettyprint"><code class="language-java">BankCommandHandler commandHandler = new BankCommandHandler();
+BankEventHandler eventHandler = new BankEventHandler();
+Bank bank = new Bank(commandHandler, eventHandler);
 
-	public static void main(String[] args) throws SQLException {
-		//...
-		String id = bank.createAccount(BigDecimal.valueOf(100)).get().get().currentState.get().id;
-
-		bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
-		bank.withdraw(id, BigDecimal.valueOf(10)).get().get().currentState.get();
-
-		System.out.println(bank.meanWithdrawByClient(id).get()); // 60
-	}
-}
+bank.init()
+        .flatMap(__ -&gt; bank.createAccount(BigDecimal.valueOf(100)))
+        .flatMap(accountCreatedOrError -&gt;
+                accountCreatedOrError
+                        .fold(
+                                error -&gt; Mono.just(Either.&lt;String, Account&gt;left(error)),
+                                currentState -&gt; {
+                                    String id = currentState.id;
+                                    println(&quot;account created with id &quot;+id);
+                                    return bank.withdraw(id, BigDecimal.valueOf(50))
+                                            .map(withDrawProcessingResult -&gt; withDrawProcessingResult.map(Account::getBalance))
+                                            .doOnSuccess(balanceOrError -&gt;
+                                                    balanceOrError
+                                                            .peek(balance -&gt; println(&quot;Balance is now: &quot;+balance))
+                                                            .orElseRun(error -&gt; println(&quot;Error: &quot; + error))
+                                            )
+                                            .flatMap(balanceOrError -&gt;
+                                                    bank.deposit(id, BigDecimal.valueOf(100))
+                                            )
+                                            .map(depositProcessingResult -&gt; depositProcessingResult.map(Account::getBalance))
+                                            .doOnSuccess(balanceOrError -&gt;
+                                                    balanceOrError
+                                                            .peek(balance -&gt; println(&quot;Balance is now: &quot;+balance))
+                                                            .orElseRun(error -&gt; println(&quot;Error: &quot; + error))
+                                            )
+                                            .flatMap(balanceOrError -&gt;
+                                                    bank.findAccountById(id)
+                                            )
+                                            .doOnSuccess(balanceOrError -&gt;
+                                                    balanceOrError.forEach(account -&gt; println(&quot;Account is: &quot;+account ))
+                                            )
+                                            .flatMap(__ -&gt;
+                                                    bank.withdraw(id, BigDecimal.valueOf(25))
+                                            )
+                                            .flatMap(__ -&gt;
+                                                bank.meanWithdrawByClient(id).doOnSuccess(w -&gt; {
+                                                    println(&quot;Withdraw sum &quot;+w);
+                                                })
+                                            );
+                                }
+                        )
+        )
+        .doOnError(Throwable::printStackTrace)
+        .doOnTerminate(() -&gt; {
+            Try(() -&gt; {
+                bank.close();
+                return &quot;&quot;;
+            });
+        })
+        .subscribe();
 </code></pre>
 <h2><a href="#eventually-consistent-projections" name="eventually-consistent-projections" class="anchor"><span class="anchor-link"></span></a>Eventually consistent projections</h2>
 <p>Sometimes projections are too costly to be updated in transaction, sometimes we don&rsquo;t need real time update.</p>
@@ -273,10 +316,6 @@ ALTER TABLE WITHDRAW_BY_MONTH ADD CONSTRAINT WITHDRAW_BY_MONTH_UNIQUE UNIQUE USI
 <h2><a href="#the-end" name="the-end" class="anchor"><span class="anchor-link"></span></a>The end</h2>
 <p>Congratulations ! You&rsquo;ve reached the end of our documentation.</p>
 <p>Please submit an issue to suggest any improvement.</p>
-<div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/non-blocking/projections-non-blocking.md">here</a>.
-</div>
-
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../resilient-kafka-consumption.html">Resilient kafka consumption</a></p>
 </div>
@@ -334,7 +373,7 @@ The source code for this page can be found <a href="https://github.com/maif/thot
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2021</span>
+<span class="text">&copy; 2022</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->

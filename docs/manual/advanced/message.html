@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -93,7 +93,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -151,16 +151,16 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>For instance, let&rsquo;s say that we want to issue a warning message when a <code>Withdraw</code> command put account balance under 0.</p>
 <pre class="prettyprint"><code class="language-java">public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, List&lt;String&gt;, Connection&gt; {
     @Override
-    public Future&lt;Either&lt;String, Events&lt;BankEvent, List&lt;String&gt;&gt;&gt;&gt; handleCommand(
+    public CompletionStage&lt;Either&lt;String, Events&lt;BankEvent, List&lt;String&gt;&gt;&gt;&gt; handleCommand(
             Connection transactionContext,
             Option&lt;Account&gt; previousState,
             BankCommand command) {
-        return Future.of(() -&gt; Match(command).of(
-            Case(BankCommand.WithdrawV1.pattern(), withdraw -&gt; this.handleWithdraw(previousState, withdraw)),
-            Case(BankCommand.DepositV1.pattern(), deposit -&gt; this.handleDeposit(previousState, deposit)),
-            Case(BankCommand.OpenAccountV1.pattern(), this::handleOpening),
-                Case(BankCommand.CloseAccountV1.pattern(), close -&gt; this.handleClosing(previousState, close))
-        ));
+        return CompletableFuture.supplyAsync(() -&gt; switch (command) {
+            case BankCommand.Withdraw withdraw -&gt; this.handleWithdraw(previousState, withdraw);
+            case BankCommand.Deposit deposit -&gt; this.handleDeposit(previousState, deposit);
+            case BankCommand.OpenAccount openAccount -&gt; this.handleOpening(openAccount);
+            case BankCommand.CloseAccount close -&gt; this.handleClosing(previousState, close);
+        });
     }
 
     //...
@@ -181,10 +181,6 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 }
 </code></pre>
 <p>We needed to replace <code>CommandHandler</code>&rsquo;s <code>Tuple0</code> parameter by a <code>List&lt;String&gt;</code> well suited to represent basic messages. This implies to change this <code>Message</code> parameter from <code>Tuple0</code> to <code>List&lt;Message&gt;</code> everywhere in the application.</p>
-<div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/advanced/message.md">here</a>.
-</div>
-
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../advanced/event-ordering.html">Custom message ordering</a></p>
 </div>
@@ -227,7 +223,7 @@ The source code for this page can be found <a href="https://github.com/maif/thot
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2021</span>
+<span class="text">&copy; 2022</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->

@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -93,7 +93,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -149,15 +149,15 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>We made some opinionated choices on Thoth return types/</p>
 <ul>
   <li>
-  <p>The vavr <code>Future</code> is used for async call (java <code>CompletionStage</code> is not user-friendly).</p></li>
+  <p>The java <code>CompletionStage</code> is used for async call but there is wrappers that exposes <code>Mono</code> for spring integration.</p></li>
   <li>
-  <p>The akka stream <code>Source</code> is used for stream processing.</p></li>
+  <p>The reactive stream <code>Publisher</code> is used for stream processing and akka <code>Source</code> and spring <code>Flux</code> can be used in modules.</p></li>
   <li>
     <p>The vavr <code>Either</code> is used to handle business errors. The idea is to have three channels:</p>
     <ul>
-      <li>it&rsquo;s ok: <code>Future(Right(&quot;Result&quot;))</code></li>
-      <li>it&rsquo;s an error: <code>Future(Left(&quot;Bad request&quot;))</code></li>
-      <li>it&rsquo;s a failure: <code>Future.failed(CrashedException(&quot;Crap!&quot;))</code></li>
+      <li>it&rsquo;s ok: <code>CompletionStage(Right(&quot;Result&quot;))</code></li>
+      <li>it&rsquo;s an error: <code>CompletionStage(Left(&quot;Bad request&quot;))</code></li>
+      <li>it&rsquo;s a failure: <code>CompletionStage.failed(CrashedException(&quot;Crap!&quot;))</code></li>
     </ul>
   </li>
   <li>
@@ -168,10 +168,6 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 }
 </code></pre></li>
 </ul>
-<div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/technical-considerations.md">here</a>.
-</div>
-
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="banking.html">In memory example</a></p>
 </div>
@@ -214,7 +210,7 @@ The source code for this page can be found <a href="https://github.com/maif/thot
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2021</span>
+<span class="text">&copy; 2022</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->

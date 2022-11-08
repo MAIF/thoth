@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -93,7 +93,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -190,16 +190,25 @@ CREATE SEQUENCE if not exists bank_sequence_num;
   <li>A <code>BANK_SEQUENCE_NUM</code> to generate sequence_num of our events</li>
 </ul>
 <h1><a href="#code" name="code" class="anchor"><span class="anchor-link"></span></a>Code</h1>
-<p>First of all let&rsquo;s swap <code>thoth-core-async</code> dependency with <code>thoth-jooq-async</code>. This new dependency provides everything we need to set up postgres / kafka connection.</p>
-<pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
+<p>First of all let&rsquo;s swap <code>thoth-core-async</code> dependency with <code>thoth-jooq-async</code>. This new dependency provides everything we need to set up postgres / kafka connection.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
+libraryDependencies += "fr.maif" % "thoth-jooq-async" % ThothVersion</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
+  &lt;thoth.version&gt;0.1.0*&lt;/thoth.version&gt;
+&lt;/properties&gt;
+&lt;dependencies&gt
+  &lt;dependency&gt;
     &lt;groupId&gt;fr.maif&lt;/groupId&gt;
-    &lt;artifactId&gt;thoth-jooq-async_2.13&lt;/artifactId&gt;
-    &lt;version&gt;...&lt;/version&gt;
-&lt;/dependency&gt;
-</code></pre>
+    &lt;artifactId&gt;thoth-jooq-async&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+&lt;/dependencies&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">def versions = [
+  ThothVersion: "0.1.0*"
+]
+dependencies {
+  implementation "fr.maif:thoth-jooq-async:${versions.ThothVersion}"
+}</code></pre></dd></dl>
 <h2><a href="#event-serialization" name="event-serialization" class="anchor"><span class="anchor-link"></span></a>Event serialization</h2>
 <p>Let&rsquo;s start with event reading and writing. We need to declare a serializer to read / write events to DB. This time we will use <code>JsonRead</code>and <code>JsonWrite</code> from <a href="https://github.com/MAIF/functional-json">functionnal-json</a>. </p>
-<pre class="prettyprint"><code class="language-java">public class BankEventFormat implements EventEnvelopeJsonFormat&lt;BankEvent, Tuple0, Tuple0&gt; {
+<pre class="prettyprint"><code class="language-java"><br/>public class BankEventFormat implements EventEnvelopeJsonFormat&lt;BankEvent, Tuple0, Tuple0&gt; {
 
     public static BankEventFormat bankEventFormat = new BankEventFormat();
 
@@ -221,25 +230,11 @@ CREATE SEQUENCE if not exists bank_sequence_num;
 </code></pre>
 <p>We implemented this using <a href="https://github.com/MAIF/functional-json">functionnal-json</a> library, since it provides nice utilities to handle / aggregate deserialization errors.</p>
 <p>Now we have to write readers and writers for each <code>BankEvent</code> </p>
-<pre class="prettyprint"><code class="language-java">public interface BankEvent extends Event {
-
+<pre class="prettyprint"><code class="language-java">public sealed interface BankEvent extends Event {
     Type&lt;MoneyWithdrawn&gt; MoneyWithdrawnV1 = Type.create(MoneyWithdrawn.class, 1L);
     Type&lt;AccountOpened&gt; AccountOpenedV1 = Type.create(AccountOpened.class, 1L);
     Type&lt;MoneyDeposited&gt; MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);
     Type&lt;AccountClosed&gt; AccountClosedV1 = Type.create(AccountClosed.class, 1L);
-
-    static Pattern0&lt;MoneyWithdrawn&gt; $MoneyWithdrawn() {
-        return Pattern0.of(MoneyWithdrawn.class);
-    }
-    static Pattern0&lt;AccountOpened&gt; $AccountOpened() {
-        return Pattern0.of(AccountOpened.class);
-    }
-    static Pattern0&lt;MoneyDeposited&gt; $MoneyDeposited() {
-        return Pattern0.of(MoneyDeposited.class);
-    }
-    static Pattern0&lt;AccountClosed&gt; $AccountClosed() {
-        return Pattern0.of(AccountClosed.class);
-    }
 
     JsonFormat&lt;BankEvent&gt; format = JsonFormat.of(
             JsonRead.oneOf(_string(&quot;type&quot;),
@@ -248,20 +243,39 @@ CREATE SEQUENCE if not exists bank_sequence_num;
                     caseOf(&quot;MoneyDeposited&quot;::equals, MoneyDeposited.format),
                     caseOf(&quot;AccountClosed&quot;::equals, AccountClosed.format)
             ),
-            (BankEvent event) -&gt; Match(event).of(
-                    Case($MoneyWithdrawn(), MoneyWithdrawn.format::write),
-                    Case($AccountOpened(), AccountOpened.format::write),
-                    Case($MoneyDeposited(), MoneyDeposited.format::write),
-                    Case($AccountClosed(), AccountClosed.format::write)
-            )
+            (BankEvent event) -&gt; switch (event) {
+                case MoneyWithdrawn bankEvent -&gt; MoneyWithdrawn.format.write(bankEvent);
+                case AccountOpened bankEvent -&gt; AccountOpened.format.write(bankEvent);
+                case MoneyDeposited bankEvent -&gt; MoneyDeposited.format.write(bankEvent);
+                case AccountClosed bankEvent -&gt; AccountClosed.format.write(bankEvent);
+            }
     );
 
-    @Builder
-    @Value
-    class MoneyWithdrawn implements BankEvent {
+    record MoneyWithdrawn(String accountId, BigDecimal amount) implements BankEvent {
 
-        public final String accountId;
-        public final BigDecimal amount;
+        static class MoneyWithdrawnBuilder{
+            String accountId;
+            BigDecimal amount;
+
+            MoneyWithdrawnBuilder accountId(String accountId){
+                this.accountId = accountId;
+                return this;
+            }
+
+            MoneyWithdrawnBuilder amount(BigDecimal amount){
+                this.amount = amount;
+                return this;
+            }
+
+            MoneyWithdrawn build(){
+                return new MoneyWithdrawn(accountId,amount);
+            }
+
+        }
+
+        public static MoneyWithdrawnBuilder builder(){
+            return new MoneyWithdrawnBuilder();
+        }
 
         @Override
         public Type&lt;MoneyWithdrawn&gt; type() {
@@ -285,10 +299,23 @@ CREATE SEQUENCE if not exists bank_sequence_num;
         );
     }
 
-    @Builder
-    @Value
-    class AccountOpened implements BankEvent {
-        public final String accountId;
+    record AccountOpened(String accountId) implements BankEvent {
+        static class AccountOpenedBuilder {
+            String accountId;
+
+            AccountOpenedBuilder accountId(String accountId){
+                this.accountId = accountId;
+                return this;
+            }
+
+            AccountOpened build(){
+                return new AccountOpened(accountId);
+            }
+        }
+
+        public static AccountOpenedBuilder builder(){
+            return new AccountOpenedBuilder();
+        }
 
         @Override
         public Type&lt;AccountOpened&gt; type() {
@@ -304,17 +331,38 @@ CREATE SEQUENCE if not exists bank_sequence_num;
                 __(&quot;accountId&quot;, _string(), AccountOpened.AccountOpened.builder()::accountId)
                         .map(AccountOpened.AccountOpenedBuilder::build),
                 (AccountOpened accountOpened) -&gt; Json.obj(
-                    $$(&quot;type&quot;, &quot;AccountOpened&quot;),
-                    $$(&quot;accountId&quot;, accountOpened.accountId)
+                        $$(&quot;type&quot;, &quot;AccountOpened&quot;),
+                        $$(&quot;accountId&quot;, accountOpened.accountId)
                 )
         );
     }
 
-    @Builder
-    @Value
-    class MoneyDeposited implements BankEvent {
-        public final String accountId;
-        public final BigDecimal amount;
+
+    record MoneyDeposited(String accountId, BigDecimal amount) implements BankEvent {
+
+        static class MoneyDepositedBuilder {
+            String accountId;
+            BigDecimal amount;
+
+            MoneyDepositedBuilder accountId(String accountId){
+                this.accountId = accountId;
+                return this;
+            }
+
+            MoneyDepositedBuilder amount(BigDecimal amount){
+                this.amount = amount;
+                return this;
+            }
+
+            MoneyDeposited build(){
+                return new MoneyDeposited(accountId,amount);
+            }
+
+        }
+
+        public static MoneyDepositedBuilder builder(){
+            return new MoneyDepositedBuilder();
+        }
 
         @Override
         public Type&lt;MoneyDeposited&gt; type() {
@@ -338,10 +386,23 @@ CREATE SEQUENCE if not exists bank_sequence_num;
         );
     }
 
-    @Builder
-    @Value
-    class AccountClosed implements BankEvent {
-        public final String accountId;
+    record AccountClosed(String accountId) implements BankEvent {
+        static class AccountClosedBuilder{
+            String accountId;
+
+            AccountClosedBuilder accountId(String accountId){
+                this.accountId = accountId;
+                return this;
+            }
+
+            AccountClosed build(){
+                return new AccountClosed(accountId);
+            }
+        }
+
+        public static AccountClosedBuilder builder(){
+            return new AccountClosedBuilder();
+        }
 
         @Override
         public Type&lt;AccountClosed&gt; type() {
@@ -371,11 +432,9 @@ CREATE SEQUENCE if not exists bank_sequence_num;
 <pre class="prettyprint"><code class="language-Java">public class Bank {
     // ...
     private PgAsyncPool pgAsyncPool(Vertx vertx) {
-        // Jooq config 
         DefaultConfiguration jooqConfig = new DefaultConfiguration();
         jooqConfig.setSQLDialect(SQLDialect.POSTGRES);
-        
-        // Vertx config 
+
         PgConnectOptions options = new PgConnectOptions()
                 .setPort(5432)
                 .setHost(&quot;localhost&quot;)
@@ -385,8 +444,7 @@ CREATE SEQUENCE if not exists bank_sequence_num;
         PoolOptions poolOptions = new PoolOptions().setMaxSize(50);
         PgPool pgPool = PgPool.pool(vertx, options, poolOptions);
 
-        // Glue between jooq and vertx  
-        return new ReactivePgAsyncPool(pgPool, jooqConfig);
+        return PgAsyncPool.create(pgPool, jooqConfig);
     }
     // ...
 }
@@ -414,8 +472,8 @@ CREATE SEQUENCE if not exists bank_sequence_num;
         return KafkaSettings.newBuilder(&quot;localhost:29092&quot;).build();
     }
 
-    private ProducerSettings&lt;String, EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; producerSettings(KafkaSettings kafkaSettings) {
-        return kafkaSettings.producerSettings(actorSystem, JsonFormatSerDer.of(BankEventFormat.bankEventFormat));        
+    private SenderOptions&lt;String, EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; senderOptions(KafkaSettings kafkaSettings) {
+        return kafkaSettings.producerSettings(JsonFormatSerDer.of(BankEventFormat.bankEventFormat));
     }
     //...
 }
@@ -424,30 +482,22 @@ CREATE SEQUENCE if not exists bank_sequence_num;
 <p>The next step is to swap our <code>EventProcessor</code> with <code>ReactivePostgresKafkaEventProcessor</code>. This configuration is not trivial but we only have to do this once ! </p>
 <pre class="prettyprint"><code class="language-java">public class Bank {
     //...
-    public Bank(ActorSystem actorSystem,
-                BankCommandHandler commandHandler,
-                BankEventHandler eventHandler) throws SQLException {
-        this.actorSystem = actorSystem;
+    public Bank(BankCommandHandler commandHandler, BankEventHandler eventHandler) {
         this.vertx = Vertx.vertx();
         this.pgAsyncPool = pgAsyncPool(vertx);
-        
-        var eventStore = eventStore(actorSystem, pgAsyncPool);
-        var transactionManager = new ReactiveTransactionManager(pgAsyncPool);
-        var producerSettings = producerSettings(settings());
-        
-        this.eventProcessor = ReactivePostgresKafkaEventProcessor
-                .withSystem(actorSystem)
+        this.withdrawByMonthProjection = new WithdrawByMonthProjection(pgAsyncPool);
+
+        this.eventProcessor = ReactiveEventProcessor
                 .withPgAsyncPool(pgAsyncPool)
                 .withTables(tableNames())
                 .withTransactionManager()
                 .withEventFormater(BankEventFormat.bankEventFormat.jacksonEventFormat())
                 .withNoMetaFormater()
                 .withNoContextFormater()
-                .withKafkaSettings(&quot;bank&quot;, producerSettings(settings()))
+                .withKafkaSettings(&quot;bank&quot;, senderOptions(settings()))
                 .withEventHandler(eventHandler)
                 .withDefaultAggregateStore()
                 .withCommandHandler(commandHandler)
-                .withNoProjections()
                 .build();
     }
     //...
@@ -457,14 +507,12 @@ CREATE SEQUENCE if not exists bank_sequence_num;
 <p>Usage remains the same as in <a href="../banking.html">in memory example</a>.</p>
 <p>A <a href="https://github.com/MAIF/thoth/tree/master/docker-compose.yml">docker-compose.yml</a> file is available to set-up dev environment.</p>
 <p>It exposes a PostgreSQL server on <a href="http://localhost:5432/">http://localhost:5432/</a> and a kafdrop instance on <a href="http://localhost:9000/">http://localhost:9000/</a>.</p>
-<pre class="prettyprint"><code class="language-java">ActorSystem actorSystem = ActorSystem.create();
-BankCommandHandler commandHandler = new BankCommandHandler();
+<pre class="prettyprint"><code class="language-java">BankCommandHandler commandHandler = new BankCommandHandler();
 BankEventHandler eventHandler = new BankEventHandler();
-Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
+Bank bank = new Bank(commandHandler, eventHandler);
+String id = bank.createAccount(BigDecimal.valueOf(100)).toCompletableFuture().join().get().currentState.get().id;
 
-String id = bank.createAccount(BigDecimal.valueOf(100)).get().get().currentState.get().id;
-
-bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
+bank.withdraw(id, BigDecimal.valueOf(50)).toCompletableFuture().join().get().currentState.get();
 </code></pre>
 <p>The above code puts the following events in bank_journal table in postgres :</p>
 <pre><code>eventsourcing=&gt; select * from bank_journal;
@@ -560,10 +608,6 @@ bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
   <li><code>systemId</code>: can be use to identify system that emitted events</li>
 </ul>
 <p><a href="https://github.com/MAIF/thoth/tree/master/demo/demo-postgres-kafka-reactive">Complete executable example.</a></p>
-<div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/non-blocking/banking-real-life-non-blocking.md">here</a>.
-</div>
-
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../non-blocking/projections-non-blocking.html">Projections</a></p>
 </div>
@@ -620,7 +664,7 @@ The source code for this page can be found <a href="https://github.com/maif/thot
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2021</span>
+<span class="text">&copy; 2022</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->

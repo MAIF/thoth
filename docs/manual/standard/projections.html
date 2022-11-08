@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -93,7 +93,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -157,8 +157,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     private long withdrawCount = 0L;
 
     @Override
-    public Future&lt;Tuple0&gt; storeProjection(Connection connection, List&lt;EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; envelopes) {
-        return Future.of(() -&gt; {
+    public CompletionStage&lt;Tuple0&gt; storeProjection(Connection connection, List&lt;EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; envelopes) {
+        return CompletableFuture.supplyAsync(() -&gt; {
             envelopes.forEach(envelope -&gt; {
                 BankEvent bankEvent = envelope.event;
                 if(envelope.event instanceof BankEvent.MoneyWithdrawn) {
@@ -183,15 +183,29 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     //...
     public Bank() {
         //...
+
         this.meanWithdrawProjection = new MeanWithdrawProjection();
-        this.eventProcessor = PostgresKafkaEventProcessor.create(
-            actorSystem,
-            eventStore(actorSystem, producerSettings, &quot;bank&quot;, dataSource, executorService, new TableNames(&quot;bank_journal&quot;, &quot;bank_sequence_num&quot;) ,eventFormat),
-            new JdbcTransactionManager(dataSource(), Executors.newFixedThreadPool(5)),
-            commandHandler,
-            eventHandler,
-            List.of(meanWithdrawProjection)
-        );
+
+        ExecutorService executorService = Executors.newFixedThreadPool(5);
+        JdbcTransactionManager transactionManager = new JdbcTransactionManager(dataSource(), executorService);
+
+        this.eventProcessor = PostgresKafkaEventProcessor
+                .withDataSource(dataSource())
+                .withTables(tableNames)
+                .withTransactionManager(transactionManager, executorService)
+                .withEventFormater(eventFormat)
+                .withNoMetaFormater()
+                .withNoContextFormater()
+                .withKafkaSettings(topic, producerSettings)
+                .withEventHandler(eventHandler)
+                .withAggregateStore(builder -&gt; new BankAggregateStore(
+                        builder.eventStore,
+                        builder.eventHandler,
+                        builder.transactionManager
+                ))
+                .withCommandHandler(commandHandler)
+                .withProjections(meanWithdrawProjection)
+                .build();
     }
     //...
     public BigDecimal meanWithdrawValue() {
@@ -203,17 +217,17 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <pre class="prettyprint"><code class="language-java">public class DemoApplication {
 
 	public static void main(String[] args) throws SQLException {
-		ActorSystem actorSystem = ActorSystem.create();
-		BankCommandHandler commandHandler = new BankCommandHandler();
-		BankEventHandler eventHandler = new BankEventHandler();
-		Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
+        BankCommandHandler commandHandler = new BankCommandHandler();
+        BankEventHandler eventHandler = new BankEventHandler();
+        Bank bank = new Bank(commandHandler, eventHandler);
 
-		String id = bank.createAccount(BigDecimal.valueOf(100)).get().get().currentState.get().id;
+        String id = bank.createAccount(BigDecimal.valueOf(100)).toCompletableFuture().join().get().currentState.get().id;
 
-		bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
-		bank.withdraw(id, BigDecimal.valueOf(10)).get().get().currentState.get();
+        bank.withdraw(id, BigDecimal.valueOf(50)).toCompletableFuture().join().get().currentState.get();
+        BigDecimal balance = bank.withdraw(id, BigDecimal.valueOf(10)).toCompletableFuture().join().get().currentState.get().balance;
+        System.out.println(balance);
 
-		System.out.println(bank.meanWithdrawValue()); // 30
+        System.out.println(bank.meanWithdrawValue());
 	}
 }
 </code></pre>
@@ -222,10 +236,6 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>In these case we could build &ldquo;eventually consistent&rdquo; projections, by connecting to our &ldquo;bank&rdquo; topic in Kafka, and consuming events from there.</p>
 <p><a href="../eventually-consistent-projection.html">Eventually consistent projections</a> show how Thoth can help you to build eventually consistent projections.</p>
 <p>See <a href="../kafka-consumption.html">Kafka consumption section</a> for more information on published events and kafka consumption.</p>
-<div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/standard/projections.md">here</a>.
-</div>
-
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../database-configuration.html">Database configuration</a></p>
 </div>
@@ -282,7 +292,7 @@ The source code for this page can be found <a href="https://github.com/maif/thot
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2021</span>
+<span class="text">&copy; 2022</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->

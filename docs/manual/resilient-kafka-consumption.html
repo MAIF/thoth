@@ -30,7 +30,7 @@
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -93,7 +93,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Thoth
 </a>
 <div class="version-number">
-1.1.4*
+0.1.0*
 </div>
 </div>
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
@@ -147,134 +147,92 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#resilient-kafka-consumption" name="resilient-kafka-consumption" class="anchor"><span class="anchor-link"></span></a>Resilient kafka consumption</h1>
 <p>Thoth provides a resilient kafka consumer. </p>
-<h2><a href="#installation" name="installation" class="anchor"><span class="anchor-link"></span></a>Installation</h2><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "1.1.4*"
-libraryDependencies += "fr.maif" %% "thoth-kafka-goodies" % ThothVersion</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
-  &lt;thoth.version&gt;1.1.4*&lt;/thoth.version&gt;
+<h2><a href="#installation" name="installation" class="anchor"><span class="anchor-link"></span></a>Installation</h2><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
+libraryDependencies += "fr.maif" % "thoth-kafka-consumer-reactor$" % ThothVersion</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
+  &lt;thoth.version&gt;0.1.0*&lt;/thoth.version&gt;
 &lt;/properties&gt;
-&lt;dependency&gt;
-  &lt;groupId&gt;fr.maif&lt;/groupId&gt;
-  &lt;artifactId&gt;thoth-kafka-goodies_2.12&lt;/artifactId&gt;
-  &lt;version&gt;${thoth.version}&lt;/version&gt;
-&lt;/dependency&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">versions += [
-  ThothVersion: "1.1.4*"
+&lt;dependencies&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;thoth-kafka-consumer-reactor$&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+&lt;/dependencies&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">def versions = [
+  ThothVersion: "0.1.0*"
 ]
 dependencies {
-  compile group: 'fr.maif', name: 'thoth-kafka-goodies_2.12', version: versions.ThothVersion
+  implementation "fr.maif:thoth-kafka-consumer-reactor$:${versions.ThothVersion}"
 }</code></pre></dd></dl>
 <h2><a href="#usage" name="usage" class="anchor"><span class="anchor-link"></span></a>Usage</h2>
 <pre class="prettyprint"><code class="language-java"><br/>ResilientKafkaConsumer&lt;String, String&gt; resilientKafkaConsumer = ResilientKafkaConsumer.create(
-        // Actor system
-        system,
         // Name of the consumer (for logs etc ...)
-        &quot;MyConsumer&quot;,
-        // Config 
+        &quot;test&quot;,
         ResilientKafkaConsumer.Config.create(
-                // Kafka subscription 
-                Subscriptions.topics(topic),
-                // Kafka group id 
-                groupId,
-                // The alpakka kafka consumer settings  
-                ConsumerSettings
-                        .create(system, new StringDeserializer(), new StringDeserializer())
-                        .withBootstrapServers(bootstrapServers())
+            List.of(topic),
+            groupId,
+            receiverOptions
         ),
-        // The event consumer, in that case the consumer print the events 
         event -&gt; {
-            System.out.println(event.record().value());
+            System.out.println(event.value());
         }
 );
 </code></pre>
 <h2><a href="#consuming-event" name="consuming-event" class="anchor"><span class="anchor-link"></span></a>Consuming event</h2>
 <p>There 3 way to consume events : blocking, non-blocking, streams </p>
 <h3><a href="#blocking" name="blocking" class="anchor"><span class="anchor-link"></span></a>Blocking</h3>
-<p>You don&rsquo;t need to perform IO or you have blocking IO e.g. JDBC. </p>
+<p>It append when you a blocking call (i.e JDBC), in this case, a &ldquo;parallel&rdquo; scheduler is chosen. </p>
 <pre class="prettyprint"><code class="language-java">ResilientKafkaConsumer&lt;String, String&gt; resilientKafkaConsumer = ResilientKafkaConsumer.create(
-                system,
-                &quot;test&quot;,
-                ResilientKafkaConsumer.Config.create(
-                        Subscriptions.topics(topic),
-                        groupId,
-                        ConsumerSettings
-                                .create(system, new StringDeserializer(), new StringDeserializer())
-                                .withBootstrapServers(bootstrapServers())
-                ),
-                // Provide an executor 
-                Executors.newCachedThreadPool(),
-                // Blocking handling ! 
-                event -&gt; {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-        );
+        // Name of the consumer (for logs etc ...)
+        &quot;test&quot;,
+        ResilientKafkaConsumer.Config.create(
+            List.of(topic),
+            groupId,
+            receiverOptions
+        ),
+        event -&gt; {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
 </code></pre>
 <h3><a href="#non-blocking" name="non-blocking" class="anchor"><span class="anchor-link"></span></a>Non Blocking</h3>
 <pre class="prettyprint"><code class="language-java">ResilientKafkaConsumer&lt;String, String&gt; resilientKafkaConsumer = ResilientKafkaConsumer.create(
-                system,
-                &quot;test&quot;,
-                ResilientKafkaConsumer.Config.create(
-                        Subscriptions.topics(topic),
-                        groupId,
-                        ConsumerSettings
-                                .create(system, new StringDeserializer(), new StringDeserializer())
-                                .withBootstrapServers(bootstrapServers())
-                ),
-                // Non blocking handling 
-                (CommittableMessage&lt;String, String&gt; event) -&gt; CompletableFuture.supplyAsync(() -&gt; {
-                    System.out.println(event.record().value());
-                    return Done.done();
+        &quot;test&quot;,
+        ResilientKafkaConsumer.Config.create(
+            List.of(topic),
+            groupId,
+            receiverOptions
+        ),  
+        // Non blocking handling 
+        (ReceiverRecord&lt;String, String&gt; event) -&gt; Mono.fromCallable(() -&gt; {
+            System.out.println(event.value());
+            return event;
+        })
+);
+</code></pre>
+<h3><a href="#streams" name="streams" class="anchor"><span class="anchor-link"></span></a>Streams</h3>
+<p>Stream handling is done using the reactor <code>Flux</code>. </p>
+<p>In that stream you can, skip, group etc do whatever you want but at the end you have to give back the event. </p>
+<pre class="prettyprint"><code class="language-java">        ResilientKafkaConsumer.createFromFlow(
+            &quot;test&quot;,
+            ResilientKafkaConsumer.Config.create(
+                List.of(topic),
+                groupId,
+                receiverOptions
+            ),
+            flux -&gt; flux
+                .index()
+                .concatMap(messageAndIndex -&gt; {
+                    Long index = messageAndIndex.getT1();
+                    System.out.println(&quot;Message number &quot; + index);
+                    var event = messageAndIndex.getT2();
+                    Mono&lt;String&gt; asyncApiCall = asyncApiCall();
+                    return asyncApiCall.map(it -&gt; event);
                 })
         );
 </code></pre>
-<h3><a href="#streams" name="streams" class="anchor"><span class="anchor-link"></span></a>Streams</h3>
-<p>Stream handling is done using akka stream <code>Flow</code> which is a pipe that take a <code>ConsumerMessage.CommittableMessage&lt;K, K&gt;</code> in and should return a <code>ConsumerMessage.CommittableOffset</code>. </p>
-<p>In that stream you can, skip, group etc do whatever you want but at the end you have to provide the offset to commit. In order to have a better developer experience, you could use the <code>FlowWithContext</code> akka stream api if you don&rsquo;t want to have to handle the commit offset. </p>
-<p>With the classic flow api, you have to return the committable offset : </p>
-<pre class="prettyprint"><code class="language-java">        ResilientKafkaConsumer.createFromFlow(
-                system,
-                &quot;test&quot;,
-                ResilientKafkaConsumer.Config.create(
-                        Subscriptions.topics(topic),
-                        groupId,
-                        ConsumerSettings
-                                .create(system, new StringDeserializer(), new StringDeserializer())
-                                .withBootstrapServers(bootstrapServers())
-                ),
-                Flow.&lt;CommittableMessage&lt;String, String&gt;&gt;create()
-                        .zipWithIndex()
-                        .mapAsync(1, messageAndIndex -&gt; {
-                            Long index = messageAndIndex.second();
-                            System.out.println(&quot;Message number &quot; + index);
-                            CommittableOffset committableOffset = messageAndIndex.first().committableOffset();
-                            CompletionStage&lt;Done&gt; asyncApiCall = asyncApiCall();
-                            return asyncApiCall.thenApply(__ -&gt; committableOffset);
-                        })
-        );
-</code></pre>
-<p>With the <code>FlowWithContext</code> you don&rsquo;t : </p>
-<pre class="prettyprint"><code class="language-java">ResilientKafkaConsumer.createFromFlowCtxAgg(
-                system,
-                &quot;test&quot;,
-                ResilientKafkaConsumer.Config.create(
-                        Subscriptions.topics(topic),
-                        groupId,
-                        ConsumerSettings
-                                .create(system, new StringDeserializer(), new StringDeserializer())
-                                .withBootstrapServers(bootstrapServers())
-                ),
-                FlowWithContext.&lt;CommittableMessage&lt;String, String&gt;, CommittableOffset&gt;create()
-                        .grouped(3)
-                        .map(messages -&gt; {
-                            String collectedMessages = messages.stream().map(m -&gt; m.record().value()).collect(Collectors.joining(&quot; &quot;));
-                            names.set(collectedMessages);
-                            return Done.done();
-                        })
-        );
-</code></pre>
-<p>If your <code>FlowWithContext</code> is doing aggregations like in this example (the <code>group</code> operator), you have to use <code>createFromFlowCtxAgg</code> instead of <code>createFromFlowCtx</code>. </p>
-<p>You&rsquo;ll find more information on the akka stream documentation <a href="https://doc.akka.io/docs/akka/current/stream/index.html">https://doc.akka.io/docs/akka/current/stream/index.html</a>. </p>
 <h2><a href="#handling-crash" name="handling-crash" class="anchor"><span class="anchor-link"></span></a>Handling crash</h2>
 <p>The goal of this consumer is to handle crashes by retrying the failed event consumption. There two types of errors :</p>
 <ul>
@@ -283,26 +241,20 @@ dependencies {
 </ul>
 <p>You can configure the consumer to set appropriate values for restart interval &hellip; </p>
 <pre class="prettyprint"><code class="language-java ">ResilientKafkaConsumer.Config.create(
-                        Subscriptions.topics(topic),
-                        groupId,
-                        ConsumerSettings
-                                .create(system, new StringDeserializer(), new StringDeserializer())
-                                .withBootstrapServers(bootstrapServers())
-                )
-                        // Nb events before commit 
+                                List.of(topic),
+                                groupId,
+                                receiverOptions
+                        )
                         .withCommitSize(5)
-                        // First delay for restart, it increase exponentially (200ms then 400ms then 800ms then 1600ms ...)                        
                         .withMinBackoff(Duration.ofMillis(200))
-                        // Maximum restart delay
                         .withMaxBackoff(Duration.ofMinutes(10))
-                        // Noise to restart non linearly 
-                        .withRandomFactor(0.2d)
+                        .withRandomFactor(0.2d);
 </code></pre>
 <h2><a href="#status-and-lifecycles" name="status-and-lifecycles" class="anchor"><span class="anchor-link"></span></a>Status and lifecycles</h2>
 <p>The resilient kafka consumer has a lifecycle and will have the following states : </p>
 <ul>
   <li><code>Starting</code>: The consumer is starting</li>
-  <li><code>Started</code>: The consumer has started and a <code>Control</code> object is available to &ldquo;interact&rdquo; with the kafka client</li>
+  <li><code>Started</code>: The consumer has started</li>
   <li><code>Failed</code>: The consumer has crashed and will restart, the kafka client is no longer connected to the cluster.</li>
   <li><code>Stopping</code> : The consumer is stopping</li>
   <li><code>Stopped</code> : The consumer is stopped, the kafka client is no longer connected to the cluster.</li>
@@ -314,45 +266,31 @@ Status status = resilientKafkaConsumer.status();
 </code></pre>
 <p>You can also register callbacks : </p>
 <pre class="prettyprint"><code class="language-java">    ResilientKafkaConsumer&lt;String, String&gt; resilientKafkaConsumer = ResilientKafkaConsumer.create(
-            system,
-            &quot;test&quot;,
-            ResilientKafkaConsumer.Config
-                    .create(
-                            Subscriptions.topics(topic),
-                            groupId,
-                            ConsumerSettings
-                                    .create(system, new StringDeserializer(), new StringDeserializer())
-                                    .withBootstrapServers(bootstrapServers())
-                    )
-                    .withOnStarting(() -&gt; CompletableFuture.supplyAsync(() -&gt; {
-                        isStarting.set(true);
-                        return Done.done();
-                    }))
-                    .withOnStarted((c, time) -&gt; CompletableFuture.supplyAsync(() -&gt; {
-                        isStarted.set(true);
-                        return Done.done();
-                    }))
-                    .withOnStopping(c -&gt; CompletableFuture.supplyAsync(() -&gt; {
-                        isStopping.set(true);
-                        return Done.done();
-                    }))
-                    .withOnStopped(() -&gt; CompletableFuture.supplyAsync(() -&gt; {
-                        isStopped.set(true);
-                        return Done.done();
-                    }))
-                    .withOnFailed(e -&gt; CompletableFuture.supplyAsync(() -&gt; {
-                        isFailed.set(true);
-                        return Done.done();
-                    }))
-            , event -&gt; {
+            ResilientKafkaConsumer.Config.create(
+                List.of(topic),
+                groupId,
+                receiverOptions
+            )
+            .withOnStarting(() -&gt; Mono.fromRunnable(() -&gt; {
+    
+            }))
+            .withOnStarted((c, time) -&gt; Mono.fromRunnable(() -&gt; {
+    
+            }))
+            .withOnStopping(() -&gt; Mono.fromRunnable(() -&gt; {
+    
+            }))
+            .withOnStopped(() -&gt; Mono.fromRunnable(() -&gt; {
+    
+            }))
+            .withOnFailed(e -&gt; Mono.fromRunnable(() -&gt; {
+    
+            })), 
+            event -&gt; {
                 names.set(names.get() + &quot; &quot; + event.record().value());
             }
     );
 </code></pre>
-<div class="source-github">
-The source code for this page can be found <a href="https://github.com/maif/thoth/tree/master/thoth-documentation/src/main/paradox/resilient-kafka-consumption.md">here</a>.
-</div>
-
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>
 <nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
@@ -409,7 +347,7 @@ The source code for this page can be found <a href="https://github.com/maif/thot
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2021</span>
+<span class="text">&copy; 2022</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->

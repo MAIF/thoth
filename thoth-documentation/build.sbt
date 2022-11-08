@@ -22,7 +22,7 @@ lazy val generateDoc           = taskKey[Unit]("Copy doc")
 generateDoc := {
   val _           = (Compile / paradox).value
   val paradoxFile = target.value / "paradox" / "site" / "main"
-  val targetDocs  = `thoth-documentation`.base.getParentFile / "docs" / "manual"
+  val targetDocs  = `thoth-documentation`.base.getParentFile / ".." / "docs" / "manual"
   IO.delete(targetDocs)
   IO.copyDirectory(paradoxFile, targetDocs)
 }

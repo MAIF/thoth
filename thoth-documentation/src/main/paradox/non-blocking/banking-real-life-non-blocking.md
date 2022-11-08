@@ -56,13 +56,12 @@ Here is what we need in the database:
 
 First of all let's swap `thoth-core-async` dependency with `thoth-jooq-async`. This new dependency provides everything we need to set up postgres / kafka connection.
 
-```xml
-<dependency>
-    <groupId>fr.maif</groupId>
-    <artifactId>thoth-jooq-async</artifactId>
-    <version>...</version>
-</dependency>
-```
+@@dependency[sbt,Maven,Gradle] {
+symbol="ThothVersion"
+value="$project.version.short$"
+group="fr.maif" artifact="thoth-jooq-async" version="ThothVersion"
+}
+
 
 ## Event serialization
 
