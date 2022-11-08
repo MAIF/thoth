@@ -54,7 +54,7 @@ First of all let's swap `thoth-core` dependency with `thoth-jooq`. This new depe
 ```xml
 <dependency>
     <groupId>fr.maif</groupId>
-    <artifactId>thoth-jooq_2.13</artifactId>
+    <artifactId>thoth-jooq</artifactId>
     <version>...</version>
 </dependency>
 ```
@@ -67,14 +67,17 @@ Let's start with event reading and writing. We need to declare a serializer to r
 public class BankEventFormat implements JacksonEventFormat<String, BankEvent> {
     @Override
     public Either<String, BankEvent> read(String type, Long version, JsonNode json) {
-        return API.Match(Tuple.of(type, version)).option(
-                Case(BankEvent.MoneyDepositedV1.pattern2(), () -> Json.fromJson(json, BankEvent.MoneyDeposited.class)),
-                Case(BankEvent.MoneyWithdrawnV1.pattern2(), () -> Json.fromJson(json, BankEvent.MoneyWithdrawn.class)),
-                Case(BankEvent.AccountClosedV1.pattern2(), () -> Json.fromJson(json, BankEvent.AccountClosed.class)),
-                Case(BankEvent.AccountOpenedV1.pattern2(), () -> Json.fromJson(json, BankEvent.AccountOpened.class))
-        )
-                .toEither(() -> "Unknown event type " + type + "(v" + version + ")")
-                .flatMap(jsResult -> jsResult.toEither().mapLeft(errs -> errs.mkString(",")));
+        return Either.narrow(switch (Tuple.of(type, version)) {
+            case Tuple2<String, Long> t && MoneyDepositedV1.match(t) ->
+                    Json.fromJson(json, BankEvent.MoneyDeposited.class).toEither().mapLeft(errs -> errs.mkString(","));
+            case Tuple2<String, Long> t && MoneyWithdrawnV1.match(t) ->
+                    Json.fromJson(json, BankEvent.MoneyWithdrawn.class).toEither().mapLeft(errs -> errs.mkString(","));
+            case Tuple2<String, Long> t && AccountClosedV1.match(t) ->
+                    Json.fromJson(json, BankEvent.AccountClosed.class).toEither().mapLeft(errs -> errs.mkString(","));
+            case Tuple2<String, Long> t && AccountOpenedV1.match(t) ->
+                    Json.fromJson(json, BankEvent.AccountOpened.class).toEither().mapLeft(errs -> errs.mkString(","));
+            default -> Either.<String, BankEvent>left("Unknown event type " + type + "(v" + version + ")");
+        });
     }
 
     @Override
@@ -89,71 +92,42 @@ We implemented this using [functionnal-json](https://github.com/MAIF/functional-
 To allow event serialization / deserialization we also need to add some Jackson annotations (`@JsonCreator` and `@JsonProperty`) to events' constructors.
 
 ```java
-public abstract class BankEvent implements Event {
-    public static Type<MoneyWithdrawn> MoneyWithdrawnV1 = Type.create(MoneyWithdrawn.class, 1L);
-    public static Type<AccountOpened> AccountOpenedV1 = Type.create(AccountOpened.class, 1L);
-    public static Type<MoneyDeposited> MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);
-    public static Type<AccountClosed> AccountClosedV1 = Type.create(AccountClosed.class, 1L);
+public sealed interface BankEvent extends Event {
+    Type<MoneyWithdrawn> MoneyWithdrawnV1 = Type.create(MoneyWithdrawn.class, 1L);
+    Type<AccountOpened> AccountOpenedV1 = Type.create(AccountOpened.class, 1L);
+    Type<MoneyDeposited> MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);
+    Type<AccountClosed> AccountClosedV1 = Type.create(AccountClosed.class, 1L);
 
-    public final String accountId;
+    String accountId();
 
-    public BankEvent(String accountId) {
-        this.accountId = accountId;
+    default String entityId() {
+        return accountId();
     }
 
-    @Override
-    public String entityId() {
-        return accountId;
-    }
-
-    public static class MoneyWithdrawn extends BankEvent {
-        public final BigDecimal amount;
-        @JsonCreator
-        public MoneyWithdrawn(@JsonProperty("accountId")String account, @JsonProperty("amount")BigDecimal amount) {
-            super(account);
-            this.amount = amount;
-        }
-
+    record MoneyWithdrawn(String accountId, BigDecimal amount) implements BankEvent {
         @Override
-        public Type<?> type() {
+        public Type<MoneyWithdrawn> type() {
             return MoneyWithdrawnV1;
         }
     }
 
-    public static class AccountOpened extends BankEvent {
-        @JsonCreator
-        public AccountOpened(@JsonProperty("accountId")String id) {
-            super(id);
-        }
-
+    record AccountOpened(String accountId) implements BankEvent {
         @Override
-        public Type<?> type() {
+        public Type<AccountOpened> type() {
             return AccountOpenedV1;
         }
     }
 
-    public static class MoneyDeposited extends BankEvent {
-        public final BigDecimal amount;
-        @JsonCreator
-        public MoneyDeposited(@JsonProperty("accountId")String id, @JsonProperty("amount")BigDecimal amount) {
-            super(id);
-            this.amount = amount;
-        }
-
+    record MoneyDeposited(String accountId, BigDecimal amount) implements BankEvent {
         @Override
-        public Type<?> type() {
+        public Type<MoneyDeposited> type() {
             return MoneyDepositedV1;
         }
     }
 
-    public static class AccountClosed extends BankEvent {
-        @JsonCreator
-        public AccountClosed(@JsonProperty("accountId")String id) {
-            super(id);
-        }
-
+    record AccountClosed(String accountId) implements BankEvent {
         @Override
-        public Type<?> type() {
+        public Type<AccountClosed> type() {
             return AccountClosedV1;
         }
     }
@@ -217,14 +191,14 @@ public class Bank {
         return KafkaSettings.newBuilder("localhost:29092").build();
     }
 
-    private ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings(
+    private SenderOptions<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings(
             KafkaSettings kafkaSettings,
             JacksonEventFormat<String, BankEvent> eventFormat) {
-        return kafkaSettings.producerSettings(actorSystem, JsonSerializer.of(
-                eventFormat,
-                JacksonSimpleFormat.empty(),
-                JacksonSimpleFormat.empty()
-            )
+        return kafkaSettings.producerSettings(JsonSerializer.of(
+                        eventFormat,
+                        JacksonSimpleFormat.empty(),
+                        JacksonSimpleFormat.empty()
+                )
         );
     }
     //...
@@ -242,22 +216,18 @@ To instantiate this new EventProcessor, we'll need everything we defined previou
 ```java
 public class Bank {
     //...
-    public Bank(ActorSystem actorSystem,
-                    BankCommandHandler commandHandler,
-                    BankEventHandler eventHandler
-                    ) throws SQLException {
+    public Bank(BankCommandHandler commandHandler, BankEventHandler eventHandler) throws SQLException {
         String topic = "bank";
-        this.actorSystem = actorSystem;
         JacksonEventFormat<String, BankEvent> eventFormat = new BankEventFormat();
-        ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings = producerSettings(settings(), eventFormat);
+        SenderOptions<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings = producerSettings(settings(), eventFormat);
         DataSource dataSource = dataSource();
+        dataSource.getConnection().prepareStatement(SCHEMA).execute();
         TableNames tableNames = tableNames();
 
         ExecutorService executorService = Executors.newFixedThreadPool(5);
         JdbcTransactionManager transactionManager = new JdbcTransactionManager(dataSource(), executorService);
-        
+
         this.eventProcessor = PostgresKafkaEventProcessor
-                .withActorSystem(actorSystem)
                 .withDataSource(dataSource())
                 .withTables(tableNames)
                 .withTransactionManager(transactionManager, executorService)
@@ -266,15 +236,12 @@ public class Bank {
                 .withNoContextFormater()
                 .withKafkaSettings(topic, producerSettings)
                 .withEventHandler(eventHandler)
-                .withAggregateStore(b -> new BankAggregateStore(
-                            b.eventStore,
-                            b.eventHandler,
-                            b.system,
-                            b.transactionManager
-                    )
-                )
+                .withAggregateStore(builder -> new BankAggregateStore(
+                        builder.eventStore,
+                        builder.eventHandler,
+                        builder.transactionManager
+                ))
                 .withCommandHandler(commandHandler)
-                .withProjections(meanWithdrawProjection)
                 .build();
     }
     //...
@@ -292,14 +259,13 @@ A [docker-compose.yml](https://github.com/MAIF/thoth/tree/master/docker-compose.
 It exposes a PostgreSQL server on http://localhost:5432/ and a kafdrop instance on http://localhost:9000/.
 
 ```java
-ActorSystem actorSystem = ActorSystem.create();
 BankCommandHandler commandHandler = new BankCommandHandler();
 BankEventHandler eventHandler = new BankEventHandler();
 Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
 
-String id = bank.createAccount(BigDecimal.valueOf(100)).get().get().currentState.get().id;
+String id = bank.createAccount(BigDecimal.valueOf(100)).toCompletableFuture().join().get().currentState.get().id;
 
-bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
+    bank.withdraw(id, BigDecimal.valueOf(50)).toCompletableFuture().join().get().currentState.get();
 ```
 
 The above code puts the following events in bank_journal table in postgres :

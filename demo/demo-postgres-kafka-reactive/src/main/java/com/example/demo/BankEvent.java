@@ -5,7 +5,6 @@ import fr.maif.eventsourcing.Type;
 import fr.maif.json.Json;
 import fr.maif.json.JsonFormat;
 import fr.maif.json.JsonRead;
-import io.vavr.API.Match.Pattern0;
 
 import java.math.BigDecimal;
 
@@ -15,28 +14,12 @@ import static fr.maif.json.JsonRead._bigDecimal;
 import static fr.maif.json.JsonRead._string;
 import static fr.maif.json.JsonRead.caseOf;
 import static fr.maif.json.JsonWrite.$bigdecimal;
-import static io.vavr.API.Case;
-import static io.vavr.API.Match;
 
-public interface BankEvent extends Event {
-
+public sealed interface BankEvent extends Event {
     Type<MoneyWithdrawn> MoneyWithdrawnV1 = Type.create(MoneyWithdrawn.class, 1L);
     Type<AccountOpened> AccountOpenedV1 = Type.create(AccountOpened.class, 1L);
     Type<MoneyDeposited> MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);
     Type<AccountClosed> AccountClosedV1 = Type.create(AccountClosed.class, 1L);
-
-    static Pattern0<MoneyWithdrawn> $MoneyWithdrawn() {
-        return Pattern0.of(MoneyWithdrawn.class);
-    }
-    static Pattern0<AccountOpened> $AccountOpened() {
-        return Pattern0.of(AccountOpened.class);
-    }
-    static Pattern0<MoneyDeposited> $MoneyDeposited() {
-        return Pattern0.of(MoneyDeposited.class);
-    }
-    static Pattern0<AccountClosed> $AccountClosed() {
-        return Pattern0.of(AccountClosed.class);
-    }
 
     JsonFormat<BankEvent> format = JsonFormat.of(
             JsonRead.oneOf(_string("type"),
@@ -45,17 +28,15 @@ public interface BankEvent extends Event {
                     caseOf("MoneyDeposited"::equals, MoneyDeposited.format),
                     caseOf("AccountClosed"::equals, AccountClosed.format)
             ),
-            (BankEvent event) -> Match(event).of(
-                    Case($MoneyWithdrawn(), MoneyWithdrawn.format::write),
-                    Case($AccountOpened(), AccountOpened.format::write),
-                    Case($MoneyDeposited(), MoneyDeposited.format::write),
-                    Case($AccountClosed(), AccountClosed.format::write)
-            )
+            (BankEvent event) -> switch (event) {
+                    case MoneyWithdrawn bankEvent -> MoneyWithdrawn.format.write(bankEvent);
+                    case AccountOpened bankEvent -> AccountOpened.format.write(bankEvent);
+                    case MoneyDeposited bankEvent -> MoneyDeposited.format.write(bankEvent);
+                    case AccountClosed bankEvent -> AccountClosed.format.write(bankEvent);
+            }
     );
 
-    class MoneyWithdrawn implements BankEvent {
-        public final String accountId;
-        public final BigDecimal amount;
+    record MoneyWithdrawn(String accountId, BigDecimal amount) implements BankEvent {
 
         static class MoneyWithdrawnBuilder{
             String accountId;
@@ -75,11 +56,6 @@ public interface BankEvent extends Event {
                 return new MoneyWithdrawn(accountId,amount);
             }
 
-        }
-
-        public MoneyWithdrawn(String accountId, BigDecimal amount) {
-            this.accountId = accountId;
-            this.amount = amount;
         }
 
         public static MoneyWithdrawnBuilder builder(){
@@ -108,10 +84,8 @@ public interface BankEvent extends Event {
         );
     }
 
-    class AccountOpened implements BankEvent {
-        public final String accountId;
-
-        static class AccountOpenedBuilder{
+    record AccountOpened(String accountId) implements BankEvent {
+        static class AccountOpenedBuilder {
             String accountId;
 
             AccountOpenedBuilder accountId(String accountId){
@@ -122,10 +96,6 @@ public interface BankEvent extends Event {
             AccountOpened build(){
                 return new AccountOpened(accountId);
             }
-        }
-
-        public AccountOpened(String accountId) {
-            this.accountId = accountId;
         }
 
         public static AccountOpenedBuilder builder(){
@@ -153,16 +123,9 @@ public interface BankEvent extends Event {
     }
 
 
-    class MoneyDeposited implements BankEvent {
-        public final String accountId;
-        public final BigDecimal amount;
+    record MoneyDeposited(String accountId, BigDecimal amount) implements BankEvent {
 
-        public MoneyDeposited(String accountId, BigDecimal amount) {
-            this.accountId = accountId;
-            this.amount = amount;
-        }
-
-        static class MoneyDepositedBuilder{
+        static class MoneyDepositedBuilder {
             String accountId;
             BigDecimal amount;
 
@@ -208,9 +171,7 @@ public interface BankEvent extends Event {
         );
     }
 
-    class AccountClosed implements BankEvent {
-        public final String accountId;
-
+    record AccountClosed(String accountId) implements BankEvent {
         static class AccountClosedBuilder{
             String accountId;
 
@@ -222,10 +183,6 @@ public interface BankEvent extends Event {
             AccountClosed build(){
                 return new AccountClosed(accountId);
             }
-        }
-
-        public AccountClosed(String accountId) {
-            this.accountId = accountId;
         }
 
         public static AccountClosedBuilder builder(){

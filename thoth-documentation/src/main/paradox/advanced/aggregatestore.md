@@ -13,6 +13,8 @@ In such a scenario, applying all events would have a high performance cost.
 To fix this issue, one solution is to implement an `AggregateStore`.
 
 ```java
+import java.util.concurrent.CompletableFuture;
+
 public class BankAggregateStore extends DefaultAggregateStore<Account, BankEvent, Tuple0, Tuple0, Connection> {
 
     public BankAggregateStore(EventStore<Connection, BankEvent, Tuple0, Tuple0> eventStore, EventHandler<Account, BankEvent> eventEventHandler, ActorSystem system, TransactionManager<Connection> transactionManager) {
@@ -24,18 +26,18 @@ public class BankAggregateStore extends DefaultAggregateStore<Account, BankEvent
     }
 
     @Override
-    public Future<Tuple0> storeSnapshot(
+    public CompletionStage<Tuple0> storeSnapshot(
             Connection connection,
             String id,
             Option<Account> maybeState) {
-        return Future.of(() -> {
+        return CompletableFuture.supplyAsync(() -> {
 
             maybeState.peek(state -> {
                 try {
                     PreparedStatement statement = connection.prepareStatement("""
-                        INSERT INTO ACCOUNTS(ID, BALANCE) VALUES(?, ?)
-                        ON CONFLICT (id) DO UPDATE SET balance = ?
-                    """);
+                                INSERT INTO ACCOUNTS(ID, BALANCE) VALUES(?, ?)
+                                ON CONFLICT (id) DO UPDATE SET balance = ?
+                            """);
                     statement.setString(1, id);
                     statement.setBigDecimal(2, state.balance);
                     statement.setBigDecimal(3, state.balance);
@@ -50,23 +52,23 @@ public class BankAggregateStore extends DefaultAggregateStore<Account, BankEvent
     }
 
     @Override
-    public Future<Option<Account>> getAggregate(Connection connection, String entityId) {
-        return Future.of(() -> {
-                PreparedStatement statement = connection.prepareStatement("SELECT balance FROM ACCOUNTS WHERE id=?");
-                statement.setString(1, entityId);
-                ResultSet resultSet = statement.executeQuery();
+    public CompletionStage<Option<Account>> getAggregate(Connection connection, String entityId) {
+        return CompletableFuture.supplyAsync(() -> {
+            PreparedStatement statement = connection.prepareStatement("SELECT balance FROM ACCOUNTS WHERE id=?");
+            statement.setString(1, entityId);
+            ResultSet resultSet = statement.executeQuery();
 
-                if(resultSet.next()) {
-                    BigDecimal amount = resultSet.getBigDecimal("balance");
+            if (resultSet.next()) {
+                BigDecimal amount = resultSet.getBigDecimal("balance");
 
-                    Account account = new Account();
-                    account.id = entityId;
-                    account.balance = amount;
+                Account account = new Account();
+                account.id = entityId;
+                account.balance = amount;
 
-                    return Option.some(account);
-                } else {
-                    return Option.none();
-                }
+                return Option.some(account);
+            } else {
+                return Option.none();
+            }
         });
     }
 }

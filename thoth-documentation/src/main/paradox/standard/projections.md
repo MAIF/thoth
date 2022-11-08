@@ -18,8 +18,8 @@ public class MeanBalanceProjection implements Projection<Connection, BankEvent, 
     private long withdrawCount = 0L;
 
     @Override
-    public Future<Tuple0> storeProjection(Connection connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> envelopes) {
-        return Future.of(() -> {
+    public CompletionStage<Tuple0> storeProjection(Connection connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> envelopes) {
+        return CompletableFuture.supplyAsync(() -> {
             envelopes.forEach(envelope -> {
                 BankEvent bankEvent = envelope.event;
                 if(envelope.event instanceof BankEvent.MoneyWithdrawn) {
@@ -48,15 +48,29 @@ public class Bank {
     //...
     public Bank() {
         //...
+
         this.meanWithdrawProjection = new MeanWithdrawProjection();
-        this.eventProcessor = PostgresKafkaEventProcessor.create(
-            actorSystem,
-            eventStore(actorSystem, producerSettings, "bank", dataSource, executorService, new TableNames("bank_journal", "bank_sequence_num") ,eventFormat),
-            new JdbcTransactionManager(dataSource(), Executors.newFixedThreadPool(5)),
-            commandHandler,
-            eventHandler,
-            List.of(meanWithdrawProjection)
-        );
+
+        ExecutorService executorService = Executors.newFixedThreadPool(5);
+        JdbcTransactionManager transactionManager = new JdbcTransactionManager(dataSource(), executorService);
+
+        this.eventProcessor = PostgresKafkaEventProcessor
+                .withDataSource(dataSource())
+                .withTables(tableNames)
+                .withTransactionManager(transactionManager, executorService)
+                .withEventFormater(eventFormat)
+                .withNoMetaFormater()
+                .withNoContextFormater()
+                .withKafkaSettings(topic, producerSettings)
+                .withEventHandler(eventHandler)
+                .withAggregateStore(builder -> new BankAggregateStore(
+                        builder.eventStore,
+                        builder.eventHandler,
+                        builder.transactionManager
+                ))
+                .withCommandHandler(commandHandler)
+                .withProjections(meanWithdrawProjection)
+                .build();
     }
     //...
     public BigDecimal meanWithdrawValue() {
@@ -71,17 +85,17 @@ public class Bank {
 public class DemoApplication {
 
 	public static void main(String[] args) throws SQLException {
-		ActorSystem actorSystem = ActorSystem.create();
-		BankCommandHandler commandHandler = new BankCommandHandler();
-		BankEventHandler eventHandler = new BankEventHandler();
-		Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
+        BankCommandHandler commandHandler = new BankCommandHandler();
+        BankEventHandler eventHandler = new BankEventHandler();
+        Bank bank = new Bank(commandHandler, eventHandler);
 
-		String id = bank.createAccount(BigDecimal.valueOf(100)).get().get().currentState.get().id;
+        String id = bank.createAccount(BigDecimal.valueOf(100)).toCompletableFuture().join().get().currentState.get().id;
 
-		bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
-		bank.withdraw(id, BigDecimal.valueOf(10)).get().get().currentState.get();
+        bank.withdraw(id, BigDecimal.valueOf(50)).toCompletableFuture().join().get().currentState.get();
+        BigDecimal balance = bank.withdraw(id, BigDecimal.valueOf(10)).toCompletableFuture().join().get().currentState.get().balance;
+        System.out.println(balance);
 
-		System.out.println(bank.meanWithdrawValue()); // 30
+        System.out.println(bank.meanWithdrawValue());
 	}
 }
 ```

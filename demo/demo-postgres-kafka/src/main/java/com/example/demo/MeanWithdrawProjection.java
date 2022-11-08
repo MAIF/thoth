@@ -23,7 +23,7 @@ public class MeanWithdrawProjection implements Projection<Connection, BankEvent,
             envelopes.forEach(envelope -> {
                 BankEvent bankEvent = envelope.event;
                 if(envelope.event instanceof BankEvent.MoneyWithdrawn) {
-                    withDrawTotal = withDrawTotal.add(((BankEvent.MoneyWithdrawn)bankEvent).amount);
+                    withDrawTotal = withDrawTotal.add(((BankEvent.MoneyWithdrawn)bankEvent).amount());
                     withdrawCount ++;
                 }
             });

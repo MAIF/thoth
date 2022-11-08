@@ -69,8 +69,7 @@ public class Bank implements Closeable {
     private final ReactorEventProcessor<String, Account, BankCommand, BankEvent, PgAsyncTransaction, Tuple0, Tuple0, Tuple0> eventProcessor;
     private final WithdrawByMonthProjection withdrawByMonthProjection;
 
-    public Bank(BankCommandHandler commandHandler,
-                BankEventHandler eventHandler) {
+    public Bank(BankCommandHandler commandHandler, BankEventHandler eventHandler) {
         this.vertx = Vertx.vertx();
         this.pgAsyncPool = pgAsyncPool(vertx);
         this.withdrawByMonthProjection = new WithdrawByMonthProjection(pgAsyncPool);

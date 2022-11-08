@@ -20,7 +20,6 @@ You can configure this with the builder:
 
 ```java
 this.eventProcessor = ReactivePostgresKafkaEventProcessor
-        .withSystem(actorSystem)
         .withPgAsyncPool(pgAsyncPool)
         .withTables(tableNames())
         .withTransactionManager()

@@ -4,14 +4,24 @@ Eventually consistent projections are built by consuming kafka events.
 
 It's possible using any Kafka client, however Thoth provides an helper for such use cases.
 
+You can use it adding one of these dependencies depending on your stack.  
+
+@@dependency[sbt,Maven,Gradle] {
+    symbol="ThothVersion"
+    value="$project.version.short$"
+    group="fr.maif" artifact="thoth-core-akka" version="ThothVersion"
+    group2="fr.maif" artifact2="thoth-core-reactor" version2="ThothVersion"
+}
+
+Here is an example using the reactor one : 
+
 ```java
-EventuallyConsistentProjection.create(
-    actorSystem,
+EventuallyConsistentProjection.simpleHandler(
     "MeanWithdrawProjection",
-    EventuallyConsistentProjection.Config.create("bank", "MeanWithdrawProjection", bootstrapServer),
+    Config.create(topic, groupId, bootstrapServers()),
     eventFormat,
-    envelope -> {
-        if(envelope.event instanceof BankEvent.MoneyWithdrawn withdraw) {
+    event -> {
+        if(event.value().event instanceof BankEvent.MoneyWithdrawn withdraw) {
             try(final PreparedStatement statement = dataSource.getConnection().prepareStatement("""
                     insert into withdraw_by_month (client_id, month, year, withdraw, count) values (?, ?, ?, ?, 1)
                         on conflict on constraint WITHDRAW_BY_MONTH_UNIQUE
@@ -28,7 +38,7 @@ EventuallyConsistentProjection.create(
                 LOGGER.error("Failed to update stats projection", ex);
             }
         }
-        return Future.successful(Tuple.empty());
+        return CompletionStages.empty();
     }
 ).start();
 ```

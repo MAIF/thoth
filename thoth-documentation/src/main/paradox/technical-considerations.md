@@ -2,14 +2,14 @@
 
 We made some opinionated choices on Thoth return types/
 
-* The vavr `Future` is used for async call (java `CompletionStage` is not user-friendly).
+* The java `CompletionStage` is used for async call but there is wrappers that exposes `Mono` for spring integration.
 
-* The akka stream `Source` is used for stream processing.
+* The reactive stream `Publisher` is used for stream processing and akka `Source` and spring `Flux` can be used in modules.
 
 * The vavr `Either` is used to handle business errors. The idea is to have three channels:
-    * it's ok: `Future(Right("Result"))`
-    * it's an error: `Future(Left("Bad request"))`
-    * it's a failure: `Future.failed(CrashedException("Crap!"))`
+    * it's ok: `CompletionStage(Right("Result"))`
+    * it's an error: `CompletionStage(Left("Bad request"))`
+    * it's a failure: `CompletionStage.failed(CrashedException("Crap!"))`
 
 * `io.vavr.Tuple0` is used instead of `void` so everything can be an expression:
     ```java

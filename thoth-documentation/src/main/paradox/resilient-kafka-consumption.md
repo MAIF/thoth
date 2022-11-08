@@ -7,7 +7,7 @@ Thoth provides a resilient kafka consumer.
 @@dependency[sbt,Maven,Gradle] {
     symbol="ThothVersion"
     value="$project.version.short$"
-    group="fr.maif" artifact="thoth-kafka-goodies_$scala.binary.version$" version="ThothVersion"
+    group="fr.maif" artifact="thoth-kafka-consumer-reactor$" version="ThothVersion"
 }
 
 ## Usage 
@@ -15,24 +15,15 @@ Thoth provides a resilient kafka consumer.
 ```java
 
 ResilientKafkaConsumer<String, String> resilientKafkaConsumer = ResilientKafkaConsumer.create(
-        // Actor system
-        system,
         // Name of the consumer (for logs etc ...)
-        "MyConsumer",
-        // Config 
+        "test",
         ResilientKafkaConsumer.Config.create(
-                // Kafka subscription 
-                Subscriptions.topics(topic),
-                // Kafka group id 
-                groupId,
-                // The alpakka kafka consumer settings  
-                ConsumerSettings
-                        .create(system, new StringDeserializer(), new StringDeserializer())
-                        .withBootstrapServers(bootstrapServers())
+            List.of(topic),
+            groupId,
+            receiverOptions
         ),
-        // The event consumer, in that case the consumer print the events 
         event -> {
-            System.out.println(event.record().value());
+            System.out.println(event.value());
         }
 );
 ```
@@ -43,111 +34,70 @@ There 3 way to consume events : blocking, non-blocking, streams
 
 ### Blocking 
 
-You don't need to perform IO or you have blocking IO e.g. JDBC.  
+It append when you a blocking call (i.e JDBC), in this case, a "parallel" scheduler is chosen.    
 
 ```java
 ResilientKafkaConsumer<String, String> resilientKafkaConsumer = ResilientKafkaConsumer.create(
-                system,
-                "test",
-                ResilientKafkaConsumer.Config.create(
-                        Subscriptions.topics(topic),
-                        groupId,
-                        ConsumerSettings
-                                .create(system, new StringDeserializer(), new StringDeserializer())
-                                .withBootstrapServers(bootstrapServers())
-                ),
-                // Provide an executor 
-                Executors.newCachedThreadPool(),
-                // Blocking handling ! 
-                event -> {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-        );
+        // Name of the consumer (for logs etc ...)
+        "test",
+        ResilientKafkaConsumer.Config.create(
+            List.of(topic),
+            groupId,
+            receiverOptions
+        ),
+        event -> {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
 ```
 
 ### Non Blocking 
 
 ```java
 ResilientKafkaConsumer<String, String> resilientKafkaConsumer = ResilientKafkaConsumer.create(
-                system,
-                "test",
-                ResilientKafkaConsumer.Config.create(
-                        Subscriptions.topics(topic),
-                        groupId,
-                        ConsumerSettings
-                                .create(system, new StringDeserializer(), new StringDeserializer())
-                                .withBootstrapServers(bootstrapServers())
-                ),
-                // Non blocking handling 
-                (CommittableMessage<String, String> event) -> CompletableFuture.supplyAsync(() -> {
-                    System.out.println(event.record().value());
-                    return Done.done();
-                })
-        );
+        "test",
+        ResilientKafkaConsumer.Config.create(
+            List.of(topic),
+            groupId,
+            receiverOptions
+        ),  
+        // Non blocking handling 
+        (ReceiverRecord<String, String> event) -> Mono.fromCallable(() -> {
+            System.out.println(event.value());
+            return event;
+        })
+);
 ```
 
 ### Streams
 
-Stream handling is done using akka stream `Flow` which is a pipe that take a `ConsumerMessage.CommittableMessage<K, K>` in and should return a `ConsumerMessage.CommittableOffset`. 
+Stream handling is done using the reactor `Flux`. 
 
-In that stream you can, skip, group etc do whatever you want but at the end you have to provide the offset to commit. 
-In order to have a better developer experience, you could use the `FlowWithContext` akka stream api if you don't want to have to handle the commit offset. 
-
-With the classic flow api, you have to return the committable offset : 
+In that stream you can, skip, group etc do whatever you want but at the end you have to give back the event. 
+ 
 
 ```java
         ResilientKafkaConsumer.createFromFlow(
-                system,
-                "test",
-                ResilientKafkaConsumer.Config.create(
-                        Subscriptions.topics(topic),
-                        groupId,
-                        ConsumerSettings
-                                .create(system, new StringDeserializer(), new StringDeserializer())
-                                .withBootstrapServers(bootstrapServers())
-                ),
-                Flow.<CommittableMessage<String, String>>create()
-                        .zipWithIndex()
-                        .mapAsync(1, messageAndIndex -> {
-                            Long index = messageAndIndex.second();
-                            System.out.println("Message number " + index);
-                            CommittableOffset committableOffset = messageAndIndex.first().committableOffset();
-                            CompletionStage<Done> asyncApiCall = asyncApiCall();
-                            return asyncApiCall.thenApply(__ -> committableOffset);
-                        })
+            "test",
+            ResilientKafkaConsumer.Config.create(
+                List.of(topic),
+                groupId,
+                receiverOptions
+            ),
+            flux -> flux
+                .index()
+                .concatMap(messageAndIndex -> {
+                    Long index = messageAndIndex.getT1();
+                    System.out.println("Message number " + index);
+                    var event = messageAndIndex.getT2();
+                    Mono<String> asyncApiCall = asyncApiCall();
+                    return asyncApiCall.map(it -> event);
+                })
         );
 ```
-
-With the `FlowWithContext` you don't : 
-
-```java
-ResilientKafkaConsumer.createFromFlowCtxAgg(
-                system,
-                "test",
-                ResilientKafkaConsumer.Config.create(
-                        Subscriptions.topics(topic),
-                        groupId,
-                        ConsumerSettings
-                                .create(system, new StringDeserializer(), new StringDeserializer())
-                                .withBootstrapServers(bootstrapServers())
-                ),
-                FlowWithContext.<CommittableMessage<String, String>, CommittableOffset>create()
-                        .grouped(3)
-                        .map(messages -> {
-                            String collectedMessages = messages.stream().map(m -> m.record().value()).collect(Collectors.joining(" "));
-                            names.set(collectedMessages);
-                            return Done.done();
-                        })
-        );
-```
-
-If your `FlowWithContext` is doing aggregations like in this example (the `group` operator), you have to use `createFromFlowCtxAgg` instead of `createFromFlowCtx`.  
-
-You'll find more information on the akka stream documentation https://doc.akka.io/docs/akka/current/stream/index.html. 
 
 
 ## Handling crash 
@@ -162,20 +112,14 @@ You can configure the consumer to set appropriate values for restart interval ..
 
 ```java 
 ResilientKafkaConsumer.Config.create(
-                        Subscriptions.topics(topic),
-                        groupId,
-                        ConsumerSettings
-                                .create(system, new StringDeserializer(), new StringDeserializer())
-                                .withBootstrapServers(bootstrapServers())
-                )
-                        // Nb events before commit 
+                                List.of(topic),
+                                groupId,
+                                receiverOptions
+                        )
                         .withCommitSize(5)
-                        // First delay for restart, it increase exponentially (200ms then 400ms then 800ms then 1600ms ...)                        
                         .withMinBackoff(Duration.ofMillis(200))
-                        // Maximum restart delay
                         .withMaxBackoff(Duration.ofMinutes(10))
-                        // Noise to restart non linearly 
-                        .withRandomFactor(0.2d)
+                        .withRandomFactor(0.2d);
 ```
 
 
@@ -184,7 +128,7 @@ ResilientKafkaConsumer.Config.create(
 The resilient kafka consumer has a lifecycle and will have the following states : 
 
  * `Starting`: The consumer is starting 
- * `Started`: The consumer has started and a `Control` object is available to "interact" with the kafka client   
+ * `Started`: The consumer has started    
  * `Failed`: The consumer has crashed and will restart, the kafka client is no longer connected to the cluster. 
  * `Stopping` : The consumer is stopping   
  * `Stopped` : The consumer is stopped, the kafka client is no longer connected to the cluster. 
@@ -202,37 +146,27 @@ You can also register callbacks :
 
 ```java
     ResilientKafkaConsumer<String, String> resilientKafkaConsumer = ResilientKafkaConsumer.create(
-            system,
-            "test",
-            ResilientKafkaConsumer.Config
-                    .create(
-                            Subscriptions.topics(topic),
-                            groupId,
-                            ConsumerSettings
-                                    .create(system, new StringDeserializer(), new StringDeserializer())
-                                    .withBootstrapServers(bootstrapServers())
-                    )
-                    .withOnStarting(() -> CompletableFuture.supplyAsync(() -> {
-                        isStarting.set(true);
-                        return Done.done();
-                    }))
-                    .withOnStarted((c, time) -> CompletableFuture.supplyAsync(() -> {
-                        isStarted.set(true);
-                        return Done.done();
-                    }))
-                    .withOnStopping(c -> CompletableFuture.supplyAsync(() -> {
-                        isStopping.set(true);
-                        return Done.done();
-                    }))
-                    .withOnStopped(() -> CompletableFuture.supplyAsync(() -> {
-                        isStopped.set(true);
-                        return Done.done();
-                    }))
-                    .withOnFailed(e -> CompletableFuture.supplyAsync(() -> {
-                        isFailed.set(true);
-                        return Done.done();
-                    }))
-            , event -> {
+            ResilientKafkaConsumer.Config.create(
+                List.of(topic),
+                groupId,
+                receiverOptions
+            )
+            .withOnStarting(() -> Mono.fromRunnable(() -> {
+    
+            }))
+            .withOnStarted((c, time) -> Mono.fromRunnable(() -> {
+    
+            }))
+            .withOnStopping(() -> Mono.fromRunnable(() -> {
+    
+            }))
+            .withOnStopped(() -> Mono.fromRunnable(() -> {
+    
+            }))
+            .withOnFailed(e -> Mono.fromRunnable(() -> {
+    
+            })), 
+            event -> {
                 names.set(names.get() + " " + event.record().value());
             }
     );

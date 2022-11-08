@@ -1,5 +1,9 @@
 package com.example.demo;
 
+import com.example.demo.BankEvent.AccountClosed;
+import com.example.demo.BankEvent.AccountOpened;
+import com.example.demo.BankEvent.MoneyDeposited;
+import com.example.demo.BankEvent.MoneyWithdrawn;
 import fr.maif.eventsourcing.EventHandler;
 import io.vavr.control.Option;
 
@@ -13,37 +17,31 @@ public class BankEventHandler implements EventHandler<Account, BankEvent> {
     public Option<Account> applyEvent(
             Option<Account> previousState,
             BankEvent event) {
-        return Match(event).of(
-                Case(BankEvent.AccountOpenedV1.pattern(), BankEventHandler::handleAccountOpened
-                ),
-                Case(BankEvent.MoneyDepositedV1.pattern(),
-                        deposit -> BankEventHandler.handleMoneyDeposited(previousState, deposit)
-                ),
-                Case(BankEvent.MoneyWithdrawnV1.pattern(),
-                        withdraw -> BankEventHandler.handleMoneyWithdrawn(previousState, withdraw)
-                ),
-                Case(BankEvent.AccountClosedV1.pattern(), BankEventHandler::handleAccountClosed
-                )
-        );
+        return switch (event) {
+            case AccountOpened accountOpened -> BankEventHandler.handleAccountOpened(accountOpened);
+            case MoneyDeposited deposit -> BankEventHandler.handleMoneyDeposited(previousState, deposit);
+            case MoneyWithdrawn deposit -> BankEventHandler.handleMoneyWithdrawn(previousState, deposit);
+            case AccountClosed accountClosed -> BankEventHandler.handleAccountClosed(accountClosed);
+        };
     }
 
     private static Option<Account> handleAccountClosed(
-            BankEvent.AccountClosed close) {
+            AccountClosed close) {
         return Option.none();
     }
 
     private static Option<Account> handleMoneyWithdrawn(
             Option<Account> previousState,
-            BankEvent.MoneyWithdrawn withdraw) {
+            MoneyWithdrawn withdraw) {
         return previousState.map(account -> {
-            account.balance = account.balance.subtract(withdraw.amount);
+            account.balance = account.balance.subtract(withdraw.amount());
             return account;
         });
     }
 
-    private static Option<Account> handleAccountOpened(BankEvent.AccountOpened event) {
+    private static Option<Account> handleAccountOpened(AccountOpened event) {
         Account account = new Account();
-        account.id = event.accountId;
+        account.id = event.accountId();
         account.balance = BigDecimal.ZERO;
 
         return Option.some(account);
@@ -51,9 +49,9 @@ public class BankEventHandler implements EventHandler<Account, BankEvent> {
 
     private static Option<Account> handleMoneyDeposited(
             Option<Account> previousState,
-            BankEvent.MoneyDeposited event) {
+            MoneyDeposited event) {
         return previousState.map(state -> {
-            state.balance = state.balance.add(event.amount);
+            state.balance = state.balance.add(event.amount());
             return state;
         });
     }

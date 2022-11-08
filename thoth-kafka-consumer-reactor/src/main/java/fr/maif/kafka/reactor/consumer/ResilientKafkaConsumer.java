@@ -245,7 +245,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
         this.start();
     }
 
-    public static <K, V> ResilientKafkaConsumer<K, V> createFromFlow(String name,
+    public static <K, V> ResilientKafkaConsumer<K, V> createFromFlux(String name,
                                                                      Config<K, V> config,
                                                                      Function<Flux<ReceiverRecord<K, V>>, Flux<ReceiverRecord<K, V>>> messageHandling) {
         return new ResilientKafkaConsumer<K, V>(config) {

@@ -92,9 +92,7 @@ public class Bank {
     }
 
 
-    public Bank(BankCommandHandler commandHandler,
-                BankEventHandler eventHandler
-                ) throws SQLException {
+    public Bank(BankCommandHandler commandHandler, BankEventHandler eventHandler) throws SQLException {
         String topic = "bank";
         JacksonEventFormat<String, BankEvent> eventFormat = new BankEventFormat();
         SenderOptions<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings = producerSettings(settings(), eventFormat);

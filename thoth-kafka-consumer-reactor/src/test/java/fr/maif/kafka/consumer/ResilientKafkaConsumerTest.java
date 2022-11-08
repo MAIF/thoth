@@ -91,23 +91,23 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
         AtomicReference<String> names = new AtomicReference<>("");
         AtomicBoolean hasCrashed = new AtomicBoolean(false);
 
-        ResilientKafkaConsumer.createFromFlow(
+        ResilientKafkaConsumer.createFromFlux(
                 "test",
                 ResilientKafkaConsumer.Config.create(List.of(topic), groupId, receiverOptions).withCommitSize(1).withMinBackoff(Duration.ofMillis(20)),
-                        it -> it
-                                .index()
-                                .concatMap(messageAndIndex -> {
-                                    System.out.println(messageAndIndex.getT1() + " - " + messageAndIndex.getT2().value());
-                                    if (messageAndIndex.getT1() > 0 && !hasCrashed.get()) {
-                                        System.out.println("Crash !");
-                                        hasCrashed.set(true);
-                                        return Flux.error(new RuntimeException("Oups"));
-                                    } else {
-                                        names.set(names.get() + " " + messageAndIndex.getT2().value());
-                                        return Flux.just(messageAndIndex.getT2());
-                                    }
-                                })
-                );
+                it -> it
+                        .index()
+                        .concatMap(messageAndIndex -> {
+                            System.out.println(messageAndIndex.getT1() + " - " + messageAndIndex.getT2().value());
+                            if (messageAndIndex.getT1() > 0 && !hasCrashed.get()) {
+                                System.out.println("Crash !");
+                                hasCrashed.set(true);
+                                return Flux.error(new RuntimeException("Oups"));
+                            } else {
+                                names.set(names.get() + " " + messageAndIndex.getT2().value());
+                                return Flux.just(messageAndIndex.getT2());
+                            }
+                        })
+        );
         Thread.sleep(4000);
 
         resultOf(produceString(topic, "event-1"));
@@ -137,8 +137,8 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
         AtomicBoolean isFailed = new AtomicBoolean(false);
 
         ResilientKafkaConsumer<String, String> resilientKafkaConsumer = ResilientKafkaConsumer.create(
-                        "test",
-                        ResilientKafkaConsumer.Config.create(
+                "test",
+                ResilientKafkaConsumer.Config.create(
                                 List.of(topic),
                                 groupId,
                                 receiverOptions

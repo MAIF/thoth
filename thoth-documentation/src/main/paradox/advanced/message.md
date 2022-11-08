@@ -7,16 +7,16 @@ For instance, let's say that we want to issue a warning message when a `Withdraw
 ```java
 public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, List<String>, Connection> {
     @Override
-    public Future<Either<String, Events<BankEvent, List<String>>>> handleCommand(
+    public CompletionStage<Either<String, Events<BankEvent, List<String>>>> handleCommand(
             Connection transactionContext,
             Option<Account> previousState,
             BankCommand command) {
-        return Future.of(() -> Match(command).of(
-            Case(BankCommand.WithdrawV1.pattern(), withdraw -> this.handleWithdraw(previousState, withdraw)),
-            Case(BankCommand.DepositV1.pattern(), deposit -> this.handleDeposit(previousState, deposit)),
-            Case(BankCommand.OpenAccountV1.pattern(), this::handleOpening),
-                Case(BankCommand.CloseAccountV1.pattern(), close -> this.handleClosing(previousState, close))
-        ));
+        return CompletableFuture.supplyAsync(() -> switch (command) {
+            case BankCommand.Withdraw withdraw -> this.handleWithdraw(previousState, withdraw);
+            case BankCommand.Deposit deposit -> this.handleDeposit(previousState, deposit);
+            case BankCommand.OpenAccount openAccount -> this.handleOpening(openAccount);
+            case BankCommand.CloseAccount close -> this.handleClosing(previousState, close);
+        });
     }
 
     //...

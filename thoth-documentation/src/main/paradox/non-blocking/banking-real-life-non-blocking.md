@@ -59,7 +59,7 @@ First of all let's swap `thoth-core-async` dependency with `thoth-jooq-async`. T
 ```xml
 <dependency>
     <groupId>fr.maif</groupId>
-    <artifactId>thoth-jooq-async_2.13</artifactId>
+    <artifactId>thoth-jooq-async</artifactId>
     <version>...</version>
 </dependency>
 ```
@@ -70,6 +70,7 @@ Let's start with event reading and writing. We need to declare a serializer to r
 This time we will use `JsonRead`and `JsonWrite` from [functionnal-json](https://github.com/MAIF/functional-json). 
 
 ```java
+
 public class BankEventFormat implements EventEnvelopeJsonFormat<BankEvent, Tuple0, Tuple0> {
 
     public static BankEventFormat bankEventFormat = new BankEventFormat();
@@ -96,25 +97,11 @@ We implemented this using [functionnal-json](https://github.com/MAIF/functional-
 Now we have to write readers and writers for each `BankEvent` 
 
 ```java
-public interface BankEvent extends Event {
-
+public sealed interface BankEvent extends Event {
     Type<MoneyWithdrawn> MoneyWithdrawnV1 = Type.create(MoneyWithdrawn.class, 1L);
     Type<AccountOpened> AccountOpenedV1 = Type.create(AccountOpened.class, 1L);
     Type<MoneyDeposited> MoneyDepositedV1 = Type.create(MoneyDeposited.class, 1L);
     Type<AccountClosed> AccountClosedV1 = Type.create(AccountClosed.class, 1L);
-
-    static Pattern0<MoneyWithdrawn> $MoneyWithdrawn() {
-        return Pattern0.of(MoneyWithdrawn.class);
-    }
-    static Pattern0<AccountOpened> $AccountOpened() {
-        return Pattern0.of(AccountOpened.class);
-    }
-    static Pattern0<MoneyDeposited> $MoneyDeposited() {
-        return Pattern0.of(MoneyDeposited.class);
-    }
-    static Pattern0<AccountClosed> $AccountClosed() {
-        return Pattern0.of(AccountClosed.class);
-    }
 
     JsonFormat<BankEvent> format = JsonFormat.of(
             JsonRead.oneOf(_string("type"),
@@ -123,20 +110,39 @@ public interface BankEvent extends Event {
                     caseOf("MoneyDeposited"::equals, MoneyDeposited.format),
                     caseOf("AccountClosed"::equals, AccountClosed.format)
             ),
-            (BankEvent event) -> Match(event).of(
-                    Case($MoneyWithdrawn(), MoneyWithdrawn.format::write),
-                    Case($AccountOpened(), AccountOpened.format::write),
-                    Case($MoneyDeposited(), MoneyDeposited.format::write),
-                    Case($AccountClosed(), AccountClosed.format::write)
-            )
+            (BankEvent event) -> switch (event) {
+                case MoneyWithdrawn bankEvent -> MoneyWithdrawn.format.write(bankEvent);
+                case AccountOpened bankEvent -> AccountOpened.format.write(bankEvent);
+                case MoneyDeposited bankEvent -> MoneyDeposited.format.write(bankEvent);
+                case AccountClosed bankEvent -> AccountClosed.format.write(bankEvent);
+            }
     );
 
-    @Builder
-    @Value
-    class MoneyWithdrawn implements BankEvent {
+    record MoneyWithdrawn(String accountId, BigDecimal amount) implements BankEvent {
 
-        public final String accountId;
-        public final BigDecimal amount;
+        static class MoneyWithdrawnBuilder{
+            String accountId;
+            BigDecimal amount;
+
+            MoneyWithdrawnBuilder accountId(String accountId){
+                this.accountId = accountId;
+                return this;
+            }
+
+            MoneyWithdrawnBuilder amount(BigDecimal amount){
+                this.amount = amount;
+                return this;
+            }
+
+            MoneyWithdrawn build(){
+                return new MoneyWithdrawn(accountId,amount);
+            }
+
+        }
+
+        public static MoneyWithdrawnBuilder builder(){
+            return new MoneyWithdrawnBuilder();
+        }
 
         @Override
         public Type<MoneyWithdrawn> type() {
@@ -160,10 +166,23 @@ public interface BankEvent extends Event {
         );
     }
 
-    @Builder
-    @Value
-    class AccountOpened implements BankEvent {
-        public final String accountId;
+    record AccountOpened(String accountId) implements BankEvent {
+        static class AccountOpenedBuilder {
+            String accountId;
+
+            AccountOpenedBuilder accountId(String accountId){
+                this.accountId = accountId;
+                return this;
+            }
+
+            AccountOpened build(){
+                return new AccountOpened(accountId);
+            }
+        }
+
+        public static AccountOpenedBuilder builder(){
+            return new AccountOpenedBuilder();
+        }
 
         @Override
         public Type<AccountOpened> type() {
@@ -179,17 +198,38 @@ public interface BankEvent extends Event {
                 __("accountId", _string(), AccountOpened.AccountOpened.builder()::accountId)
                         .map(AccountOpened.AccountOpenedBuilder::build),
                 (AccountOpened accountOpened) -> Json.obj(
-                    $$("type", "AccountOpened"),
-                    $$("accountId", accountOpened.accountId)
+                        $$("type", "AccountOpened"),
+                        $$("accountId", accountOpened.accountId)
                 )
         );
     }
 
-    @Builder
-    @Value
-    class MoneyDeposited implements BankEvent {
-        public final String accountId;
-        public final BigDecimal amount;
+
+    record MoneyDeposited(String accountId, BigDecimal amount) implements BankEvent {
+
+        static class MoneyDepositedBuilder {
+            String accountId;
+            BigDecimal amount;
+
+            MoneyDepositedBuilder accountId(String accountId){
+                this.accountId = accountId;
+                return this;
+            }
+
+            MoneyDepositedBuilder amount(BigDecimal amount){
+                this.amount = amount;
+                return this;
+            }
+
+            MoneyDeposited build(){
+                return new MoneyDeposited(accountId,amount);
+            }
+
+        }
+
+        public static MoneyDepositedBuilder builder(){
+            return new MoneyDepositedBuilder();
+        }
 
         @Override
         public Type<MoneyDeposited> type() {
@@ -213,10 +253,23 @@ public interface BankEvent extends Event {
         );
     }
 
-    @Builder
-    @Value
-    class AccountClosed implements BankEvent {
-        public final String accountId;
+    record AccountClosed(String accountId) implements BankEvent {
+        static class AccountClosedBuilder{
+            String accountId;
+
+            AccountClosedBuilder accountId(String accountId){
+                this.accountId = accountId;
+                return this;
+            }
+
+            AccountClosed build(){
+                return new AccountClosed(accountId);
+            }
+        }
+
+        public static AccountClosedBuilder builder(){
+            return new AccountClosedBuilder();
+        }
 
         @Override
         public Type<AccountClosed> type() {
@@ -251,11 +304,9 @@ In the sample application, this is made in `Bank` class, in real world applicati
 public class Bank {
     // ...
     private PgAsyncPool pgAsyncPool(Vertx vertx) {
-        // Jooq config 
         DefaultConfiguration jooqConfig = new DefaultConfiguration();
         jooqConfig.setSQLDialect(SQLDialect.POSTGRES);
-        
-        // Vertx config 
+
         PgConnectOptions options = new PgConnectOptions()
                 .setPort(5432)
                 .setHost("localhost")
@@ -265,8 +316,7 @@ public class Bank {
         PoolOptions poolOptions = new PoolOptions().setMaxSize(50);
         PgPool pgPool = PgPool.pool(vertx, options, poolOptions);
 
-        // Glue between jooq and vertx  
-        return new ReactivePgAsyncPool(pgPool, jooqConfig);
+        return PgAsyncPool.create(pgPool, jooqConfig);
     }
     // ...
 }
@@ -307,8 +357,8 @@ public class Bank {
         return KafkaSettings.newBuilder("localhost:29092").build();
     }
 
-    private ProducerSettings<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings(KafkaSettings kafkaSettings) {
-        return kafkaSettings.producerSettings(actorSystem, JsonFormatSerDer.of(BankEventFormat.bankEventFormat));        
+    private SenderOptions<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> senderOptions(KafkaSettings kafkaSettings) {
+        return kafkaSettings.producerSettings(JsonFormatSerDer.of(BankEventFormat.bankEventFormat));
     }
     //...
 }
@@ -322,30 +372,22 @@ This configuration is not trivial but we only have to do this once !
 ```java
 public class Bank {
     //...
-    public Bank(ActorSystem actorSystem,
-                BankCommandHandler commandHandler,
-                BankEventHandler eventHandler) throws SQLException {
-        this.actorSystem = actorSystem;
+    public Bank(BankCommandHandler commandHandler, BankEventHandler eventHandler) {
         this.vertx = Vertx.vertx();
         this.pgAsyncPool = pgAsyncPool(vertx);
-        
-        var eventStore = eventStore(actorSystem, pgAsyncPool);
-        var transactionManager = new ReactiveTransactionManager(pgAsyncPool);
-        var producerSettings = producerSettings(settings());
-        
-        this.eventProcessor = ReactivePostgresKafkaEventProcessor
-                .withSystem(actorSystem)
+        this.withdrawByMonthProjection = new WithdrawByMonthProjection(pgAsyncPool);
+
+        this.eventProcessor = ReactiveEventProcessor
                 .withPgAsyncPool(pgAsyncPool)
                 .withTables(tableNames())
                 .withTransactionManager()
                 .withEventFormater(BankEventFormat.bankEventFormat.jacksonEventFormat())
                 .withNoMetaFormater()
                 .withNoContextFormater()
-                .withKafkaSettings("bank", producerSettings(settings()))
+                .withKafkaSettings("bank", senderOptions(settings()))
                 .withEventHandler(eventHandler)
                 .withDefaultAggregateStore()
                 .withCommandHandler(commandHandler)
-                .withNoProjections()
                 .build();
     }
     //...
@@ -360,15 +402,14 @@ A [docker-compose.yml](https://github.com/MAIF/thoth/tree/master/docker-compose.
 
 It exposes a PostgreSQL server on http://localhost:5432/ and a kafdrop instance on http://localhost:9000/.
 
+
 ```java
-ActorSystem actorSystem = ActorSystem.create();
 BankCommandHandler commandHandler = new BankCommandHandler();
 BankEventHandler eventHandler = new BankEventHandler();
-Bank bank = new Bank(actorSystem, commandHandler, eventHandler);
+Bank bank = new Bank(commandHandler, eventHandler);
+String id = bank.createAccount(BigDecimal.valueOf(100)).toCompletableFuture().join().get().currentState.get().id;
 
-String id = bank.createAccount(BigDecimal.valueOf(100)).get().get().currentState.get().id;
-
-bank.withdraw(id, BigDecimal.valueOf(50)).get().get().currentState.get();
+bank.withdraw(id, BigDecimal.valueOf(50)).toCompletableFuture().join().get().currentState.get();
 ```
 
 The above code puts the following events in bank_journal table in postgres :
