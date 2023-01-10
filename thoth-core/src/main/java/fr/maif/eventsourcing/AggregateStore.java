@@ -31,7 +31,7 @@ public interface AggregateStore<S extends State<S>, Id, TxCtx> {
                 .map(num -> newState.map(s -> (S) s.withSequenceNum(num)))
                 .getOrElse(newState);
 
-        return storeSnapshot(ctx, id, newStatewithSequence).thenApply(__ -> newState);
+        return storeSnapshot(ctx, id, newStatewithSequence).thenApply(__ -> newStatewithSequence);
     }
 
 }
