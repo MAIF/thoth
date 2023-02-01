@@ -40,6 +40,10 @@ public class Events<E extends Event, Message> {
         return Objects.hash(events, message);
     }
 
+    public static <E extends Event, Message> Events<E, Message> empty() {
+        return new Events<>(List.empty(), null);
+    }
+
     public static <E extends Event> Events<E, Tuple0> events(E... events) {
         return new Events<>(List.of(events), Tuple.empty());
     }
