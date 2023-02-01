@@ -17,13 +17,15 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
-import static fr.maif.concurrent.CompletionStages.traverse;
 import static io.vavr.API.List;
 import static io.vavr.API.None;
 import static io.vavr.API.Tuple;
+import static fr.maif.concurrent.CompletionStages.traverse;
 
 public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, TxCtx, Message, Meta, Context> implements EventProcessor<Error, S, C, E, TxCtx, Message, Meta, Context> {
 
@@ -66,15 +68,14 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
     @Override
     public CompletionStage<InTransactionResult<List<Either<Error, ProcessingSuccess<S, E, Meta, Context, Message>>>>> batchProcessCommand(TxCtx ctx, List<C> commands) {
         // Collect all states from db
-        return traverse(commands, c ->
-                this.getSnapshot(ctx, c).thenCompose(mayBeState ->
+        return traverseCommands(commands, (c, events) ->
+                this.getCurrentState(ctx, c, events).thenCompose(mayBeState ->
                         //handle command with state to get events
                         handleCommand(ctx, mayBeState, c)
                                 // Return command + state + (error or events)
                                 .thenApply(r -> Tuple(c, mayBeState, r))
                 )
         )
-                .thenApply(Value::toList)
                 .thenCompose(commandsAndResults -> {
                     // Extract errors from command handling
                     List<Either<Error, ProcessingSuccess<S, E, Meta, Context, Message>>> errors = commandsAndResults
@@ -153,6 +154,19 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
                 });
     }
 
+    public CompletionStage<List<Tuple3<C, Option<S>, Either<Error, Events<E, Message>>>>> traverseCommands(List<C> elements, BiFunction<C, List<E>, CompletionStage<Tuple3<C, Option<S>, Either<Error, Events<E, Message>>>>> handler) {
+        return elements.foldLeft(
+                CompletableFuture.completedStage(Tuple(List.<Tuple3<C, Option<S>, Either<Error, Events<E, Message>>>>empty(), List.<Events<E, Message>>empty())),
+                (fResult, elt) ->
+                        fResult.thenCompose(listResult -> handler.apply(elt, listResult._2.flatMap(e -> e.events))
+                                .thenApply(r ->
+                                    Tuple(
+                                            listResult._1.append(r),
+                                            listResult._2.append(r._3.getOrElse(Events.empty())))
+                                ))
+        ).thenApply(t -> t._1);
+    }
+
     CompletionStage<List<EventEnvelope<E, Meta, Context>>> buildEnvelopes(TxCtx tx, C command, List<E> events) {
         String transactionId = transactionManager.transactionId();
         int nbMessages = events.length();
@@ -165,9 +179,13 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
         return commandHandler.handleCommand(txCtx, state, command);
     }
 
-    private CompletionStage<Option<S>> getSnapshot(TxCtx ctx, C command) {
+    private CompletionStage<Option<S>> getCurrentState(TxCtx ctx, C command, List<E> previousEvent) {
         if (command.hasId()) {
-            return aggregateStore.getAggregate(ctx, command.entityId().get());
+            String entityId = command.entityId().get();
+            return aggregateStore.getAggregate(ctx, entityId)
+                    .thenApply(state ->
+                        eventHandler.deriveState(state, previousEvent.filter(e -> e.entityId().equals(entityId)))
+                    );
         } else {
             return CompletionStages.successful(None());
         }

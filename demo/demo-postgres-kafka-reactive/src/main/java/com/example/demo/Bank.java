@@ -106,6 +106,7 @@ public class Bank implements Closeable {
     @Override
     public void close() throws IOException {
         this.pgPool.close();
+        this.eventProcessor.close();
         this.vertx.close();
     }
 

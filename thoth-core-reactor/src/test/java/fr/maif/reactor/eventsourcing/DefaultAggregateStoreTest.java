@@ -1,15 +1,12 @@
 package fr.maif.reactor.eventsourcing;
 
-import akka.actor.ActorSystem;
 import fr.maif.Helpers;
 import fr.maif.Helpers.Viking;
 import fr.maif.Helpers.VikingEvent;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.reactor.eventsourcing.EventProcessorTest;
 import fr.maif.eventsourcing.EventStore;
 import fr.maif.eventsourcing.EventStore.Query;
-import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
@@ -35,7 +32,6 @@ import static org.mockito.Mockito.when;
 
 class DefaultAggregateStoreTest {
 
-    static ActorSystem actorSystem = ActorSystem.create();
     final String entityId = "1";
 
     EventEnvelope<VikingEvent, Tuple0, Tuple0> eventEnvelope1 = EventEnvelope.<VikingEvent, Tuple0, Tuple0>builder()
@@ -75,7 +71,7 @@ class DefaultAggregateStoreTest {
 
         Option<Viking> vikings = aggregateStore.getAggregate(Tuple.empty(), entityId).toCompletableFuture().join();
 
-        Assertions.assertThat(vikings).isEqualTo(Some(new Viking(entityId, "Ragnar Lodbrock", 2L)));
+        Assertions.assertThat(vikings).isEqualTo(Some(new Viking(entityId, "Ragnar Lodbrock", 30, 2L)));
         verify(eventStore, times(1)).loadEventsByQuery(Tuple(), query);
     }
 
@@ -86,7 +82,7 @@ class DefaultAggregateStoreTest {
         DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0> aggregateStore = spy(new DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0>(eventStore, new Helpers.VikingEventHandler(), new EventProcessorTest.FakeTransactionManager()) {
             @Override
             public CompletionStage<Option<Viking>> getSnapshot(Tuple0 transactionContext, String id) {
-                return CompletionStages.successful(Option.some(new Viking(id, "Rollo", 1L)));
+                return CompletionStages.successful(Option.some(new Viking(id, "Rollo", 30, 1L)));
             }
         });
 
@@ -95,7 +91,7 @@ class DefaultAggregateStoreTest {
 
         Option<Viking> vikings = aggregateStore.getAggregate(Tuple.empty(), entityId).toCompletableFuture().join();
 
-        Assertions.assertThat(vikings).isEqualTo(Some(new Viking(entityId, "Ragnar Lodbrock", 2L)));
+        Assertions.assertThat(vikings).isEqualTo(Some(new Viking(entityId, "Ragnar Lodbrock", 30, 2L)));
         verify(eventStore, times(1)).loadEventsByQuery(Tuple(), query);
         verify(aggregateStore, times(1)).getSnapshot(any(), eq(entityId));
     }
