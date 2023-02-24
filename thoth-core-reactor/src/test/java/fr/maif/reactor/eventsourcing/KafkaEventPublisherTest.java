@@ -1,15 +1,5 @@
 package fr.maif.reactor.eventsourcing;
 
-import akka.actor.ActorSystem;
-import akka.kafka.ConsumerSettings;
-import akka.kafka.Subscriptions;
-import akka.kafka.javadsl.Consumer;
-import akka.kafka.testkit.javadsl.BaseKafkaTest;
-import akka.stream.Materializer;
-import akka.stream.javadsl.AsPublisher;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import akka.testkit.javadsl.TestKit;
 import com.fasterxml.jackson.databind.JsonNode;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.Event;
@@ -20,17 +10,19 @@ import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.json.EventEnvelopeJson;
 import fr.maif.json.Json;
-import fr.maif.kafka.JsonDeserializer;
 import fr.maif.kafka.JsonSerializer;
+import fr.maif.reactor.KafkaHelper;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Either;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -38,14 +30,25 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.mockito.Mockito;
 import org.reactivestreams.Publisher;
+import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
+import reactor.core.publisher.Flux;
+import reactor.kafka.receiver.KafkaReceiver;
+import reactor.kafka.receiver.ReceiverOptions;
+import reactor.kafka.receiver.ReceiverRecord;
 import reactor.kafka.sender.SenderOptions;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
@@ -54,6 +57,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRATEGY;
@@ -70,14 +74,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class KafkaEventPublisherTest extends BaseKafkaTest {
-
-    private static final ActorSystem sys = ActorSystem.create("KafkaEventPublisherTest");
-    private static final Materializer mat = Materializer.createMaterializer(sys);
-
-    KafkaEventPublisherTest() {
-        super(sys, mat, "localhost:29097");
-    }
+@Testcontainers
+public class KafkaEventPublisherTest extends KafkaHelper {
 
     @BeforeEach
     void cleanUpInit() throws ExecutionException, InterruptedException, TimeoutException {
@@ -97,11 +95,6 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         println("Deleting "+ String.join(",", topics));
         adminClient().deleteTopics(topics).all().get();
         cleanUpAdminClient();
-    }
-
-    @AfterAll
-    static void afterClass() {
-        TestKit.shutdownActorSystem(sys);
     }
 
     @Test
@@ -126,7 +119,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
 
         Thread.sleep(200);
 
-        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = Consumer.plainSource(consumerDefaults().withGroupId("test1"), Subscriptions.topics(topic))
+        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = createConsumer(topic, "test1")
                 .map(ConsumerRecord::value)
                 .map(KafkaEventPublisherTest::deserialize)
                 .take(3)
@@ -134,8 +127,9 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
                     println(e);
                     return e;
                 })
-                .idleTimeout(Duration.of(30, ChronoUnit.SECONDS))
-                .runWith(Sink.seq(), mat)
+                .timeout(Duration.of(30, ChronoUnit.SECONDS))
+                .collectList()
+                .toFuture()
                 .thenApply(List::ofAll);
 
         publisher.publish(List.of(
@@ -155,11 +149,11 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
     }
 
     private <T> Publisher<T> emptyTxStream() {
-        return Source.<T>empty().runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), sys);
+        return Flux.<T>empty();
     }
 
     private <T> Publisher<T> txStream(T... values) {
-        return Source.<T>from(List.of(values)).runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), sys);
+        return Flux.<T>fromIterable(List.of(values));
     }
 
 
@@ -183,11 +177,11 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
 
         publisher.start(eventStore, NO_STRATEGY);
 
-        CompletionStage<List<String>> results = Consumer.plainSource(consumerDefaults().withGroupId("test2"), Subscriptions.topics(topic))
+        CompletionStage<List<String>> results = createConsumer(topic, "test2")
                 .map(ConsumerRecord::value)
                 .take(6)
-                .idleTimeout(Duration.of(5, ChronoUnit.SECONDS))
-                .runWith(Sink.seq(), mat)
+                .timeout(Duration.of(5, ChronoUnit.SECONDS))
+                .collectList().toFuture()
                 .thenApply(List::ofAll);
 
         publisher.publish(List.of(
@@ -206,6 +200,12 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         publisher.close();
     }
 
+    private Flux<ReceiverRecord<String, String>> createConsumer(String topic, String groupId) {
+        return KafkaReceiver
+                .create(receiverOptions().consumerProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId)
+                        .subscription(List.of(topic).toJavaList()))
+                .receive();
+    }
 
 
     @Test
@@ -236,12 +236,12 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
 
         publisher.start(eventStore, SKIP);
 
-        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = Consumer.plainSource(consumerDefaults().withGroupId("test3"), Subscriptions.topics(topic))
+        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = createConsumer(topic, "test3")
                 .map(ConsumerRecord::value)
                 .map(KafkaEventPublisherTest::deserialize)
                 .take(6)
-                .idleTimeout(Duration.of(10, ChronoUnit.SECONDS))
-                .runWith(Sink.seq(), mat)
+                .timeout(Duration.of(10, ChronoUnit.SECONDS))
+                .collectList().toFuture()
                 .thenApply(List::ofAll);
 
         List<EventEnvelope<TestEvent, Void, Void>> events = results.toCompletableFuture().join();
@@ -292,20 +292,6 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
                         JacksonSimpleFormat.empty(),
                         JacksonSimpleFormat.empty()
                 ));
-    }
-
-    private ConsumerSettings<String, EventEnvelope<TestEvent, Void, Void>> consumerSettings() {
-        return ConsumerSettings.create(
-                sys,
-                new StringDeserializer(),
-                new JsonDeserializer<TestEvent, Void, Void>(
-                        new TestEventSerializer(),
-                        JacksonSimpleFormat.empty(),
-                        JacksonSimpleFormat.empty(),
-                        (s, o) -> {},
-                        e -> {}
-                )
-        ).withBootstrapServers(bootstrapServers());
     }
 
     public static class TestEventSerializer implements JacksonEventFormat<String, TestEvent> {

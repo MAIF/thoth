@@ -160,9 +160,9 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
                 (fResult, elt) ->
                         fResult.thenCompose(listResult -> handler.apply(elt, listResult._2.flatMap(e -> e.events))
                                 .thenApply(r ->
-                                    Tuple(
-                                            listResult._1.append(r),
-                                            listResult._2.append(r._3.getOrElse(Events.empty())))
+                                        Tuple(
+                                                listResult._1.append(r),
+                                                listResult._2.append(r._3.getOrElse(Events.empty())))
                                 ))
         ).thenApply(t -> t._1);
     }
@@ -183,9 +183,10 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
         if (command.hasId()) {
             String entityId = command.entityId().get();
             return aggregateStore.getAggregate(ctx, entityId)
-                    .thenApply(state ->
-                        eventHandler.deriveState(state, previousEvent.filter(e -> e.entityId().equals(entityId)))
-                    );
+                    .thenApply(state -> {
+                        List<E> eventsForEntity = previousEvent.filter(e -> e.entityId().equals(entityId));
+                        return eventHandler.deriveState(state, eventsForEntity);
+                    });
         } else {
             return CompletionStages.successful(None());
         }
