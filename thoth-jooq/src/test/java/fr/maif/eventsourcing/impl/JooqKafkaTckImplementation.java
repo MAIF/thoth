@@ -1,5 +1,41 @@
 package fr.maif.eventsourcing.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import fr.maif.eventsourcing.EventEnvelope;
+import fr.maif.eventsourcing.EventProcessorImpl;
+import fr.maif.eventsourcing.EventStore;
+import fr.maif.eventsourcing.PostgresKafkaEventProcessor;
+import fr.maif.eventsourcing.datastore.DataStoreVerification;
+import fr.maif.eventsourcing.datastore.TestCommand;
+import fr.maif.eventsourcing.datastore.TestCommandHandler;
+import fr.maif.eventsourcing.datastore.TestEvent;
+import fr.maif.eventsourcing.datastore.TestEventFormat;
+import fr.maif.eventsourcing.datastore.TestEventHandler;
+import fr.maif.eventsourcing.datastore.TestState;
+import fr.maif.eventsourcing.format.JacksonEventFormat;
+import fr.maif.eventsourcing.format.JacksonSimpleFormat;
+import fr.maif.json.EventEnvelopeJson;
+import fr.maif.kafka.JsonSerializer;
+import fr.maif.reactor.kafka.KafkaSettings;
+import io.vavr.Tuple0;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.postgresql.ds.PGSimpleDataSource;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
+import reactor.core.publisher.Flux;
+import reactor.kafka.sender.SenderOptions;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.sql.Connection;
@@ -15,49 +51,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import fr.maif.eventsourcing.EventStore;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.PartitionInfo;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.postgresql.ds.PGSimpleDataSource;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import akka.actor.ActorSystem;
-import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventProcessorImpl;
-import fr.maif.eventsourcing.PostgresKafkaEventProcessor;
-import fr.maif.eventsourcing.datastore.DataStoreVerification;
-import fr.maif.eventsourcing.datastore.TestCommand;
-import fr.maif.eventsourcing.datastore.TestCommandHandler;
-import fr.maif.eventsourcing.datastore.TestEvent;
-import fr.maif.eventsourcing.datastore.TestEventFormat;
-import fr.maif.eventsourcing.datastore.TestEventHandler;
-import fr.maif.eventsourcing.datastore.TestState;
-import fr.maif.eventsourcing.format.JacksonEventFormat;
-import fr.maif.eventsourcing.format.JacksonSimpleFormat;
-import fr.maif.json.EventEnvelopeJson;
-import fr.maif.kafka.JsonSerializer;
-import fr.maif.reactor.kafka.KafkaSettings;
-import io.vavr.Tuple0;
-import reactor.kafka.sender.SenderOptions;
-
 public class JooqKafkaTckImplementation extends DataStoreVerification<Connection> {
 
-    private ActorSystem actorSystem = ActorSystem.create();
     private PGSimpleDataSource dataSource;
     private TableNames tableNames;
     private TestEventFormat eventFormat;
@@ -284,10 +279,6 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
 
     @Override
     public List<EventEnvelope<TestEvent, Tuple0, Tuple0>> readFromDataStore(EventStore<Connection, TestEvent, Tuple0, Tuple0> eventStore) {
-        try {
-            return Source.fromPublisher(eventStore.loadAllEvents()).runWith(Sink.seq(), actorSystem).toCompletableFuture().get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
+        return Flux.from(eventStore.loadAllEvents()).collectList().block();
     }
 }

@@ -1,10 +1,5 @@
 package fr.maif.eventsourcing.impl;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.stream.Materializer;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zaxxer.hikari.HikariConfig;
@@ -21,10 +16,11 @@ import org.jooq.Record;
 import org.jooq.SQLDialect;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
-import org.junit.Ignore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.io.InputStream;
 import java.sql.Connection;
@@ -48,7 +44,6 @@ import static org.mockito.Mockito.mock;
 
 public class PostgresEventStoreTest {
 
-    private ActorSystem system;
     private PostgresEventStore<VikingEvent, Void, Void> postgresEventStore;
     private HikariDataSource dataSource;
     private DSLContext dslContext;
@@ -176,8 +171,8 @@ public class PostgresEventStoreTest {
         assertThat(events).containsExactlyInAnyOrder(event1Updated);
     }
 
-    private Source<Connection, NotUsed> transactionSource() {
-        return Source.completionStage(postgresEventStore.openTransaction().toCompletableFuture());
+    private Mono<Connection> transactionSource() {
+        return Mono.fromCompletionStage(postgresEventStore.openTransaction());
     }
 
 
@@ -185,11 +180,12 @@ public class PostgresEventStoreTest {
     public void loadEventsUnpublished() {
         initDatas();
         List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(transactionSource()
-                .flatMapConcat(t -> Source.fromPublisher(postgresEventStore
+                .flatMapMany(t -> Flux.from(postgresEventStore
                         .loadEventsUnpublished(t, NO_STRATEGY))
-                        .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
+                        .doOnError(e -> postgresEventStore.commitOrRollback(Option.of(e), t))
+                        .doOnComplete(() -> postgresEventStore.commitOrRollback(Option.none(), t))
                 )
-                .runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join()
+                .collectList().block()
         );
 
         assertThat(events).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
@@ -200,18 +196,20 @@ public class PostgresEventStoreTest {
         initDatas();
         Duration initialDelay = Duration.ofMillis(100);
         System.out.println("Running first query");
-        CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> first = transactionSource().flatMapConcat(t ->
-                Source.fromPublisher(postgresEventStore.loadEventsUnpublished(t, SKIP))
-                        .flatMapConcat(elt -> Source.tick(initialDelay, initialDelay, elt).take(1))
-
-                        .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
-        ).runWith(Sink.seq(), Materializer.createMaterializer(system));
+        CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> first = transactionSource().flatMapMany(t ->
+                Flux.from(postgresEventStore.loadEventsUnpublished(t, SKIP))
+                        .concatMap(elt -> Flux.interval(initialDelay, initialDelay).take(1).map(__ -> elt))
+                        .doOnError(e -> postgresEventStore.commitOrRollback(Option.of(e), t))
+                        .doOnComplete(() -> postgresEventStore.commitOrRollback(Option.none(), t))
+        ).collectList().toFuture();
         Thread.sleep(50);
         long start = System.currentTimeMillis();
         System.out.println("Running second query");
-        CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapConcat(t ->
-                Source.fromPublisher(postgresEventStore.loadEventsUnpublished(t, SKIP)).watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
-        ).runWith(Sink.seq(), Materializer.createMaterializer(system));
+        CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapMany(t ->
+                Flux.from(postgresEventStore.loadEventsUnpublished(t, SKIP))
+                        .doOnError(e -> postgresEventStore.commitOrRollback(Option.of(e), t))
+                        .doOnComplete(() -> postgresEventStore.commitOrRollback(Option.none(), t))
+        ).collectList().toFuture();
 
         List<EventEnvelope<VikingEvent, Void, Void>> events2 = List.ofAll(second.toCompletableFuture().join());
         long took = System.currentTimeMillis() - start;
@@ -226,17 +224,20 @@ public class PostgresEventStoreTest {
     @Test
     public void loadEventsUnpublishedWait() throws InterruptedException {
         initDatas();
-        CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> first = transactionSource().flatMapConcat(t ->
-                Source.fromPublisher(postgresEventStore.loadEventsUnpublished(t, WAIT))
-                        .flatMapConcat(elt -> Source.tick(Duration.ofMillis(100), Duration.ofMillis(100), elt).take(1))
-                        .flatMapConcat(e -> Source.completionStage(postgresEventStore.markAsPublished(t, e).toCompletableFuture()).map(__ -> e))
-                        .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
-        ).runWith(Sink.seq(), Materializer.createMaterializer(system));
+        CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> first = transactionSource().flatMapMany(t ->
+                Flux.from(postgresEventStore.loadEventsUnpublished(t, WAIT))
+                        .concatMap(elt -> Flux.interval(Duration.ofMillis(100)).take(1).map(__ -> elt))
+                        .concatMap(e -> Mono.fromCompletionStage(postgresEventStore.markAsPublished(t, e).toCompletableFuture()).map(__ -> e))
+                        .doOnError(e -> postgresEventStore.commitOrRollback(Option.of(e), t))
+                        .doOnComplete(() -> postgresEventStore.commitOrRollback(Option.none(), t))
+        ).collectList().toFuture();
         Thread.sleep(50);
         long start = System.currentTimeMillis();
-        CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapConcat(t ->
-                Source.fromPublisher(postgresEventStore.loadEventsUnpublished(t, WAIT)).watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
-        ).runWith(Sink.seq(), Materializer.createMaterializer(system));
+        CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> second = transactionSource().flatMapMany(t ->
+                Flux.from(postgresEventStore.loadEventsUnpublished(t, WAIT))
+                        .doOnError(e -> postgresEventStore.commitOrRollback(Option.of(e), t))
+                        .doOnComplete(() -> postgresEventStore.commitOrRollback(Option.none(), t))
+        ).collectList().toFuture();
 
         List<EventEnvelope<VikingEvent, Void, Void>> events2 = List.ofAll(second.toCompletableFuture().join());
         long took = System.currentTimeMillis() - start;
@@ -252,20 +253,23 @@ public class PostgresEventStoreTest {
         initDatas();
         List<EventEnvelope<VikingEvent, Void, Void>> events;
         try (Connection connection = dataSource.getConnection()) {
-            events = List.ofAll(Source.fromPublisher(postgresEventStore.loadEventsUnpublished(connection, EventStore.ConcurrentReplayStrategy.SKIP)).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
+            events = List.ofAll(Flux.from(postgresEventStore.loadEventsUnpublished(connection, EventStore.ConcurrentReplayStrategy.SKIP))
+                    .collectList().block()
+            );
         }
         assertThat(events).containsExactlyInAnyOrder(event1, event2, event3, event4, event5, event6);
         postgresEventStore.markAsPublished(events).toCompletableFuture().join();
 
         List<EventEnvelope<VikingEvent, Void, Void>> published;
         try (Connection connection = dataSource.getConnection()) {
-            published = List.ofAll(Source.fromPublisher(postgresEventStore.loadEventsUnpublished(connection, EventStore.ConcurrentReplayStrategy.SKIP)).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
+            published = List.ofAll(Flux.from(postgresEventStore.loadEventsUnpublished(connection, EventStore.ConcurrentReplayStrategy.SKIP))
+                    .collectList().block());
         }
         assertThat(published).isEmpty();
     }
 
     private List<EventEnvelope<VikingEvent, Void, Void>> getFromQuery(EventStore.Query query) {
-        return List.ofAll(Source.fromPublisher(postgresEventStore.loadEventsByQuery(query)).runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join());
+        return List.ofAll(Flux.from(postgresEventStore.loadEventsByQuery(query)).collectList().block());
     }
 
     private void initDatas() {
@@ -284,7 +288,6 @@ public class PostgresEventStoreTest {
         ExecutorService executorService = Executors.newFixedThreadPool(20);
         EventPublisher<VikingEvent, Void, Void> eventPublisher = mock(EventPublisher.class);
 
-        this.system = ActorSystem.create();
         Properties props = new Properties();
         props.setProperty("dataSourceClassName", "org.postgresql.ds.PGSimpleDataSource");
         props.setProperty("dataSource.serverName", "localhost");
