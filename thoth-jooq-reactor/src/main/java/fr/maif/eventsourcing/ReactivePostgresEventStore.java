@@ -30,6 +30,7 @@ import org.reactivestreams.Publisher;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -160,12 +161,9 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
                 EMISSION_DATE
         );
 
-        return transactionContext.executeBatch(dslContext ->
-                        dslContext.insertInto(table(this.tableNames.tableName)).columns(fields.toJavaList())
-                                .values(
-                                        fields.map(f -> null).toJavaList()
-                                ),
-                events.map(event -> {
+        return Flux
+                .fromIterable(events)
+                .concatMap(event -> Mono.fromCallable(() -> {
                     JSONB eventString = Try.of(() -> JSONB.valueOf(objectMapper.writeValueAsString(eventFormat.write(event.event))))
                             .get();
                     JSONB contextString = contextFormat.write(Option.of(event.context))
@@ -175,7 +173,7 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
                             .flatMap(m -> Try.of(() -> JSONB.valueOf(objectMapper.writeValueAsString(m))).toOption())
                             .getOrNull();
                     LocalDateTime emissionDate = Option.of(event.emissionDate).getOrElse(LocalDateTime.now());
-                    return List.of(
+                    return List.<Object>of(
                             event.id,
                             event.entityId,
                             event.sequenceNum,
@@ -191,43 +189,53 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
                             event.systemId,
                             emissionDate
                     );
-                })
-        ).thenApply(__ -> Tuple.empty());
+                }).publishOn(Schedulers.boundedElastic()))
+                .collectList()
+                .flatMap(args -> Mono.fromCompletionStage(
+                        transactionContext.executeBatch(
+                                dslContext -> dslContext
+                                        .insertInto(table(this.tableNames.tableName))
+                                        .columns(fields.toJavaList())
+                                        .values(fields.map(f -> null).toJavaList()),
+                                List.ofAll(args)
+                        )))
+                .map(__ -> Tuple.empty())
+                .toFuture();
     }
 
     @Override
     public Publisher<EventEnvelope<E, Meta, Context>> loadEventsUnpublished(Tx transaction, ConcurrentReplayStrategy concurrentReplayStrategy) {
         return Flux.from(transaction.stream(500, dsl -> {
-                    SelectSeekStep1<Record15<UUID, String, Long, String, Long, String, JsonNode, JsonNode, LocalDateTime, String, String, Integer, Integer, JsonNode, Boolean>, Long> tmpQuery = dsl
-                            .select(
-                                    ID,
-                                    ENTITY_ID,
-                                    SEQUENCE_NUM,
-                                    EVENT_TYPE,
-                                    VERSION,
-                                    TRANSACTION_ID,
-                                    EVENT,
-                                    METADATA,
-                                    EMISSION_DATE,
-                                    USER_ID,
-                                    SYSTEM_ID,
-                                    TOTAL_MESSAGE_IN_TRANSACTION,
-                                    NUM_MESSAGE_IN_TRANSACTION,
-                                    CONTEXT,
-                                    PUBLISHED
-                            )
-                            .from(table(this.tableNames.tableName))
-                            .where(PUBLISHED.isFalse())
-                            .orderBy(SEQUENCE_NUM.asc());
-                    switch (concurrentReplayStrategy) {
-                        case WAIT:
-                            return tmpQuery.forUpdate().of(table(this.tableNames.tableName));
-                        case SKIP:
-                            return tmpQuery.forUpdate().of(table(this.tableNames.tableName)).skipLocked();
-                        default:
-                            return tmpQuery;
-                    }
-            })).map(this::rsToEnvelope);
+            SelectSeekStep1<Record15<UUID, String, Long, String, Long, String, JsonNode, JsonNode, LocalDateTime, String, String, Integer, Integer, JsonNode, Boolean>, Long> tmpQuery = dsl
+                    .select(
+                            ID,
+                            ENTITY_ID,
+                            SEQUENCE_NUM,
+                            EVENT_TYPE,
+                            VERSION,
+                            TRANSACTION_ID,
+                            EVENT,
+                            METADATA,
+                            EMISSION_DATE,
+                            USER_ID,
+                            SYSTEM_ID,
+                            TOTAL_MESSAGE_IN_TRANSACTION,
+                            NUM_MESSAGE_IN_TRANSACTION,
+                            CONTEXT,
+                            PUBLISHED
+                    )
+                    .from(table(this.tableNames.tableName))
+                    .where(PUBLISHED.isFalse())
+                    .orderBy(SEQUENCE_NUM.asc());
+            switch (concurrentReplayStrategy) {
+                case WAIT:
+                    return tmpQuery.forUpdate().of(table(this.tableNames.tableName));
+                case SKIP:
+                    return tmpQuery.forUpdate().of(table(this.tableNames.tableName)).skipLocked();
+                default:
+                    return tmpQuery;
+            }
+        })).concatMap(this::rsToEnvelope);
     }
 
     @Override
@@ -269,7 +277,7 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
                 return queryBuilder.limit(query.size);
             }
             return queryBuilder;
-        })).map(this::rsToEnvelope);
+        })).concatMap(this::rsToEnvelope);
     }
 
     @Override
@@ -333,39 +341,35 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
 
     }
 
-    private EventEnvelope<E, Meta, Context> rsToEnvelope(QueryResult rs) {
-        return Try
-                .of(() -> {
-                    String event_type = rs.get(EVENT_TYPE);
-                    long version = rs.get(VERSION);
-                    JsonNode event = readValue(rs.get(EVENT)).getOrElse(NullNode.getInstance());
-                    Either<?, E> eventRead = eventFormat.read(event_type, version, event);
-                    eventRead.left().forEach(err -> {
-                        LOGGER.error("Error reading event {} : {}", event, err);
-                    });
-                    EventEnvelope.Builder<E, Meta, Context> builder = EventEnvelope.<E, Meta, Context>builder()
-                            .withId(rs.get(ID))
-                            .withEntityId(rs.get(ENTITY_ID))
-                            .withSequenceNum(rs.get(SEQUENCE_NUM))
-                            .withEventType(event_type)
-                            .withVersion(version)
-                            .withTransactionId(rs.get(TRANSACTION_ID))
-                            .withEvent(eventRead.get())
-                            .withEmissionDate(rs.get(EMISSION_DATE))
-                            .withPublished(rs.get(PUBLISHED))
-                            .withSystemId(rs.get(SYSTEM_ID))
-                            .withUserId(rs.get(USER_ID))
-                            .withPublished(rs.get(PUBLISHED))
-                            .withNumMessageInTransaction(rs.get(NUM_MESSAGE_IN_TRANSACTION))
-                            .withTotalMessageInTransaction(rs.get(TOTAL_MESSAGE_IN_TRANSACTION));
+    private Mono<EventEnvelope<E, Meta, Context>> rsToEnvelope(QueryResult rs) {
+        return Mono.fromCallable(() -> {
+            String event_type = rs.get(EVENT_TYPE);
+            long version = rs.get(VERSION);
+            JsonNode event = readValue(rs.get(EVENT)).getOrElse(NullNode.getInstance());
+            Either<?, E> eventRead = eventFormat.read(event_type, version, event);
+            eventRead.left().forEach(err -> {
+                LOGGER.error("Error reading event {} : {}", event, err);
+            });
+            EventEnvelope.Builder<E, Meta, Context> builder = EventEnvelope.<E, Meta, Context>builder()
+                    .withId(rs.get(ID))
+                    .withEntityId(rs.get(ENTITY_ID))
+                    .withSequenceNum(rs.get(SEQUENCE_NUM))
+                    .withEventType(event_type)
+                    .withVersion(version)
+                    .withTransactionId(rs.get(TRANSACTION_ID))
+                    .withEvent(eventRead.get())
+                    .withEmissionDate(rs.get(EMISSION_DATE))
+                    .withPublished(rs.get(PUBLISHED))
+                    .withSystemId(rs.get(SYSTEM_ID))
+                    .withUserId(rs.get(USER_ID))
+                    .withPublished(rs.get(PUBLISHED))
+                    .withNumMessageInTransaction(rs.get(NUM_MESSAGE_IN_TRANSACTION))
+                    .withTotalMessageInTransaction(rs.get(TOTAL_MESSAGE_IN_TRANSACTION));
 
-                    metaFormat.read(readValue(rs.get(METADATA))).forEach(builder::withMetadata);
-                    contextFormat.read(readValue(rs.get(CONTEXT))).forEach(builder::withContext);
-                    return builder.build();
-                })
-                .getOrElseThrow(e ->
-                        new RuntimeException("Error reading event", e)
-                );
+            metaFormat.read(readValue(rs.get(METADATA))).forEach(builder::withMetadata);
+            contextFormat.read(readValue(rs.get(CONTEXT))).forEach(builder::withContext);
+            return builder.build();
+        }).publishOn(Schedulers.boundedElastic());
     }
 
     private Option<JsonNode> readValue(JsonNode value) {
