@@ -348,6 +348,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
                 )
                 .retryWhen(Retry.backoff(maxRestarts, minBackoff)
                         .maxBackoff(maxBackoff)
+                        .transientErrors(true)
                         .onRetryExhaustedThrow((spec, rs) -> rs.failure())
                         .doBeforeRetry(s -> {
                             int count = restartCount.incrementAndGet();

@@ -103,7 +103,9 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
                 )
                 .doOnError(e -> LOGGER.error("Error publishing events to kafka", e))
                 .doOnComplete(() -> LOGGER.info("Closing publishing to {}", topic))
-                .retryWhen(Retry.backoff(Long.MAX_VALUE, restartInterval).maxBackoff(maxRestartInterval))
+                .retryWhen(Retry.backoff(Long.MAX_VALUE, restartInterval)
+                        .transientErrors(true)
+                        .maxBackoff(maxRestartInterval))
                 .subscribe();
     }
 
