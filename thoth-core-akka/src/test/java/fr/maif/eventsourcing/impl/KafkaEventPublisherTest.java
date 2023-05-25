@@ -91,10 +91,13 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
     }
 
     @AfterEach
-    void cleanUpAfter() throws ExecutionException, InterruptedException {
-        Set<String> topics = adminClient().listTopics().names().get();
-        println("Deleting "+ String.join(",", topics));
-        adminClient().deleteTopics(topics).all().get();
+    void cleanUpAfter() {
+        try {
+
+            Set<String> topics = adminClient().listTopics().names().get();
+            println("Deleting "+ String.join(",", topics));
+            adminClient().deleteTopics(topics).all().get();
+        } catch (Exception e) {}
         cleanUpAdminClient();
     }
 

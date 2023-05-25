@@ -18,7 +18,7 @@ jobs:
       - name: Publish
         run: |
           JAVA_OPTS="--enable-preview" ./gradlew build -x test
-          JAVA_OPTS="--enable-preview" ./gradlew publishToSonatype -Psigning.keyId=1462DEA9 -Psigning.password=${{secrets.PGP_PASSPHRASE}} -Psigning.secretKeyRingFile=$(echo ~/.gradle/secring.gpg) closeAndReleaseSonatypeStagingRepository --warn --stacktrace
+          JAVA_OPTS="--enable-preview" ./gradlew publishToSonatype -x test -Psigning.keyId=1462DEA9 -Psigning.password=${{secrets.PGP_PASSPHRASE}} -Psigning.secretKeyRingFile=$(echo ~/.gradle/secring.gpg) closeAndReleaseSonatypeStagingRepository --warn --stacktrace
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
