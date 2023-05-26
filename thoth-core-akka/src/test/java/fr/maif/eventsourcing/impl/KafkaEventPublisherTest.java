@@ -110,7 +110,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
     @SuppressWarnings("unchecked")
     public void eventConsumption() throws IOException, InterruptedException {
 
-        String topic = createTopic(1, 5, 1);
+        String topic = createTopic(11, 5, 1);
 
         KafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
@@ -168,7 +168,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
     @Test
     @SuppressWarnings("unchecked")
     public void eventConsumptionWithEventFromDb() throws IOException {
-        String topic = createTopic(2, 5, 1);
+        String topic = createTopic(12, 5, 1);
         KafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
         when(eventStore.openTransaction()).thenReturn(CompletionStages.successful(Tuple.empty()));
@@ -215,7 +215,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
     @SuppressWarnings("unchecked")
     public void testRestart() throws IOException {
         AtomicBoolean failed = new AtomicBoolean(false);
-        String topic = createTopic(3, 5, 1);
+        String topic = createTopic(13, 5, 1);
         KafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
         when(eventStore.openTransaction()).thenReturn(CompletionStages.successful(Tuple.empty()));
