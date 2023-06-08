@@ -16,8 +16,8 @@ import java.util.function.BiFunction;
 public class DefaultAggregateStore<S extends State<S>, E extends Event, Meta, Context, TxCtx> extends AbstractDefaultAggregateStore<S, E, Meta, Context, TxCtx> implements AggregateStore<S, String, TxCtx> {
 
 
-    public DefaultAggregateStore(EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, TransactionManager<TxCtx> transactionManager) {
-        super(eventStore, eventEventHandler, transactionManager);
+    public DefaultAggregateStore(EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, TransactionManager<TxCtx> transactionManager, Boolean shouldLockEntityForUpdate) {
+        super(eventStore, eventEventHandler, transactionManager, shouldLockEntityForUpdate);
     }
 
     @Override

@@ -19,7 +19,7 @@ public class DefaultAggregateStore<S extends State<S>, E extends Event, Meta, Co
     }
 
     public DefaultAggregateStore(EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, Materializer materializer, TransactionManager<TxCtx> transactionManager) {
-        super(eventStore, eventEventHandler, transactionManager);
+        super(eventStore, eventEventHandler, transactionManager, shouldLockEntityForUpdate);
         this.materializer = materializer;
     }
 

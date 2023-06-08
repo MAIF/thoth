@@ -338,6 +338,10 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
         }
 
         public BuilderWithAggregateStore<S, E, Meta, Context> withDefaultAggregateStore() {
+            return this.withDefaultAggregateStore(false);
+        }
+
+        public BuilderWithAggregateStore<S, E, Meta, Context> withDefaultAggregateStore(boolean shouldLockEntityForUpdate) {
             return new BuilderWithAggregateStore<>(
                     pgAsyncPool,
                     tableNames,
@@ -349,7 +353,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
                     concurrentReplayStrategy,
                     eventStore,
                     eventHandler,
-                    new DefaultAggregateStore<>(eventStore, eventHandler, transactionManager));
+                    new DefaultAggregateStore<>(eventStore, eventHandler, transactionManager, shouldLockEntityForUpdate));
         }
     }
 
