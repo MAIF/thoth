@@ -249,7 +249,7 @@ public class EventProcessorTest {
         return new EventProcessorImpl<>(
                 inMemoryEventStore,
                 fakeTransactionManager,
-                new DefaultAggregateStore<>(inMemoryEventStore, vikingEventHandler, actorSystem, fakeTransactionManager),
+                new DefaultAggregateStore<>(new AutoSnapshotingStrategy.NoOpSnapshotingStrategy(), inMemoryEventStore, vikingEventHandler, actorSystem, fakeTransactionManager),
                 new VikingCommandHandler(),
                 vikingEventHandler,
                 projections

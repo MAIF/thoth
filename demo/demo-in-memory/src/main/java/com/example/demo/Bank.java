@@ -3,6 +3,7 @@ package com.example.demo;
 import akka.actor.ActorSystem;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
+import fr.maif.eventsourcing.AutoSnapshotingStrategy;
 import fr.maif.eventsourcing.EventProcessorImpl;
 import fr.maif.eventsourcing.ProcessingSuccess;
 import fr.maif.eventsourcing.TransactionManager;
@@ -33,7 +34,7 @@ public class Bank {
         this.eventProcessor = new EventProcessorImpl<>(
                 eventStore,
                 transactionManager,
-                new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager),
+                new DefaultAggregateStore<>(new AutoSnapshotingStrategy.NoOpSnapshotingStrategy(), eventStore, eventHandler, actorSystem, transactionManager),
                 commandHandler,
                 eventHandler,
                 List.empty()

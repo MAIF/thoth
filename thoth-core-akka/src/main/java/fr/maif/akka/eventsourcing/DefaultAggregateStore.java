@@ -14,12 +14,12 @@ public class DefaultAggregateStore<S extends State<S>, E extends Event, Meta, Co
 
     private final Materializer materializer;
 
-    public DefaultAggregateStore(EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, ActorSystem system, TransactionManager<TxCtx> transactionManager) {
-        this(eventStore, eventEventHandler, Materializer.createMaterializer(system), transactionManager);
+    public DefaultAggregateStore(AutoSnapshotingStrategy autoSnapshotingStrategy, EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, ActorSystem system, TransactionManager<TxCtx> transactionManager) {
+        this(autoSnapshotingStrategy, eventStore, eventEventHandler, Materializer.createMaterializer(system), transactionManager);
     }
 
-    public DefaultAggregateStore(EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, Materializer materializer, TransactionManager<TxCtx> transactionManager) {
-        super(eventStore, eventEventHandler, transactionManager);
+    public DefaultAggregateStore(AutoSnapshotingStrategy autoSnapshotingStrategy, EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, Materializer materializer, TransactionManager<TxCtx> transactionManager) {
+        super(autoSnapshotingStrategy, eventStore, eventEventHandler, transactionManager);
         this.materializer = materializer;
     }
 

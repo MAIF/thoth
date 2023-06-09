@@ -1,25 +1,23 @@
 package fr.maif.eventsourcing.impl;
 
-import fr.maif.eventsourcing.AggregateStore;
-import fr.maif.eventsourcing.Event;
-import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventHandler;
-import fr.maif.eventsourcing.EventStore;
-import fr.maif.eventsourcing.State;
-import fr.maif.eventsourcing.TransactionManager;
+import fr.maif.eventsourcing.*;
 import io.vavr.control.Option;
 import org.reactivestreams.Publisher;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 
 public abstract class AbstractDefaultAggregateStore<S extends State<S>, E extends Event, Meta, Context, TxCtx> implements AggregateStore<S, String, TxCtx> {
 
+    private final AutoSnapshotingStrategy autoSnapshotingStrategy;
     private final EventStore<TxCtx, E, Meta, Context> eventStore;
     private final EventHandler<S, E> eventEventHandler;
     private final TransactionManager<TxCtx> transactionManager;
 
-    public AbstractDefaultAggregateStore(EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, TransactionManager<TxCtx> transactionManager) {
+    public AbstractDefaultAggregateStore(AutoSnapshotingStrategy autoSnapshotingStrategy, EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, TransactionManager<TxCtx> transactionManager) {
+        this.autoSnapshotingStrategy = autoSnapshotingStrategy;
         this.eventStore = eventStore;
         this.eventEventHandler = eventEventHandler;
         this.transactionManager = transactionManager;
@@ -42,13 +40,22 @@ public abstract class AbstractDefaultAggregateStore<S extends State<S>, E extend
                             // If a snapshot is defined, we read events from seq num of the snapshot :
                             s -> EventStore.Query.builder().withSequenceFrom(s.sequenceNum()).withEntityId(entityId).build()
                     );
-
+                    AtomicInteger eventCount = new AtomicInteger(0);
                     return fold(this.eventStore.loadEventsByQuery(ctx, query),
                             mayBeSnapshot,
-                            (Option<S> mayBeState, EventEnvelope<E, Meta, Context> event) ->
-                                            this.eventEventHandler.applyEvent(mayBeState, event.event)
-                                                    .map((S state) -> (S) state.withSequenceNum(event.sequenceNum))
-                    );
+                            (Option<S> mayBeState, EventEnvelope<E, Meta, Context> event) -> {
+                                eventCount.incrementAndGet();
+                                return this.eventEventHandler.applyEvent(mayBeState, event.event)
+                                        .map((S state) -> (S) state.withSequenceNum(event.sequenceNum));
+                            }
+                    ).thenCompose(mayBeAggregate -> {
+                        if (autoSnapshotingStrategy.shouldSnapshot(eventCount.get())) {
+                            return this.storeSnapshot(ctx, entityId, mayBeAggregate)
+                                    .thenApply(__ -> mayBeAggregate)
+                                    .exceptionally(e -> mayBeAggregate);
+                        }
+                        return CompletableFuture.completedStage(mayBeAggregate);
+                    });
                 });
     }
 

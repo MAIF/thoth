@@ -1,11 +1,6 @@
 package fr.maif.reactor.eventsourcing;
 
-import fr.maif.eventsourcing.AggregateStore;
-import fr.maif.eventsourcing.Event;
-import fr.maif.eventsourcing.EventHandler;
-import fr.maif.eventsourcing.EventStore;
-import fr.maif.eventsourcing.State;
-import fr.maif.eventsourcing.TransactionManager;
+import fr.maif.eventsourcing.*;
 import fr.maif.eventsourcing.impl.AbstractDefaultAggregateStore;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -16,8 +11,8 @@ import java.util.function.BiFunction;
 public class DefaultAggregateStore<S extends State<S>, E extends Event, Meta, Context, TxCtx> extends AbstractDefaultAggregateStore<S, E, Meta, Context, TxCtx> implements AggregateStore<S, String, TxCtx> {
 
 
-    public DefaultAggregateStore(EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, TransactionManager<TxCtx> transactionManager) {
-        super(eventStore, eventEventHandler, transactionManager);
+    public DefaultAggregateStore(AutoSnapshotingStrategy autoSnapshotingStrategy, EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, TransactionManager<TxCtx> transactionManager) {
+        super(autoSnapshotingStrategy, eventStore, eventEventHandler, transactionManager);
     }
 
     @Override
