@@ -81,7 +81,7 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
                     metaFormat,
                     contextFormat
             );
-            this.aggregateStore = aggregateStore == null ? new DefaultAggregateStore<>(this.eventStore, eventHandler, transactionManager) : aggregateStore;
+            this.aggregateStore = aggregateStore == null ? new DefaultAggregateStore<>(this.eventStore, eventHandler, transactionManager, false) : aggregateStore;
             this.commandHandler = commandHandler;
             this.eventHandler = eventHandler;
             this.projections = projections;
@@ -154,7 +154,7 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
             this.eventHandler = eventHandler;
             this.projections = projections;
             this.eventPublisher = eventPublisher;
-            this.aggregateStore = new DefaultAggregateStore<>(this.eventStore, eventHandler, transactionManager);
+            this.aggregateStore = new DefaultAggregateStore<>(this.eventStore, eventHandler, transactionManager, false);
         }
     }
 }

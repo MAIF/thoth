@@ -307,9 +307,9 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
         var tmpJooqQuery = DSL.using(tx)
                 .selectFrom(SELECT_CLAUSE + " FROM " + this.tableNames.tableName)
                 .where(clauses.toJavaList())
-                .orderBy(field("sequence_num").asc())
-                ;
-        var jooqQuery = Objects.nonNull(query.size) ? tmpJooqQuery.limit(query.size) : tmpJooqQuery;
+                .orderBy(field("sequence_num").asc());
+        var jooqQueryWithSize = Objects.nonNull(query.size) ? tmpJooqQuery.limit(query.size) : tmpJooqQuery;
+        var jooqQuery = Boolean.TRUE.equals(query.shouldLockEntity) ? jooqQueryWithSize.forUpdate().wait(120) : jooqQueryWithSize;
 
         LOGGER.debug("{}", jooqQuery);
         return Flux.fromStream(() -> jooqQuery.stream().map(r -> rsToEnvelope(r.intoResultSet())))
