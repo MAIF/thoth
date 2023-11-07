@@ -39,6 +39,7 @@ subprojects {
         reactorKafkaVersion   = "1.3.12"
         reactorVersion        = "3.4.23"
         vertxSqlVersion       = "4.3.3"
+        testContainerVersion  = "1.17.6"
     }
 
     test {
