@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import fr.maif.concurrent.CompletionStages;
+import fr.maif.eventsourcing.AutoSnapshotingStrategy;
 import fr.maif.eventsourcing.EventHandler;
 import fr.maif.eventsourcing.EventStore;
 import fr.maif.eventsourcing.TransactionManager;
@@ -20,7 +21,7 @@ import java.util.concurrent.CompletionStage;
 public class BankAggregateStore extends DefaultAggregateStore<Account, BankEvent, Tuple0, Tuple0, Connection> {
 
     public BankAggregateStore(EventStore<Connection, BankEvent, Tuple0, Tuple0> eventStore, EventHandler<Account, BankEvent> eventEventHandler, TransactionManager<Connection> transactionManager) {
-        super(eventStore, eventEventHandler, transactionManager);
+        super(new AutoSnapshotingStrategy.NoOpSnapshotingStrategy(), eventStore, eventEventHandler, transactionManager);
     }
 
     @Override

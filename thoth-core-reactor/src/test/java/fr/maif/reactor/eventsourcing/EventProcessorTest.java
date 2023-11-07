@@ -1,13 +1,6 @@
 package fr.maif.reactor.eventsourcing;
 
-import fr.maif.eventsourcing.AggregateStore;
-import fr.maif.eventsourcing.CommandHandler;
-import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventProcessorImpl;
-import fr.maif.eventsourcing.Events;
-import fr.maif.eventsourcing.ProcessingSuccess;
-import fr.maif.eventsourcing.Projection;
-import fr.maif.eventsourcing.TransactionManager;
+import fr.maif.eventsourcing.*;
 import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
 import fr.maif.reactor.eventsourcing.InMemoryEventStore;
 import io.vavr.API;
@@ -283,7 +276,7 @@ public class EventProcessorTest {
         return new EventProcessorImpl<>(
                 inMemoryEventStore,
                 fakeTransactionManager,
-                new DefaultAggregateStore<>(inMemoryEventStore, vikingEventHandler, fakeTransactionManager),
+                new DefaultAggregateStore<>(new AutoSnapshotingStrategy.NoOpSnapshotingStrategy(), inMemoryEventStore, vikingEventHandler, fakeTransactionManager),
                 new VikingCommandHandler(),
                 vikingEventHandler,
                 projections

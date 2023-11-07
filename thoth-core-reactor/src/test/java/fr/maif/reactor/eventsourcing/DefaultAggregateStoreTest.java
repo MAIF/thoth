@@ -4,6 +4,7 @@ import fr.maif.Helpers;
 import fr.maif.Helpers.Viking;
 import fr.maif.Helpers.VikingEvent;
 import fr.maif.concurrent.CompletionStages;
+import fr.maif.eventsourcing.AutoSnapshotingStrategy;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventStore;
 import fr.maif.eventsourcing.EventStore.Query;
@@ -64,7 +65,7 @@ class DefaultAggregateStoreTest {
     void testReloadEventAndBuildAggregateWithoutSnapshots() {
 
         EventStore<Tuple0, VikingEvent, Tuple0, Tuple0> eventStore = mock(EventStore.class);
-        DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0> aggregateStore = new DefaultAggregateStore<>(eventStore, new Helpers.VikingEventHandler(), new EventProcessorTest.FakeTransactionManager());
+        DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0> aggregateStore = new DefaultAggregateStore<>(new AutoSnapshotingStrategy.NoOpSnapshotingStrategy(), eventStore, new Helpers.VikingEventHandler(), new EventProcessorTest.FakeTransactionManager());
 
         Query query = Query.builder().withEntityId(entityId).build();
         when(eventStore.loadEventsByQuery(Tuple(), query)).thenReturn(Flux.fromIterable(List.of(eventEnvelope1, eventEnvelope2)));
@@ -79,7 +80,7 @@ class DefaultAggregateStoreTest {
     void testReloadEventAndBuildAggregateWithSnapshots() {
 
         EventStore<Tuple0, VikingEvent, Tuple0, Tuple0> eventStore = mock(EventStore.class);
-        DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0> aggregateStore = spy(new DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0>(eventStore, new Helpers.VikingEventHandler(), new EventProcessorTest.FakeTransactionManager()) {
+        DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0> aggregateStore = spy(new DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0>(new AutoSnapshotingStrategy.NoOpSnapshotingStrategy(), eventStore, new Helpers.VikingEventHandler(), new EventProcessorTest.FakeTransactionManager()) {
             @Override
             public CompletionStage<Option<Viking>> getSnapshot(Tuple0 transactionContext, String id) {
                 return CompletionStages.successful(Option.some(new Viking(id, "Rollo", 30, 1L)));

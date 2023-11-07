@@ -366,6 +366,14 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
         }
 
         public BuilderWithAggregateStore<S, E, Meta, Context> withDefaultAggregateStore() {
+                return withDefaultAggregateStore(new AutoSnapshotingStrategy.NoOpSnapshotingStrategy());
+        }
+
+        public BuilderWithAggregateStore<S, E, Meta, Context> withDefaultAggregateStore(int snapshotEveryEventCount) {
+                return withDefaultAggregateStore(new AutoSnapshotingStrategy.CountSnapshotingStrategy(snapshotEveryEventCount));
+        }
+
+        public BuilderWithAggregateStore<S, E, Meta, Context> withDefaultAggregateStore(AutoSnapshotingStrategy autoSnapshotingStrategy) {
             return new BuilderWithAggregateStore<>(
                     system,
                     pgAsyncPool,
@@ -378,7 +386,7 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
                     concurrentReplayStrategy,
                     eventStore,
                     eventHandler,
-                    new DefaultAggregateStore<>(eventStore, eventHandler, system, transactionManager));
+                    new DefaultAggregateStore<>(autoSnapshotingStrategy, eventStore, eventHandler, system, transactionManager));
         }
     }
 

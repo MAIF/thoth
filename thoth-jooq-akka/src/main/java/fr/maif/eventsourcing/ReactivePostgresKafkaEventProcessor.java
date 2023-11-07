@@ -80,7 +80,7 @@ public class ReactivePostgresKafkaEventProcessor<Error, S extends State<S>, C ex
                     metaFormat,
                     contextFormat
             );
-            this.aggregateStore = aggregateStore == null ? new DefaultAggregateStore<>(this.eventStore, eventHandler, system, transactionManager) : aggregateStore;
+            this.aggregateStore = aggregateStore == null ? new DefaultAggregateStore<>(new AutoSnapshotingStrategy.NoOpSnapshotingStrategy(), this.eventStore, eventHandler, system, transactionManager) : aggregateStore;
             this.commandHandler = commandHandler;
             this.eventHandler = eventHandler;
             this.projections = projections;
