@@ -58,8 +58,8 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
     public ReactorKafkaEventPublisher(SenderOptions<String, EventEnvelope<E, Meta, Context>> senderOptions, String topic, Integer queueBufferSize, Duration restartInterval, Duration maxRestartInterval) {
         this.topic = topic;
         int queueBufferSize1 = queueBufferSize == null ? 10000 : queueBufferSize;
-        this.restartInterval = restartInterval == null ? Duration.of(10, ChronoUnit.SECONDS) : restartInterval;
-        this.maxRestartInterval = maxRestartInterval == null ? Duration.of(30, ChronoUnit.MINUTES) : maxRestartInterval;
+        this.restartInterval = restartInterval == null ? Duration.of(1, ChronoUnit.SECONDS) : restartInterval;
+        this.maxRestartInterval = maxRestartInterval == null ? Duration.of(1, ChronoUnit.MINUTES) : maxRestartInterval;
 
         EventEnvelope<E, Meta, Context> e = EventEnvelope.<E, Meta, Context>builder().build();
 
@@ -164,7 +164,11 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
     @Override
     public void close() throws IOException {
         if (Objects.nonNull(killSwitch)) {
-            this.killSwitch.dispose();
+            try {
+                this.killSwitch.dispose();
+            } catch (UnsupportedOperationException e) {
+                LOGGER.error("Error closing Publisher", e);
+            }
         }
         this.kafkaSender.close();
     }
