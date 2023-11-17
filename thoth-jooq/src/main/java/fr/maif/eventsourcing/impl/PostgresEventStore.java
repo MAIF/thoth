@@ -372,4 +372,8 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                 .flatMap(str -> Try.of(() -> objectMapper.readTree(str)).toOption());
     }
 
+    @Override
+    public EventPublisher<E, Meta, Context> eventPublisher() {
+        return eventPublisher;
+    }
 }

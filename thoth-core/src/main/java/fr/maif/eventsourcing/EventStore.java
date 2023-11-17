@@ -49,6 +49,8 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
     CompletionStage<Tuple0> commitOrRollback(Option<Throwable> of, TxCtx tx);
 
+    EventPublisher<E, Meta, Context> eventPublisher();
+
     /**
      * Strategy to choose when replaying journal in case of crash when there is two or more nodes that want to replay concurrently.
      * <ul>

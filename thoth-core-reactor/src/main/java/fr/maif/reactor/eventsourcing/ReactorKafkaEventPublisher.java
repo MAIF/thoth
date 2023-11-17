@@ -13,6 +13,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
+import reactor.core.Scannable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -57,8 +58,8 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
     public ReactorKafkaEventPublisher(SenderOptions<String, EventEnvelope<E, Meta, Context>> senderOptions, String topic, Integer queueBufferSize, Duration restartInterval, Duration maxRestartInterval) {
         this.topic = topic;
         int queueBufferSize1 = queueBufferSize == null ? 10000 : queueBufferSize;
-        this.restartInterval = restartInterval == null ? Duration.of(10, ChronoUnit.SECONDS) : restartInterval;
-        this.maxRestartInterval = maxRestartInterval == null ? Duration.of(30, ChronoUnit.MINUTES) : maxRestartInterval;
+        this.restartInterval = restartInterval == null ? Duration.of(1, ChronoUnit.SECONDS) : restartInterval;
+        this.maxRestartInterval = maxRestartInterval == null ? Duration.of(1, ChronoUnit.MINUTES) : maxRestartInterval;
 
         EventEnvelope<E, Meta, Context> e = EventEnvelope.<E, Meta, Context>builder().build();
 
@@ -105,18 +106,26 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
                 .doOnComplete(() -> LOGGER.info("Closing publishing to {}", topic))
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, restartInterval)
                         .transientErrors(true)
-                        .maxBackoff(maxRestartInterval))
+                        .maxBackoff(maxRestartInterval)
+                        .doBeforeRetry(ctx -> {
+                            LOGGER.error("Error handling events for topic %s retrying for the %s time".formatted(topic, ctx.totalRetries()), ctx.failure());
+                        })
+                )
                 .subscribe();
     }
 
 
     private <TxCtx> Function<Flux<EventEnvelope<E, Meta, Context>>, Flux<EventEnvelope<E, Meta, Context>>> publishToKafka(EventStore<TxCtx, E, Meta, Context> eventStore, Option<TxCtx> tx, Function<Flux<SenderResult<EventEnvelope<E, Meta, Context>>>, Flux<List<SenderResult<EventEnvelope<E, Meta, Context>>>>> groupFlow) {
-        Function<Flux<SenderRecord<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>>, Flux<SenderResult<EventEnvelope<E, Meta, Context>>>> publishToKafkaFlow = it -> kafkaSender.send(it);
+        Function<Flux<SenderRecord<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>>, Flux<SenderResult<EventEnvelope<E, Meta, Context>>>> publishToKafkaFlow = it ->
+                kafkaSender.send(it)
+                        .doOnError(e -> {
+                            LOGGER.error("Error publishing to kafka ", e);
+                        });
         return it -> it
                 .map(this::toKafkaMessage)
                 .transform(publishToKafkaFlow)
                 .transform(groupFlow)
-                .flatMap(m ->
+                .concatMap(m ->
                         tx.fold(
                                 () -> Mono.fromCompletionStage(() -> eventStore.markAsPublished(m.map(SenderResult::correlationMetadata))),
                                 txCtx -> Mono.fromCompletionStage(() -> eventStore.markAsPublished(txCtx, m.map(SenderResult::correlationMetadata)))
@@ -130,7 +139,23 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
         LOGGER.debug("Publishing event in memory : \n{} ", events);
         return Flux
                 .fromIterable(events)
-                .map(queue::tryEmitNext)
+                .concatMap(t ->
+                    Mono.defer(() -> {
+                        Sinks.EmitResult emitResult = queue.tryEmitNext(t);
+                        if (emitResult.isFailure()) {
+                            return Mono.error(new RuntimeException("Error publishing to queue for %s : %s".formatted(topic, emitResult)));
+                        } else {
+                            return Mono.just("");
+                        }
+                    })
+                    .retryWhen(Retry
+                            .backoff(5, Duration.ofMillis(500))
+                            .doBeforeRetry(ctx -> {
+                                LOGGER.error("Error publishing to queue %s retrying for the %s time".formatted(topic, ctx.totalRetries()), ctx.failure());
+                            })
+                    )
+                    .onErrorReturn("")
+                )
                 .collectList()
                 .thenReturn(Tuple.empty())
                 .toFuture();
@@ -139,7 +164,11 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
     @Override
     public void close() throws IOException {
         if (Objects.nonNull(killSwitch)) {
-            this.killSwitch.dispose();
+            try {
+                this.killSwitch.dispose();
+            } catch (UnsupportedOperationException e) {
+                LOGGER.error("Error closing Publisher", e);
+            }
         }
         this.kafkaSender.close();
     }
@@ -166,6 +195,10 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
                         LOGGER.info("Replayed {} events on {}", count, topic);
                     }
                 });
+    }
+
+    public Integer getBufferedElementCount() {
+        return this.queue.scan(Scannable.Attr.BUFFERED);
     }
 
 }
