@@ -411,4 +411,8 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
         }
     }
 
+    @Override
+    public EventPublisher<E, Meta, Context> eventPublisher() {
+        return eventPublisher;
+    }
 }

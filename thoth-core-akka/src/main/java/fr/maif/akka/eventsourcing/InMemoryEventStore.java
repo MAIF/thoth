@@ -8,6 +8,7 @@ import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.*;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
+import fr.maif.eventsourcing.EventPublisher;
 import fr.maif.eventsourcing.EventStore;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
@@ -15,6 +16,7 @@ import io.vavr.collection.List;
 import io.vavr.control.Option;
 import org.reactivestreams.Publisher;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -120,5 +122,21 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
     public CompletionStage<Tuple0> persist(Tuple0 transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
         eventStore.addAll(events.toJavaList());
         return CompletableFuture.supplyAsync(Tuple::empty);
+    }
+
+    @Override
+    public EventPublisher<E, Meta, Context> eventPublisher() {
+        var _this = this;
+        return new EventPublisher<E, Meta, Context>() {
+            @Override
+            public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
+                return _this.publish(events);
+            }
+
+            @Override
+            public void close() throws IOException {
+
+            }
+        };
     }
 }

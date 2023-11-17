@@ -390,4 +390,8 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
         }
     }
 
+    @Override
+    public EventPublisher<E, Meta, Context> eventPublisher() {
+        return eventPublisher;
+    }
 }
