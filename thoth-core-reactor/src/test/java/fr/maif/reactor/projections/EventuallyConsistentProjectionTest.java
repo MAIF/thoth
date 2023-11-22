@@ -1,9 +1,5 @@
 package fr.maif.reactor.projections;
 
-import akka.actor.ActorSystem;
-import akka.kafka.testkit.javadsl.TestcontainersKafkaTest;
-import akka.stream.Materializer;
-import akka.testkit.javadsl.TestKit;
 import com.fasterxml.jackson.databind.JsonNode;
 import fr.maif.Helpers;
 import fr.maif.Helpers.VikingEvent;
@@ -11,13 +7,12 @@ import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.json.Json;
 import fr.maif.json.JsonFormat;
+import fr.maif.reactor.KafkaContainerTest;
 import fr.maif.reactor.projections.EventuallyConsistentProjection.Config;
 import io.vavr.API;
 import io.vavr.Tuple0;
 import io.vavr.control.Option;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -27,15 +22,9 @@ import static io.vavr.API.Match;
 import static io.vavr.API.println;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class EventuallyConsistentProjectionTest extends TestcontainersKafkaTest {
+class EventuallyConsistentProjectionTest implements KafkaContainerTest {
 
     private static JsonFormat<EventEnvelope<VikingEvent, Tuple0, Tuple0>> vikingEventJsonFormat = new Helpers.VikingEventJsonFormat();
-    private static final ActorSystem system = ActorSystem.create("test");
-
-    public EventuallyConsistentProjectionTest() {
-        super(system, Materializer.createMaterializer(system));
-    }
 
     @Test
     void consumer() throws Exception {
@@ -60,9 +49,9 @@ class EventuallyConsistentProjectionTest extends TestcontainersKafkaTest {
         );
         Thread.sleep(3000);
 
-        resultOf(produceString(topic, stringEvent(new VikingEvent.VikingCreated("1", "Lodbrock"))));
-        resultOf(produceString(topic, stringEvent(new VikingEvent.VikingCreated("2", "Lagerta"))));
-        resultOf(produceString(topic, stringEvent(new VikingEvent.VikingUpdated("1", "Lodbrok"))));
+        produceString(topic, stringEvent(new VikingEvent.VikingCreated("1", "Lodbrock")));
+        produceString(topic, stringEvent(new VikingEvent.VikingCreated("2", "Lagerta")));
+        produceString(topic, stringEvent(new VikingEvent.VikingUpdated("1", "Lodbrok")));
 
         Thread.sleep(1000);
 
@@ -92,11 +81,4 @@ class EventuallyConsistentProjectionTest extends TestcontainersKafkaTest {
                 .withEmissionDate(LocalDateTime.now())
                 .build();
     }
-
-
-    @AfterAll
-    void shutdownActorSystem() {
-        TestKit.shutdownActorSystem(system);
-    }
-
 }

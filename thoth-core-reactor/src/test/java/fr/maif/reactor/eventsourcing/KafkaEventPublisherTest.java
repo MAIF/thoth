@@ -1,15 +1,5 @@
 package fr.maif.reactor.eventsourcing;
 
-import akka.actor.ActorSystem;
-import akka.kafka.ConsumerSettings;
-import akka.kafka.Subscriptions;
-import akka.kafka.javadsl.Consumer;
-import akka.kafka.testkit.javadsl.BaseKafkaTest;
-import akka.stream.Materializer;
-import akka.stream.javadsl.AsPublisher;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import akka.testkit.javadsl.TestKit;
 import com.fasterxml.jackson.databind.JsonNode;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.Event;
@@ -22,28 +12,40 @@ import fr.maif.json.EventEnvelopeJson;
 import fr.maif.json.Json;
 import fr.maif.kafka.JsonDeserializer;
 import fr.maif.kafka.JsonSerializer;
+import fr.maif.reactor.KafkaContainerTest;
+import io.vavr.API;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Either;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.reactivestreams.Publisher;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import reactor.core.publisher.Flux;
+import reactor.kafka.receiver.KafkaReceiver;
+import reactor.kafka.receiver.ReceiverOptions;
 import reactor.kafka.sender.SenderOptions;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.Map;
+import java.util.Objects;
+import java.util.StringJoiner;
+import java.util.UUID;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRATEGY;
@@ -52,46 +54,26 @@ import static io.vavr.API.println;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class KafkaEventPublisherTest extends BaseKafkaTest {
+@Testcontainers
+public class KafkaEventPublisherTest implements KafkaContainerTest {
 
-    private static final ActorSystem sys = ActorSystem.create("KafkaEventPublisherTest");
-    private static final Materializer mat = Materializer.createMaterializer(sys);
 
-    KafkaEventPublisherTest() {
-        super(sys, mat, "localhost:29097");
+    @BeforeAll
+    public static void setUp() {
+        KafkaContainerTest.startContainer();
     }
 
     @BeforeEach
-    void cleanUpInit() {
-        setUpAdminClient();
-        try {
-            Set<String> topics = adminClient().listTopics().names().get(5, TimeUnit.SECONDS);
-            if (!topics.isEmpty()) {
-                println("Deleting "+ String.join(",", topics));
-                adminClient().deleteTopics(topics).all().get();
-            }
-        } catch (Exception e) {}
-    }
-
     @AfterEach
-    void cleanUpAfter() throws ExecutionException, InterruptedException {
-        Set<String> topics = adminClient().listTopics().names().get();
-        println("Deleting "+ String.join(",", topics));
-        adminClient().deleteTopics(topics).all().get();
-        cleanUpAdminClient();
-    }
-
-    @AfterAll
-    static void afterClass() {
-        TestKit.shutdownActorSystem(sys);
+    void cleanUpInit() {
+        deleteTopics();
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void eventConsumption() throws IOException, InterruptedException {
 
-        String topic = createTopic(1, 5, 1);
+        String topic = createTopic("eventConsumption", 5, 1);
 
         ReactorKafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
@@ -100,6 +82,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         when(eventStore.commitOrRollback(any(), any())).thenReturn(CompletionStages.empty());
         when(eventStore.loadEventsUnpublished(any(), any())).thenReturn(emptyTxStream());
         when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any())).then(i -> CompletionStages.successful(i.getArgument(0)));
+        when(eventStore.markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any())).then(i -> CompletionStages.successful(i.getArgument(0)));
 
         EventEnvelope<TestEvent, Void, Void> envelope1 = eventEnvelope("value 1");
         EventEnvelope<TestEvent, Void, Void> envelope2 = eventEnvelope("value 2");
@@ -109,17 +92,25 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
 
         Thread.sleep(200);
 
-        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = Consumer.plainSource(consumerDefaults().withGroupId("test1"), Subscriptions.topics(topic))
+        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = KafkaReceiver.create(receiverDefault()
+                        .consumerProperty(ConsumerConfig.GROUP_ID_CONFIG, "eventConsumption")
+                        .consumerProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+                        .subscription(List.of(topic).toJavaList()))
+                .receive()
                 .map(ConsumerRecord::value)
                 .map(KafkaEventPublisherTest::deserialize)
+                .doOnNext(elt -> System.out.println("next : "+elt))
                 .take(3)
+                .doOnNext(elt -> System.out.println("Group : " + elt))
+                .doOnError(e -> e.printStackTrace())
                 .map(e -> {
                     println(e);
                     return e;
                 })
-                .idleTimeout(Duration.of(30, ChronoUnit.SECONDS))
-                .runWith(Sink.seq(), mat)
-                .thenApply(List::ofAll);
+                .timeout(Duration.of(60, ChronoUnit.SECONDS))
+                .collectList()
+                .map(List::ofAll)
+                .toFuture();
 
         publisher.publish(List.of(
                 envelope1,
@@ -138,18 +129,19 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
     }
 
     private <T> Publisher<T> emptyTxStream() {
-        return Source.<T>empty().runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), sys);
+        return Flux.<T>empty();
     }
 
     private <T> Publisher<T> txStream(T... values) {
-        return Source.<T>from(List.of(values)).runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), sys);
+        return Flux.<T>fromIterable(List.of(values));
     }
 
 
     @Test
     @SuppressWarnings("unchecked")
-    public void eventConsumptionWithEventFromDb() throws IOException {
-        String topic = createTopic(2, 5, 1);
+    public void eventConsumptionWithEventFromDb() throws IOException, InterruptedException {
+
+        String topic = createTopic("eventConsumptionWithEventFromDb", 5, 1);
         ReactorKafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
         when(eventStore.openTransaction()).thenReturn(CompletionStages.successful(Tuple.empty()));
@@ -159,19 +151,27 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
                 eventEnvelope("value 2"),
                 eventEnvelope("value 3")
         ));
-        when(eventStore.markAsPublished(eq(Tuple.empty()), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
-                .then(i -> CompletionStages.successful(i.getArgument(1)));
-        when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
-                .then(i -> CompletionStages.successful(i.getArgument(0)));
+        when(eventStore.markAsPublished(eq(Tuple.empty()), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any())).then(i -> CompletionStages.successful(i.getArgument(1)));
+        when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any())).then(i -> CompletionStages.successful(i.getArgument(0)));
 
         publisher.start(eventStore, NO_STRATEGY);
 
-        CompletionStage<List<String>> results = Consumer.plainSource(consumerDefaults().withGroupId("test2"), Subscriptions.topics(topic))
+        Thread.sleep(200);
+
+        CompletionStage<List<String>> results = KafkaReceiver.create(receiverDefault()
+                        .consumerProperty(ConsumerConfig.GROUP_ID_CONFIG, "eventConsumptionWithEventFromDb")
+                        .consumerProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+                        .subscription(List.of(topic).toJavaList())
+                )
+                .receive()
                 .map(ConsumerRecord::value)
+                .doOnNext(elt -> System.out.println(elt))
+                .doOnError(e -> e.printStackTrace())
                 .take(6)
-                .idleTimeout(Duration.of(5, ChronoUnit.SECONDS))
-                .runWith(Sink.seq(), mat)
-                .thenApply(List::ofAll);
+                .timeout(Duration.of(20, ChronoUnit.SECONDS))
+                .collectList()
+                .map(List::ofAll)
+                .toFuture();
 
         publisher.publish(List.of(
                 eventEnvelope("value 4"),
@@ -190,13 +190,12 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
     }
 
 
-
     @Test
-    @Disabled
     @SuppressWarnings("unchecked")
-    public void testRestart() throws IOException {
+    public void testRestart() throws IOException, InterruptedException {
         AtomicBoolean failed = new AtomicBoolean(false);
-        String topic = createTopic(3, 5, 1);
+        AtomicInteger streamCount = new AtomicInteger(0);
+        String topic = createTopic("testRestart", 5, 1);
         ReactorKafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
         when(eventStore.openTransaction()).thenReturn(CompletionStages.successful(Tuple.empty()));
@@ -205,35 +204,60 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
         EventEnvelope<TestEvent, Void, Void> envelope1 = eventEnvelope("value 1");
         EventEnvelope<TestEvent, Void, Void> envelope2 = eventEnvelope("value 2");
         EventEnvelope<TestEvent, Void, Void> envelope3 = eventEnvelope("value 3");
+        EventEnvelope<TestEvent, Void, Void> envelope4 = eventEnvelope("value 4");
+        EventEnvelope<TestEvent, Void, Void> envelope5 = eventEnvelope("value 5");
+        EventEnvelope<TestEvent, Void, Void> envelope6 = eventEnvelope("value 6");
 
-        when(eventStore.loadEventsUnpublished(any(), any())).thenReturn(txStream(envelope1, envelope2, envelope3));
+        when(eventStore.loadEventsUnpublished(any(), any()))
+                .thenReturn(txStream(envelope1, envelope2, envelope3))
+                .thenReturn(txStream(envelope1, envelope2, envelope3))
+                .thenReturn(emptyTxStream());
         when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any())).thenAnswer(in -> CompletionStages.successful(in.getArgument(0)));
         when(eventStore.markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
                 .then(i -> {
                     if (failed.getAndSet(true)) {
                         return CompletionStages.successful(i.getArgument(1));
                     } else {
-                        throw new RuntimeException("Oups");
+                        return CompletionStages.failed(new RuntimeException("Oups"));
+                    }
+                });
+        when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
+                .then(i -> {
+                    if (streamCount.incrementAndGet() == 2) {
+                        return CompletionStages.failed(new RuntimeException("Oups"));
+                    } else {
+                        return CompletionStages.successful(i.getArgument(0));
                     }
                 });
 
         publisher.start(eventStore, SKIP);
 
-        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = Consumer.plainSource(consumerDefaults().withGroupId("test3"), Subscriptions.topics(topic))
+        Thread.sleep(200);
+
+        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results =
+                KafkaReceiver.create(receiverDefault()
+                                .consumerProperty(ConsumerConfig.GROUP_ID_CONFIG, "testRestart")
+                                .consumerProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+                                .subscription(List.of(topic).toJavaList()))
+                .receive()
                 .map(ConsumerRecord::value)
                 .map(KafkaEventPublisherTest::deserialize)
-                .take(6)
-                .idleTimeout(Duration.of(10, ChronoUnit.SECONDS))
-                .runWith(Sink.seq(), mat)
-                .thenApply(List::ofAll);
+                .take(8)
+                .timeout(Duration.of(30, ChronoUnit.SECONDS))
+                .collectList()
+                .map(List::ofAll)
+                .toFuture();
+
+
+        publisher.publish(API.List(envelope4, envelope5, envelope6));
 
         List<EventEnvelope<TestEvent, Void, Void>> events = results.toCompletableFuture().join();
 
-        assertThat(events).hasSize(6);
+        assertThat(events).hasSize(8);
 
         println(events.mkString("\n"));
 
-        assertThat(events).containsExactly(envelope1, envelope2, envelope3, envelope1, envelope2, envelope3);
+        assertThat(events).containsExactly(envelope1, envelope2, envelope3, envelope1, envelope2, envelope3, envelope4, envelope5);
 
         verify(eventStore, times(2)).markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
 
@@ -244,7 +268,8 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
     private static EventEnvelope<TestEvent, Void, Void> deserialize(String event) {
         return EventEnvelopeJson.deserialize(event, new TestEventSerializer(), JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty(), (s, o) -> {
             println("Error " + s + " - " + o);
-        }, e -> {});
+        }, e -> {
+        });
     }
 
     static AtomicLong sequence = new AtomicLong();
@@ -267,7 +292,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
 
     private SenderOptions<String, EventEnvelope<TestEvent, Void, Void>> producerSettings() {
         return SenderOptions.<String, EventEnvelope<TestEvent, Void, Void>>create(
-                        Map.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers())
+                        Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers())
                 )
                 .withKeySerializer(new StringSerializer())
                 .withValueSerializer(new JsonSerializer<TestEvent, Void, Void>(
@@ -277,19 +302,25 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
                 ));
     }
 
-    private ConsumerSettings<String, EventEnvelope<TestEvent, Void, Void>> consumerSettings() {
-        return ConsumerSettings.create(
-                sys,
-                new StringDeserializer(),
-                new JsonDeserializer<TestEvent, Void, Void>(
-                        new TestEventSerializer(),
-                        JacksonSimpleFormat.empty(),
-                        JacksonSimpleFormat.empty(),
-                        (s, o) -> {},
-                        e -> {}
-                )
-        ).withBootstrapServers(bootstrapServers());
+    private ReceiverOptions<String, EventEnvelope<TestEvent, Void, Void>> receiverOptions() {
+        return ReceiverOptions.<String, EventEnvelope<TestEvent, Void, Void>>create(Map.of(
+                    ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers()
+                ))
+                .withKeyDeserializer(new StringDeserializer())
+                .withValueDeserializer(
+                        new JsonDeserializer<TestEvent, Void, Void>(
+                                new TestEventSerializer(),
+                                JacksonSimpleFormat.empty(),
+                                JacksonSimpleFormat.empty(),
+                                (s, o) -> {
+                                },
+                                e -> {
+                                }
+                        )
+                );
     }
+
+
 
     public static class TestEventSerializer implements JacksonEventFormat<String, TestEvent> {
         @Override
