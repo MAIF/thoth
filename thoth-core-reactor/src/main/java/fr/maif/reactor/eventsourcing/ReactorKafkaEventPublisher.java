@@ -1,10 +1,10 @@
 package fr.maif.reactor.eventsourcing;
 
-import fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventPublisher;
 import fr.maif.eventsourcing.EventStore;
+import fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
@@ -80,20 +80,30 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
                 .concatMap(tx -> {
                     LOGGER.info("Replaying not published in DB for {}", topic);
                     ConcurrentReplayStrategy strategy = Objects.isNull(concurrentReplayStrategy) ? WAIT : concurrentReplayStrategy;
-                    return Flux.from(eventStore.loadEventsUnpublished(tx, strategy))
+                    return Flux
+                            .from(eventStore.loadEventsUnpublished(tx, strategy))
                             .transform(publishToKafka(eventStore, Option.some(tx), groupFlow))
                             .doOnNext(logProgressSink::tryEmitNext)
-                            .then(Mono.fromCompletionStage(() -> {
+                            .concatMap(any -> Mono.fromCompletionStage(() -> {
                                 LOGGER.info("Replaying events not published in DB is finished for {}", topic);
                                 return eventStore.commitOrRollback(Option.none(), tx);
                             }))
                             .doOnError(e -> {
                                 eventStore.commitOrRollback(Option.of(e), tx);
                                 LOGGER.error("Error replaying non published events to kafka for " + topic, e);
-
-                            });
+                            })
+                            .retryWhen(Retry.backoff(Long.MAX_VALUE, restartInterval)
+                                    .transientErrors(true)
+                                    .maxBackoff(maxRestartInterval)
+                                    .doBeforeRetry(ctx -> {
+                                        LOGGER.error("Error republishing events for topic %s retrying for the %s time".formatted(topic, ctx.totalRetries()), ctx.failure());
+                                    })
+                            )
+                            .collectList()
+                            .map(__ -> Tuple.empty())
+                            .switchIfEmpty(Mono.just(Tuple.empty()));
                 })
-                .thenMany(
+                .concatMap(__ ->
                         this.eventsSource.transform(publishToKafka(
                                 eventStore,
                                 Option.none(),
@@ -116,14 +126,13 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
 
 
     private <TxCtx> Function<Flux<EventEnvelope<E, Meta, Context>>, Flux<EventEnvelope<E, Meta, Context>>> publishToKafka(EventStore<TxCtx, E, Meta, Context> eventStore, Option<TxCtx> tx, Function<Flux<SenderResult<EventEnvelope<E, Meta, Context>>>, Flux<List<SenderResult<EventEnvelope<E, Meta, Context>>>>> groupFlow) {
-        Function<Flux<SenderRecord<String, EventEnvelope<E, Meta, Context>, EventEnvelope<E, Meta, Context>>>, Flux<SenderResult<EventEnvelope<E, Meta, Context>>>> publishToKafkaFlow = it ->
-                kafkaSender.send(it)
-                        .doOnError(e -> {
-                            LOGGER.error("Error publishing to kafka ", e);
-                        });
         return it -> it
                 .map(this::toKafkaMessage)
-                .transform(publishToKafkaFlow)
+                .concatMap(events -> {
+                    LOGGER.debug("Sending event {}", events);
+                    return kafkaSender.send(Flux.just(events))
+                            .doOnError(e -> LOGGER.error("Error publishing to kafka ", e));
+                })
                 .transform(groupFlow)
                 .concatMap(m ->
                         tx.fold(
@@ -142,6 +151,7 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
                 .concatMap(t ->
                     Mono.defer(() -> {
                         Sinks.EmitResult emitResult = queue.tryEmitNext(t);
+                        LOGGER.debug("Event publisher {}, {} buffered elements ( capacity = {} ), emitResult = {}, event = {}", topic, queue.scan(Scannable.Attr.BUFFERED), queue.scan(Scannable.Attr.CAPACITY), emitResult, t);
                         if (emitResult.isFailure()) {
                             return Mono.error(new RuntimeException("Error publishing to queue for %s : %s".formatted(topic, emitResult)));
                         } else {
