@@ -99,7 +99,9 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
                                         LOGGER.error("Error republishing events for topic %s retrying for the %s time".formatted(topic, ctx.totalRetries()), ctx.failure());
                                     })
                             )
-                            .switchIfEmpty(Flux.just(Tuple.empty()));
+                            .collectList()
+                            .map(__ -> Tuple.empty())
+                            .switchIfEmpty(Mono.just(Tuple.empty()));
                 })
                 .concatMap(__ ->
                         this.eventsSource.transform(publishToKafka(
