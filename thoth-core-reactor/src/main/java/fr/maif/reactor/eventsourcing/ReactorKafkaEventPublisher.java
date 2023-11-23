@@ -92,7 +92,7 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
                                 eventStore.commitOrRollback(Option.of(e), tx);
                                 LOGGER.error("Error replaying non published events to kafka for " + topic, e);
                             })
-                            .retryWhen(Retry.backoff(Long.MAX_VALUE, restartInterval)
+                            .retryWhen(Retry.backoff(10, restartInterval)
                                     .transientErrors(true)
                                     .maxBackoff(maxRestartInterval)
                                     .doBeforeRetry(ctx -> {
@@ -101,6 +101,7 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
                             )
                             .collectList()
                             .map(__ -> Tuple.empty())
+                            .onErrorReturn(Tuple.empty())
                             .switchIfEmpty(Mono.just(Tuple.empty()));
                 })
                 .concatMap(__ ->
@@ -173,7 +174,7 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
 
     @Override
     public void close() throws IOException {
-        if (Objects.nonNull(killSwitch)) {
+        if (Objects.nonNull(killSwitch) && !killSwitch.isDisposed()) {
             try {
                 this.killSwitch.dispose();
             } catch (UnsupportedOperationException e) {

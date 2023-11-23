@@ -23,6 +23,7 @@ dependencies {
     testImplementation("org.scalatest:scalatest_$scalaVersion:3.0.8")
     testImplementation("org.testcontainers:kafka:1.18.0")
     testImplementation "org.testcontainers:junit-jupiter:1.18.0"
+    testImplementation "ch.qos.logback:logback-classic:1.4.8"
 }
 
 test {

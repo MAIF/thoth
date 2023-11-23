@@ -1,0 +1,18 @@
+<configuration>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%logger{15} - %message%n%xException{10}</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="ASYNCSTDOUT" class="ch.qos.logback.classic.AsyncAppender">
+    <appender-ref ref="STDOUT" />
+  </appender>
+  <logger name="org.apache.kafka" level="WARN" />
+  <logger name="org.testcontainers.utility" level="WARN" />
+  <logger name="fr.maif.reactor" level="DEBUG" />
+  <root level="INFO">
+    <appender-ref ref="ASYNCSTDOUT" />
+  </root>
+
+</configuration>

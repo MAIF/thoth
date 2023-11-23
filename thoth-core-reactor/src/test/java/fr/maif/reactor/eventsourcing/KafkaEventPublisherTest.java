@@ -99,10 +99,7 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
                 .receive()
                 .map(ConsumerRecord::value)
                 .map(KafkaEventPublisherTest::deserialize)
-                .doOnNext(elt -> System.out.println("next : "+elt))
                 .take(3)
-                .doOnNext(elt -> System.out.println("Group : " + elt))
-                .doOnError(e -> e.printStackTrace())
                 .map(e -> {
                     println(e);
                     return e;
@@ -165,8 +162,6 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
                 )
                 .receive()
                 .map(ConsumerRecord::value)
-                .doOnNext(elt -> System.out.println(elt))
-                .doOnError(e -> e.printStackTrace())
                 .take(6)
                 .timeout(Duration.of(20, ChronoUnit.SECONDS))
                 .collectList()
