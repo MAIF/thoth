@@ -76,8 +76,7 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
         Sinks.Many<EventEnvelope<E, Meta, Context>> logProgressSink = Sinks.many().unicast().onBackpressureBuffer();
         logProgress(logProgressSink.asFlux(), 100).subscribe();
         killSwitch = Mono.fromCompletionStage(eventStore::openTransaction)
-                .flux()
-                .concatMap(tx -> {
+                .flatMapMany(tx -> {
                     LOGGER.info("Replaying not published in DB for {}", topic);
                     ConcurrentReplayStrategy strategy = Objects.isNull(concurrentReplayStrategy) ? WAIT : concurrentReplayStrategy;
                     return Flux
@@ -92,18 +91,18 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
                                 eventStore.commitOrRollback(Option.of(e), tx);
                                 LOGGER.error("Error replaying non published events to kafka for " + topic, e);
                             })
-                            .retryWhen(Retry.backoff(10, restartInterval)
-                                    .transientErrors(true)
-                                    .maxBackoff(maxRestartInterval)
-                                    .doBeforeRetry(ctx -> {
-                                        LOGGER.error("Error republishing events for topic %s retrying for the %s time".formatted(topic, ctx.totalRetries()), ctx.failure());
-                                    })
-                            )
                             .collectList()
-                            .map(__ -> Tuple.empty())
-                            .onErrorReturn(Tuple.empty())
-                            .switchIfEmpty(Mono.just(Tuple.empty()));
+                            .map(__ -> Tuple.empty());
                 })
+                .retryWhen(Retry.backoff(10, restartInterval)
+                        .transientErrors(true)
+                        .maxBackoff(maxRestartInterval)
+                        .doBeforeRetry(ctx -> {
+                            LOGGER.error("Error republishing events for topic %s retrying for the %s time".formatted(topic, ctx.totalRetries()), ctx.failure());
+                        })
+                )
+                .onErrorReturn(Tuple.empty())
+                .switchIfEmpty(Mono.just(Tuple.empty()))
                 .concatMap(__ ->
                         this.eventsSource.transform(publishToKafka(
                                 eventStore,
