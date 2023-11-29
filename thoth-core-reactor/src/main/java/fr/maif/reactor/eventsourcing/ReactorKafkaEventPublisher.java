@@ -83,7 +83,8 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
                             .from(eventStore.loadEventsUnpublished(tx, strategy))
                             .transform(publishToKafka(eventStore, Option.some(tx), groupFlow))
                             .doOnNext(logProgressSink::tryEmitNext)
-                            .concatMap(any -> Mono.fromCompletionStage(() -> {
+                            .collectList()
+                            .flatMap(any -> Mono.fromCompletionStage(() -> {
                                 LOGGER.info("Replaying events not published in DB is finished for {}", topic);
                                 return eventStore.commitOrRollback(Option.none(), tx);
                             }))
@@ -91,7 +92,6 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
                                 eventStore.commitOrRollback(Option.of(e), tx);
                                 LOGGER.error("Error replaying non published events to kafka for " + topic, e);
                             })
-                            .collectList()
                             .map(__ -> Tuple.empty());
                 })
                 .retryWhen(Retry.backoff(10, restartInterval)
