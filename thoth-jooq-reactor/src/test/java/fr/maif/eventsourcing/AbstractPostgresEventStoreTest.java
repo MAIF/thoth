@@ -184,7 +184,7 @@ public abstract class AbstractPostgresEventStoreTest {
         initDatas();
         postgresEventStore.markAsPublished(List(event1, event2, event3)).toCompletableFuture().join();
         Long lastSeqNum = postgresEventStore.lastPublishedSequence().toCompletableFuture().join();
-        assertThat(lastSeqNum).isEqualTo(4L);
+        assertThat(lastSeqNum).isEqualTo(3L);
     }
 
 
