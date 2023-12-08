@@ -46,9 +46,7 @@ import java.util.concurrent.ExecutorService;
 import static io.vavr.API.List;
 import static io.vavr.API.Seq;
 import static java.util.function.Function.identity;
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.name;
-import static org.jooq.impl.DSL.table;
+import static org.jooq.impl.DSL.*;
 
 public class PostgresEventStore<E extends Event, Meta, Context> implements EventStore<Connection, E, Meta, Context>, Closeable {
 
@@ -260,6 +258,15 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
     @Override
     public CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(Connection tx, EventEnvelope<E, Meta, Context> eventEnvelope) {
         return markAsPublished(tx, List(eventEnvelope)).thenApply(Traversable::head);
+    }
+
+    @Override
+    public CompletionStage<Long> lastPublishedSequence() {
+        return sql.select(max(SEQUENCE_NUM).as("max"))
+                .from(table(this.tableNames.tableName))
+                .where(PUBLISHED.eq(true))
+                .fetchAsync(executor)
+                .thenApply(r -> r.getValues("max", Long.class).stream().findFirst().orElse(0L));
     }
 
     @Override

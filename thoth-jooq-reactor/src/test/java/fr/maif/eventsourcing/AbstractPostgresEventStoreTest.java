@@ -180,6 +180,15 @@ public abstract class AbstractPostgresEventStoreTest {
 
 
     @Test
+    public void lastPublishedSeqNum() {
+        initDatas();
+        postgresEventStore.markAsPublished(List(event1, event2, event3)).toCompletableFuture().join();
+        Long lastSeqNum = postgresEventStore.lastPublishedSequence().toCompletableFuture().join();
+        assertThat(lastSeqNum).isEqualTo(4L);
+    }
+
+
+    @Test
     public void loadEventsUnpublished() {
         initDatas();
         List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(transactionSource()

@@ -2,10 +2,7 @@ package fr.maif.reactor.eventsourcing;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import fr.maif.concurrent.CompletionStages;
-import fr.maif.eventsourcing.Event;
-import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventStore;
-import fr.maif.eventsourcing.Type;
+import fr.maif.eventsourcing.*;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.json.EventEnvelopeJson;
@@ -13,11 +10,11 @@ import fr.maif.json.Json;
 import fr.maif.kafka.JsonDeserializer;
 import fr.maif.kafka.JsonSerializer;
 import fr.maif.reactor.KafkaContainerTest;
-import io.vavr.API;
-import io.vavr.Tuple;
-import io.vavr.Tuple0;
+import io.vavr.*;
 import io.vavr.collection.List;
+import io.vavr.collection.Stream;
 import io.vavr.control.Either;
+import io.vavr.control.Option;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -39,18 +36,19 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
-import java.util.Objects;
-import java.util.StringJoiner;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRATEGY;
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
+import static io.vavr.API.List;
 import static io.vavr.API.println;
+import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -66,6 +64,7 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
     @BeforeEach
     @AfterEach
     void cleanUpInit() {
+        sequence.set(0);
         deleteTopics();
     }
 
@@ -184,81 +183,234 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
         publisher.close();
     }
 
+//
+//    @Test
+//    @SuppressWarnings("unchecked")
+//    public void testRestart() throws IOException, InterruptedException {
+//
+//        AtomicInteger failed = new AtomicInteger(0);
+//        AtomicInteger streamCount = new AtomicInteger(0);
+//        String topic = createTopic("testRestart", 5, 1);
+//        ReactorKafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
+//
+//        Supplier<Flux<EventEnvelope<TestEvent, Void, Void>>> eventsFlux = () -> KafkaReceiver
+//                .create(receiverDefault()
+//                        .consumerProperty(ConsumerConfig.GROUP_ID_CONFIG, "testRestart")
+//                        .consumerProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+//                        .consumerProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+//                        .subscription(List.of(topic).toJavaList()))
+//                .receive()
+//                .map(ConsumerRecord::value)
+//                .map(KafkaEventPublisherTest::deserialize);
+//
+//        EventEnvelope<TestEvent, Void, Void> envelope1 = eventEnvelope("value 1");
+//        EventEnvelope<TestEvent, Void, Void> envelope2 = eventEnvelope("value 2");
+//        EventEnvelope<TestEvent, Void, Void> envelope3 = eventEnvelope("value 3");
+//        EventEnvelope<TestEvent, Void, Void> envelope4 = eventEnvelope("value 4");
+//        EventEnvelope<TestEvent, Void, Void> envelope5 = eventEnvelope("value 5");
+//        EventEnvelope<TestEvent, Void, Void> envelope6 = eventEnvelope("value 6");
+//        EventEnvelope<TestEvent, Void, Void> envelope7 = eventEnvelope("value 7");
+//        EventEnvelope<TestEvent, Void, Void> envelope8 = eventEnvelope("value 8");
+//        EventEnvelope<TestEvent, Void, Void> envelope9 = eventEnvelope("value 9");
+//        EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
+//
+//        when(eventStore.loadEventsUnpublished(any(), any()))
+//                .thenReturn(txStream(envelope1, envelope2, envelope3))
+//                .thenReturn(txStream(envelope1, envelope2, envelope3))
+//                .thenReturn(emptyTxStream());
+//
+//        when(eventStore.markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
+//                .then(i -> {
+//                    if (failed.incrementAndGet() > 1) {
+//                        return CompletionStages.successful(i.getArgument(1));
+//                    } else {
+//                        return CompletionStages.failed(new RuntimeException("Oups "+failed.get()));
+//                    }
+//                });
+//        when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
+//                .then(i -> {
+//                    int count = streamCount.incrementAndGet();
+//                    Object argument = i.getArgument(0);
+//                    System.out.println("Count "+count+" - "+argument);
+//                    if (count == 1) {
+//                        return CompletionStages.failed(new RuntimeException("Oups stream "+count));
+//                    } else {
+//                        return CompletionStages.successful(argument);
+//                    }
+//                });
+//
+//        publisher.start(eventStore, SKIP);
+//
+//        Thread.sleep(200);
+//
+//
+//        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = eventsFlux.get()
+//                .bufferTimeout(10, Duration.ofSeconds(10))
+//                .take(1)
+//                .timeout(Duration.of(30, ChronoUnit.SECONDS))
+//                .collectList()
+//                .map(l -> List.ofAll(l).flatMap(identity()))
+//                .toFuture();
+//
+//
+//        publisher.publish(List(envelope4, envelope5, envelope6));
+//
+//        List<EventEnvelope<TestEvent, Void, Void>> events = results.toCompletableFuture().join();
+//
+//        println(events.mkString("\n"));
+//
+//        assertThat(events).containsExactly(envelope1, envelope2, envelope3, envelope1, envelope2, envelope3, envelope4, envelope5, envelope6);
+//
+//        verify(eventStore, times(3)).openTransaction();
+//        verify(eventStore, times(2)).markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
+//        verify(eventStore, times(1)).markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
+//
+//
+//        publisher.publish(List(envelope7, envelope8, envelope9));
+//        List<EventEnvelope<TestEvent, Void, Void>> resultsAfterCrash = eventsFlux.get()
+//                .bufferTimeout(12, Duration.ofSeconds(10))
+//                .take(1)
+//                .timeout(Duration.of(30, ChronoUnit.SECONDS))
+//                .collectList()
+//                .map(l -> List.ofAll(l).flatMap(identity()))
+//                .block();
+//        println(resultsAfterCrash.mkString("\n"));
+//
+//        assertThat(resultsAfterCrash).containsExactly(envelope1, envelope2, envelope3, envelope1, envelope2, envelope3, envelope4, envelope5, envelope6, envelope7, envelope8, envelope9);
+//
+//
+//        publisher.close();
+//    }
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testRestart() throws IOException, InterruptedException {
-        AtomicBoolean failed = new AtomicBoolean(false);
+    public void testRestartWithMock() throws IOException, InterruptedException {
+
+        AtomicInteger failed = new AtomicInteger(0);
         AtomicInteger streamCount = new AtomicInteger(0);
         String topic = createTopic("testRestart", 5, 1);
         ReactorKafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
-        EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
-        when(eventStore.openTransaction()).thenReturn(CompletionStages.successful(Tuple.empty()));
-        when(eventStore.commitOrRollback(any(), any())).thenReturn(CompletionStages.empty());
 
-        EventEnvelope<TestEvent, Void, Void> envelope1 = eventEnvelope("value 1");
-        EventEnvelope<TestEvent, Void, Void> envelope2 = eventEnvelope("value 2");
-        EventEnvelope<TestEvent, Void, Void> envelope3 = eventEnvelope("value 3");
-        EventEnvelope<TestEvent, Void, Void> envelope4 = eventEnvelope("value 4");
-        EventEnvelope<TestEvent, Void, Void> envelope5 = eventEnvelope("value 5");
-        EventEnvelope<TestEvent, Void, Void> envelope6 = eventEnvelope("value 6");
+        Supplier<Flux<EventEnvelope<TestEvent, Void, Void>>> eventsFlux = () -> KafkaReceiver
+                .create(receiverDefault()
+                        .consumerProperty(ConsumerConfig.GROUP_ID_CONFIG, "testRestart")
+                        .consumerProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+                        .consumerProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+                        .subscription(List.of(topic).toJavaList()))
+                .receive()
+                .doOnNext(e -> e.receiverOffset().acknowledge())
+                .map(ConsumerRecord::value)
+                .map(KafkaEventPublisherTest::deserialize);
 
-        when(eventStore.loadEventsUnpublished(any(), any()))
-                .thenReturn(txStream(envelope1, envelope2, envelope3))
-                .thenReturn(txStream(envelope1, envelope2, envelope3))
-                .thenReturn(emptyTxStream());
-        when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any())).thenAnswer(in -> CompletionStages.successful(in.getArgument(0)));
-        when(eventStore.markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
-                .then(i -> {
-                    if (failed.getAndSet(true)) {
-                        return CompletionStages.successful(i.getArgument(1));
+        EventEnvelope<TestEvent, Void, Void> envelope1 = eventEnvelopeUnpublished("value 1");
+        EventEnvelope<TestEvent, Void, Void> envelope2 = eventEnvelopeUnpublished("value 2");
+        EventEnvelope<TestEvent, Void, Void> envelope3 = eventEnvelopeUnpublished("value 3");
+        EventEnvelope<TestEvent, Void, Void> envelope4 = eventEnvelopeUnpublished("value 4");
+        EventEnvelope<TestEvent, Void, Void> envelope5 = eventEnvelopeUnpublished("value 5");
+        EventEnvelope<TestEvent, Void, Void> envelope6 = eventEnvelopeUnpublished("value 6");
+        EventEnvelope<TestEvent, Void, Void> envelope7 = eventEnvelopeUnpublished("value 7");
+        EventEnvelope<TestEvent, Void, Void> envelope8 = eventEnvelopeUnpublished("value 8");
+        EventEnvelope<TestEvent, Void, Void> envelope9 = eventEnvelopeUnpublished("value 9");
+        EventEnvelope<TestEvent, Void, Void> envelope10 = eventEnvelopeUnpublished("value 10");
+        EventEnvelope<TestEvent, Void, Void> envelope11 = eventEnvelopeUnpublished("value 11");
+        EventEnvelope<TestEvent, Void, Void> envelope12 = eventEnvelopeUnpublished("value 12");
+
+        InMemoryEventStore<TestEvent, Void, Void> eventStore = spy(new InMemoryEventStore<>(
+                () -> {
+                    if (failed.incrementAndGet() > 1) {
+                        return CompletionStages.successful(API.Tuple());
                     } else {
-                        return CompletionStages.failed(new RuntimeException("Oups"));
+                        return CompletionStages.failed(new RuntimeException("Oups "+failed.get()));
                     }
-                });
-        when(eventStore.markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any()))
-                .then(i -> {
-                    if (streamCount.incrementAndGet() == 2) {
-                        return CompletionStages.failed(new RuntimeException("Oups"));
+                }, () -> {
+                    int count = streamCount.incrementAndGet();
+                    if (count == 1) {
+                        return CompletionStages.failed(new RuntimeException("Oups stream "+count));
                     } else {
-                        return CompletionStages.successful(i.getArgument(0));
+                        return CompletionStages.successful(API.Tuple());
                     }
-                });
+                },
+                envelope1, envelope2, envelope3
+        ));
 
         publisher.start(eventStore, SKIP);
 
         Thread.sleep(200);
 
-        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results =
-                KafkaReceiver.create(receiverDefault()
-                                .consumerProperty(ConsumerConfig.GROUP_ID_CONFIG, "testRestart")
-                                .consumerProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-                                .subscription(List.of(topic).toJavaList()))
-                .receive()
-                .map(ConsumerRecord::value)
-                .map(KafkaEventPublisherTest::deserialize)
-                .take(8)
+
+        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = eventsFlux.get()
+                .bufferTimeout(50, Duration.ofSeconds(4))
+                .take(1)
                 .timeout(Duration.of(30, ChronoUnit.SECONDS))
                 .collectList()
-                .map(List::ofAll)
+                .map(l -> List.ofAll(l).flatMap(identity()))
                 .toFuture();
 
-
-        publisher.publish(API.List(envelope4, envelope5, envelope6));
+        List<EventEnvelope<TestEvent, Void, Void>> toPublish = List(envelope4, envelope5, envelope6);
+        eventStore.publish(toPublish);
+        publisher.publish(toPublish);
 
         List<EventEnvelope<TestEvent, Void, Void>> events = results.toCompletableFuture().join();
 
-        assertThat(events).hasSize(8);
-
         println(events.mkString("\n"));
 
-        assertThat(events).containsExactly(envelope1, envelope2, envelope3, envelope1, envelope2, envelope3, envelope4, envelope5);
-
+        assertThat(events).usingRecursiveFieldByFieldElementComparator().containsExactly(
+                // Event that were in store when publisher started
+                envelope1, envelope2, envelope3,
+                // First transaction failed so, events were replayed
+                envelope1, envelope2, envelope3,
+                // Inqueued event were published but transaction failed
+                // So events were replayed
+                envelope4, envelope5, envelope6);
+        assertThat(eventStore.store.values()).containsExactly(published(envelope1, envelope2, envelope3, envelope4, envelope5, envelope6));
+//
+        verify(eventStore, times(2)).openTransaction();
         verify(eventStore, times(2)).markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
+        verify(eventStore, times(0)).markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
+
+
+
+        List<EventEnvelope<TestEvent, Void, Void>> toPublishFailInMemory = List(envelope7, envelope8, envelope9);
+        eventStore.publish(toPublishFailInMemory);
+        publisher.publish(toPublishFailInMemory);
+        List<EventEnvelope<TestEvent, Void, Void>> resultsAfterCrash = eventsFlux.get()
+                .bufferTimeout(50, Duration.ofSeconds(10))
+                .take(1)
+                .timeout(Duration.of(30, ChronoUnit.SECONDS))
+                .collectList()
+                .map(l -> List.ofAll(l).flatMap(identity()))
+                .block();
+
+        println(resultsAfterCrash.mkString("\n"));
+        assertThat(resultsAfterCrash).contains(envelope7, envelope8, envelope9);
+        verify(eventStore, times(3)).openTransaction();
+        verify(eventStore, times(3)).markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
+        verify(eventStore, times(1)).markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
+
+        List<EventEnvelope<TestEvent, Void, Void>> toPublishFailAtTheEnd = List(envelope10, envelope11, envelope12);
+        publisher.publish(toPublishFailAtTheEnd);
+
+        List<EventEnvelope<TestEvent, Void, Void>> resultsAfterCrashInMemory = eventsFlux.get()
+                .bufferTimeout(50, Duration.ofSeconds(10))
+                .take(1)
+                .timeout(Duration.of(30, ChronoUnit.SECONDS))
+                .collectList()
+                .map(l -> List.ofAll(l).flatMap(identity()))
+                .block();
+
+        println(resultsAfterCrashInMemory.mkString("\n"));
+        assertThat(resultsAfterCrashInMemory).containsExactly(envelope10, envelope11, envelope12);
+
+        verify(eventStore, times(3)).openTransaction();
+        verify(eventStore, times(3)).markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
+        verify(eventStore, times(2)).markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
 
         publisher.close();
     }
 
+    private EventEnvelope<TestEvent, Void, Void>[] published(EventEnvelope<TestEvent, Void, Void>... envelopes) {
+        return List.of(envelopes).map(e -> e.copy().withPublished(true).build()).toJavaArray(EventEnvelope[]::new);
+    }
 
     private static EventEnvelope<TestEvent, Void, Void> deserialize(String event) {
         return EventEnvelopeJson.deserialize(event, new TestEventSerializer(), JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty(), (s, o) -> {
@@ -277,6 +429,18 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
                 .withId(UUID.randomUUID())
                 .withEntityId(entityId)
                 .withSequenceNum(sequenceNum)
+                .withEvent(new TestEvent(value, entityId))
+                .build();
+    }
+    private EventEnvelope<TestEvent, Void, Void> eventEnvelopeUnpublished(String value) {
+        long sequenceNum = sequence.incrementAndGet();
+        String entityId = "entityId";
+        return EventEnvelope.<TestEvent, Void, Void>builder()
+                .withEmissionDate(LocalDateTime.now())
+                .withId(UUID.randomUUID())
+                .withEntityId(entityId)
+                .withSequenceNum(sequenceNum)
+                .withPublished(false)
                 .withEvent(new TestEvent(value, entityId))
                 .build();
     }

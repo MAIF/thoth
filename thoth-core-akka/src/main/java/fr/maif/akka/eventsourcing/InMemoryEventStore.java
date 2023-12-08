@@ -18,6 +18,7 @@ import org.reactivestreams.Publisher;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,6 +54,13 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
 
     public static <E extends Event, Meta, Context> InMemoryEventStore<E, Meta, Context> create(ActorSystem system) {
         return new InMemoryEventStore<>(system);
+    }
+
+    @Override
+    public CompletionStage<Long> lastPublishedSequence() {
+        return CompletableFuture.completedStage(eventStore.stream().filter(e -> e.published).map(e -> e.sequenceNum)
+                .max(Comparator.comparingLong(e -> e))
+                .orElse(0L));
     }
 
     @Override

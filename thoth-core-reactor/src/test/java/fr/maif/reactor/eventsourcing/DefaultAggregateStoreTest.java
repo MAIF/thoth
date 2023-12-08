@@ -7,6 +7,7 @@ import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventStore;
 import fr.maif.eventsourcing.EventStore.Query;
+import fr.maif.reactor.eventsourcing.InMemoryEventStore.Transaction;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
@@ -63,36 +64,36 @@ class DefaultAggregateStoreTest {
     @Test
     void testReloadEventAndBuildAggregateWithoutSnapshots() {
 
-        EventStore<Tuple0, VikingEvent, Tuple0, Tuple0> eventStore = mock(EventStore.class);
-        DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0> aggregateStore = new DefaultAggregateStore<>(eventStore, new Helpers.VikingEventHandler(), new EventProcessorTest.FakeTransactionManager());
+        EventStore<Transaction<VikingEvent, Tuple0, Tuple0>, VikingEvent, Tuple0, Tuple0> eventStore = mock(EventStore.class);
+        var aggregateStore = new DefaultAggregateStore<>(eventStore, new Helpers.VikingEventHandler(), new EventProcessorTest.FakeTransactionManager());
 
         Query query = Query.builder().withEntityId(entityId).build();
-        when(eventStore.loadEventsByQuery(Tuple(), query)).thenReturn(Flux.fromIterable(List.of(eventEnvelope1, eventEnvelope2)));
+        when(eventStore.loadEventsByQuery(any(), eq(query))).thenReturn(Flux.fromIterable(List.of(eventEnvelope1, eventEnvelope2)));
 
-        Option<Viking> vikings = aggregateStore.getAggregate(Tuple.empty(), entityId).toCompletableFuture().join();
+        Option<Viking> vikings = aggregateStore.getAggregate(Transaction.newTx(), entityId).toCompletableFuture().join();
 
         Assertions.assertThat(vikings).isEqualTo(Some(new Viking(entityId, "Ragnar Lodbrock", 30, 2L)));
-        verify(eventStore, times(1)).loadEventsByQuery(Tuple(), query);
+        verify(eventStore, times(1)).loadEventsByQuery(any(), eq(query));
     }
 
     @Test
     void testReloadEventAndBuildAggregateWithSnapshots() {
 
-        EventStore<Tuple0, VikingEvent, Tuple0, Tuple0> eventStore = mock(EventStore.class);
-        DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0> aggregateStore = spy(new DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Tuple0>(eventStore, new Helpers.VikingEventHandler(), new EventProcessorTest.FakeTransactionManager()) {
+        EventStore<Transaction<VikingEvent, Tuple0, Tuple0>, VikingEvent, Tuple0, Tuple0> eventStore = mock(EventStore.class);
+        DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Transaction<VikingEvent, Tuple0, Tuple0>> aggregateStore = spy(new DefaultAggregateStore<Viking, VikingEvent, Tuple0, Tuple0, Transaction<VikingEvent, Tuple0, Tuple0>>(eventStore, new Helpers.VikingEventHandler(), new EventProcessorTest.FakeTransactionManager()) {
             @Override
-            public CompletionStage<Option<Viking>> getSnapshot(Tuple0 transactionContext, String id) {
+            public CompletionStage<Option<Viking>> getSnapshot(Transaction<VikingEvent, Tuple0, Tuple0> transactionContext, String id) {
                 return CompletionStages.successful(Option.some(new Viking(id, "Rollo", 30, 1L)));
             }
         });
 
         Query query = Query.builder().withEntityId(entityId).withSequenceFrom(1L).build();
-        when(eventStore.loadEventsByQuery(Tuple(), query)).thenReturn(Flux.fromIterable(List.of(eventEnvelope2)));
+        when(eventStore.loadEventsByQuery(any(), eq(query))).thenReturn(Flux.fromIterable(List.of(eventEnvelope2)));
 
-        Option<Viking> vikings = aggregateStore.getAggregate(Tuple.empty(), entityId).toCompletableFuture().join();
+        Option<Viking> vikings = aggregateStore.getAggregate(Transaction.newTx(), entityId).toCompletableFuture().join();
 
         Assertions.assertThat(vikings).isEqualTo(Some(new Viking(entityId, "Ragnar Lodbrock", 30, 2L)));
-        verify(eventStore, times(1)).loadEventsByQuery(Tuple(), query);
+        verify(eventStore, times(1)).loadEventsByQuery(any(), eq(query));
         verify(aggregateStore, times(1)).getSnapshot(any(), eq(entityId));
     }
 }

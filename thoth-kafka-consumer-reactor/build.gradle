@@ -2,6 +2,7 @@
 dependencies {
     implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
     implementation "io.vavr:vavr:$vavrVersion"
+    implementation('org.slf4j:slf4j-api:2.0.7')
 
     testImplementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
     testImplementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")

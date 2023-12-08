@@ -18,13 +18,7 @@ import io.vavr.collection.Seq;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
-import org.jooq.Condition;
-import org.jooq.Converter;
-import org.jooq.DSLContext;
-import org.jooq.Field;
-import org.jooq.JSONB;
-import org.jooq.Record15;
-import org.jooq.SelectSeekStep1;
+import org.jooq.*;
 import org.jooq.impl.SQLDataType;
 import org.reactivestreams.Publisher;
 import org.slf4j.LoggerFactory;
@@ -41,8 +35,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import static java.util.function.Function.identity;
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.table;
+import static org.jooq.impl.DSL.*;
 
 public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends Event, Meta, Context> implements EventStore<Tx, E, Meta, Context>, Closeable {
 
@@ -103,6 +96,11 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
             }
 
             @Override
+            public CompletionStage<Long> count(Function<DSLContext, ? extends ResultQuery<Record1<Long>>> queryFunction) {
+                return pgAsyncPool.queryOne(queryFunction).thenApply(opt -> opt.map(qr -> qr.get(0, Long.class)).getOrElse(0L));
+            }
+
+            @Override
             public CompletionStage<PgAsyncTransaction> begin() {
                 return pgAsyncPool.begin();
             }
@@ -120,6 +118,11 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
             @Override
             public CompletionStage<Integer> execute(Function<DSLContext, ? extends org.jooq.Query> queryFunction) {
                 return pgAsyncPool.execute(queryFunction);
+            }
+
+            @Override
+            public CompletionStage<Long> count(Function<DSLContext, ? extends ResultQuery<Record1<Long>>> queryFunction) {
+                return pgAsyncPool.queryOne(queryFunction).thenApply(opt -> opt.map(qr -> qr.get(0, Long.class)).getOrElse(0L));
             }
 
             @Override
@@ -201,6 +204,14 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
                         )))
                 .map(__ -> Tuple.empty())
                 .toFuture();
+    }
+
+    @Override
+    public CompletionStage<Long> lastPublishedSequence() {
+        return this.simpleDb.count(dsl -> dsl.
+                select(max(SEQUENCE_NUM))
+                .from(table(this.tableNames.tableName))
+                .where(PUBLISHED.eq(true)));
     }
 
     @Override
