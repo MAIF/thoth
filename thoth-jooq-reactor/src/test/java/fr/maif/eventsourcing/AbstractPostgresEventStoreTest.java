@@ -234,7 +234,7 @@ public abstract class AbstractPostgresEventStoreTest {
         initDatas();
         CompletionStage<java.util.List<EventEnvelope<VikingEvent, Void, Void>>> first = transactionSource().flatMapMany(t ->
                 Flux.from(postgresEventStore.loadEventsUnpublished(t, WAIT))
-                        .concatMap(elt -> Flux.interval(Duration.ofMillis(100), Duration.ofMillis(100)).map(__ -> elt).take(1))
+                        .concatMap(elt -> Mono.delay(Duration.ofMillis(120)).map(__ -> elt))
                         .concatMap(e -> Mono.fromCompletionStage(() -> postgresEventStore.markAsPublished(t, e).toCompletableFuture()).map(__ -> e))
                         .doFinally(it -> t.commit())
         ).collectList().toFuture();
