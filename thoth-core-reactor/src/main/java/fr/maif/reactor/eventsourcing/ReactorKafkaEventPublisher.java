@@ -172,31 +172,17 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
 
     static <T> Mono<T> fromCS(Supplier<CompletionStage<T>> cs) {
         return Mono.fromFuture(() -> cs.get().toCompletableFuture());
-//        return Mono.create(s ->
-//                cs.get().whenComplete((r, e) -> {
-//                    if (e != null) {
-//                        s.error(e);
-//                    } else {
-//                        s.success(r);
-//                    }
-//                })
-//        );
     }
 
     @Override
     public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
-//        LOGGER.debug("Publishing event in memory : \n{} ", events);
-//        return Mono.fromCallable(() -> {
-//            reactorQueue.offer(events);
-//            return Tuple.empty();
-//        }).publishOn(Schedulers.boundedElastic()).toFuture();
         return Flux
                 .fromIterable(events)
                 .map(t -> {
                         queue.tryEmitNext(t).orThrow();
                         return Tuple.empty();
                 })
-                .retryWhen(Retry.fixedDelay(50, Duration.ofMillis(2))
+                .retryWhen(Retry.fixedDelay(50, Duration.ofMillis(1))
                         .transientErrors(true)
                         .doBeforeRetry(ctx -> {
                             LOGGER.error("Error publishing events in memory queue for topic %s retrying for the %s time".formatted(topic, ctx.totalRetries() + 1), ctx.failure());

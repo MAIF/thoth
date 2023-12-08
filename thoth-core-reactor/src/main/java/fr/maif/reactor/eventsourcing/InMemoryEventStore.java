@@ -27,6 +27,8 @@ import java.util.function.Supplier;
 public class InMemoryEventStore<E extends Event, Meta, Context> implements EventStore<InMemoryEventStore.Transaction<E, Meta, Context>, E, Meta, Context> {
 
     ConcurrentHashMap<Long, EventEnvelope<E, Meta, Context>> store = new ConcurrentHashMap<>();
+
+    AtomicLong sequenceNums = new AtomicLong(0);
     private final Supplier<CompletionStage<Tuple0>> markAsPublishedTx;
     private final Supplier<CompletionStage<Tuple0>> markAsPublished;
 
@@ -45,6 +47,7 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
         this(NOOP, NOOP, events);
     }
 
+    @SafeVarargs
     public static <E extends Event, Meta, Context> InMemoryEventStore<E, Meta, Context> create(EventEnvelope<E, Meta, Context>... events) {
         return new InMemoryEventStore<>(events);
     }
@@ -97,22 +100,6 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
         });
     }
 
-//    @Override
-//    public CompletionStage<List<EventEnvelope<E, Meta, Context>>> markAsPublished(List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
-//        return markAsPublished.get().thenCompose(any -> {
-//                    return CompletableFuture.completedStage(eventEnvelopes.map(eventEnvelope -> {
-//                        return store.compute(eventEnvelope.sequenceNum, (k, event) -> {
-//                            if (event == null) {
-//                                return eventEnvelope.copy().withPublished(true).build();
-//                            } else {
-//                                return event.copy().withPublished(true).build();
-//                            }
-//                        });
-//                    }));
-//                }
-//        );
-//    }
-
     @Override
     public CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(EventEnvelope<E, Meta, Context> eventEnvelope) {
         return markAsPublished.get().thenCompose(any ->
@@ -148,7 +135,9 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
 
     @Override
     public CompletionStage<Long> nextSequence(InMemoryEventStore.Transaction<E, Meta, Context> tx) {
-        return CompletableFuture.completedStage(store.values().stream().map(e -> e.sequenceNum).max(Comparator.comparingLong(e -> e)).orElse(0L) + 1);
+        long value = store.values().stream().map(e -> e.sequenceNum).max(Comparator.comparingLong(e -> e)).orElse(0L) + 1;
+        sequenceNums.incrementAndGet();
+        return CompletableFuture.completedStage(sequenceNums.accumulateAndGet(value, Math::max));
     }
 
     @Override
