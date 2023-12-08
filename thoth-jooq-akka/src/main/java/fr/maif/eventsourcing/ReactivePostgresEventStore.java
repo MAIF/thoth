@@ -43,8 +43,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
 import static java.util.function.Function.identity;
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.table;
+import static org.jooq.impl.DSL.*;
 
 public class ReactivePostgresEventStore<E extends Event, Meta, Context> implements EventStore<PgAsyncTransaction, E, Meta, Context>, Closeable {
 
@@ -207,6 +206,15 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
                             return tmpQuery;
                     }
             })).map(this::rsToEnvelope).runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), system);
+    }
+
+    @Override
+    public CompletionStage<Long> lastPublishedSequence() {
+        return this.pgAsyncPool.queryOne(dsl -> dsl.
+                select(max(SEQUENCE_NUM).as("max"))
+                .from(table(this.tableNames.tableName))
+                .where(PUBLISHED.eq(true))
+        ).thenApply(mayBe -> mayBe.map(q -> q.get(0, Long.class)).getOrElse(0L));
     }
 
     @Override

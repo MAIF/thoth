@@ -18,6 +18,8 @@ import fr.maif.json.Json;
 import fr.maif.json.JsonRead;
 import fr.maif.json.JsonSchema;
 import fr.maif.json.JsonWrite;
+import fr.maif.reactor.eventsourcing.InMemoryEventStore;
+import fr.maif.reactor.eventsourcing.InMemoryEventStore.Transaction;
 import io.vavr.API;
 import io.vavr.Lazy;
 import io.vavr.Tuple;
@@ -301,10 +303,10 @@ public class Helpers {
         }
     }
 
-    public static class VikingCommandHandler implements CommandHandler<String, Viking, VikingCommand, VikingEvent, String, Tuple0> {
+    public static class VikingCommandHandler implements CommandHandler<String, Viking, VikingCommand, VikingEvent, String, Transaction<VikingEvent, Tuple0, Tuple0>> {
 
         @Override
-        public CompletionStage<Either<String, Events<VikingEvent, String>>> handleCommand(Tuple0 unit, Option<Viking> state, VikingCommand vikingCommand) {
+        public CompletionStage<Either<String, Events<VikingEvent, String>>> handleCommand(Transaction<VikingEvent, Tuple0, Tuple0> unit, Option<Viking> state, VikingCommand vikingCommand) {
             return CompletableFuture.completedStage(
                     Match(vikingCommand).of(
                             Case(VikingCommand.CreateVikingV1.pattern(), e -> events("C", new VikingEvent.VikingCreated(e.id, e.name, e.age))),
@@ -355,7 +357,7 @@ public class Helpers {
 
     }
 
-    public static class VikingSnapshot implements SnapshotStore<Viking, String, Tuple0> {
+    public static class VikingSnapshot implements SnapshotStore<Viking, String, Transaction<VikingEvent, Tuple0, Tuple0>> {
 
         public ConcurrentHashMap<String, Viking> data = new ConcurrentHashMap<>();
 
@@ -366,12 +368,12 @@ public class Helpers {
         }
 
         @Override
-        public CompletionStage<Option<Viking>> getSnapshot(Tuple0 transactionContext, String entityId) {
+        public CompletionStage<Option<Viking>> getSnapshot(Transaction<VikingEvent, Tuple0, Tuple0> transactionContext, String entityId) {
             return CompletableFuture.completedStage(Option.of(data.get(entityId)));
         }
 
         @Override
-        public CompletionStage<Tuple0> persist(Tuple0 transactionContext, String id, Option<Viking> state) {
+        public CompletionStage<Tuple0> persist(Transaction<VikingEvent, Tuple0, Tuple0> transactionContext, String id, Option<Viking> state) {
             Match(state).of(
                     Case($Some($()), s -> data.put(s.id, s)),
                     Case($None(), () -> data.remove(id))
@@ -380,11 +382,11 @@ public class Helpers {
         }
     }
 
-    public static class VikingProjection implements Projection<Tuple0, VikingEvent, Tuple0, Tuple0> {
+    public static class VikingProjection implements Projection<Transaction<VikingEvent, Tuple0, Tuple0>, VikingEvent, Tuple0, Tuple0> {
         public ConcurrentHashMap<String, Integer> data = new ConcurrentHashMap<>();
 
         @Override
-        public CompletionStage<Tuple0> storeProjection(Tuple0 unit, List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> events) {
+        public CompletionStage<Tuple0> storeProjection(Transaction<VikingEvent, Tuple0, Tuple0> unit, List<EventEnvelope<VikingEvent, Tuple0, Tuple0>> events) {
             events.forEach(event -> {
                 int i = data.getOrDefault(event.entityId, 0) + events.size();
                 data.put(event.entityId, i);

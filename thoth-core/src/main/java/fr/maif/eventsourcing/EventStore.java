@@ -15,6 +15,8 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
     CompletionStage<Tuple0> persist(TxCtx transactionContext, List<EventEnvelope<E, Meta, Context>> events);
 
+    CompletionStage<Long> lastPublishedSequence();
+
     Publisher<EventEnvelope<E, Meta, Context>> loadEventsUnpublished(TxCtx tx, ConcurrentReplayStrategy concurrentReplayStrategy);
 
     Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(TxCtx tx, Query query);

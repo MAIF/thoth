@@ -1,15 +1,7 @@
 package fr.maif.reactor.eventsourcing;
 
-import fr.maif.eventsourcing.AggregateStore;
-import fr.maif.eventsourcing.CommandHandler;
-import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventProcessorImpl;
-import fr.maif.eventsourcing.Events;
-import fr.maif.eventsourcing.ProcessingSuccess;
-import fr.maif.eventsourcing.Projection;
-import fr.maif.eventsourcing.TransactionManager;
-import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
-import fr.maif.reactor.eventsourcing.InMemoryEventStore;
+import fr.maif.eventsourcing.*;
+import fr.maif.reactor.eventsourcing.InMemoryEventStore.Transaction;
 import io.vavr.API;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
@@ -24,18 +16,13 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-import static fr.maif.Helpers.Viking;
-import static fr.maif.Helpers.VikingCommand;
-import static fr.maif.Helpers.VikingCommand.CreateViking;
-import static fr.maif.Helpers.VikingCommand.DeleteViking;
-import static fr.maif.Helpers.VikingCommand.UpdateViking;
-import static fr.maif.Helpers.VikingCommandHandler;
-import static fr.maif.Helpers.VikingEvent;
-import static fr.maif.Helpers.VikingEventHandler;
-import static fr.maif.Helpers.VikingProjection;
-import static fr.maif.Helpers.VikingSnapshot;
+import static fr.maif.Helpers.*;
+import static fr.maif.Helpers.VikingCommand.*;
 import static io.vavr.API.Some;
+import static org.assertj.core.api.Assertions.anyOf;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 public class EventProcessorTest {
 
@@ -46,7 +33,7 @@ public class EventProcessorTest {
         //Set up
         VikingSnapshot vikingSnapshot = new VikingSnapshot();
         InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create();
-        EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
+        var vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
 
         //Test
         Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new CreateViking("1", "ragnar", 30)).toCompletableFuture().join();
@@ -87,7 +74,7 @@ public class EventProcessorTest {
         //Set up
         InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create();
         VikingProjection projection = new VikingProjection();
-        EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessorWithProjection(inMemoryEventStore, List.of(projection));
+        var vikingEventProcessor = vikingEventProcessorWithProjection(inMemoryEventStore, List.of(projection));
 
         //Test
         Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new CreateViking("1", "ragnar", 30)).toCompletableFuture().join();
@@ -119,7 +106,7 @@ public class EventProcessorTest {
 
         assertThat(eventsFromJournal).containsExactly(expectedEnvelope);
 
-        assertThat(vikingEventProcessor.getAggregateStore().getAggregate(Tuple.empty(), "1").toCompletableFuture().join()).isEqualTo(Some(expected));
+        assertThat(vikingEventProcessor.getAggregateStore().getAggregate(Transaction.newTx(), "1").toCompletableFuture().join()).isEqualTo(Some(expected));
         Assertions.assertThat(projection.data.get("1")).isEqualTo(1);
     }
 
@@ -128,7 +115,7 @@ public class EventProcessorTest {
     public void twoCommandShouldGenerateEventAndPersistState() {
         VikingSnapshot vikingSnapshot = new VikingSnapshot();
         InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create();
-        EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
+        var vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
 
         vikingEventProcessor.processCommand(new VikingCommand.CreateViking("1", "ragnar", 30)).toCompletableFuture().join();
         Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new UpdateViking("1", "Ragnar Lodbrock", 30)).toCompletableFuture().join();
@@ -181,7 +168,7 @@ public class EventProcessorTest {
     public void createAndDeleteShouldGenerateEventAndPersistState() {
         VikingSnapshot vikingSnapshot = new VikingSnapshot();
         InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create();
-        EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
+        var vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
 
         vikingEventProcessor.processCommand(new VikingCommand.CreateViking("1", "ragnar", 30)).toCompletableFuture().join();
         Either<String, ProcessingSuccess<Viking, VikingEvent, Tuple0, Tuple0, String>> result = vikingEventProcessor.processCommand(new DeleteViking("1")).toCompletableFuture().join();
@@ -233,7 +220,7 @@ public class EventProcessorTest {
     public void multipleCommandsOnSameEntityOnSameBatch() {
         VikingSnapshot vikingSnapshot = new VikingSnapshot();
         InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore = InMemoryEventStore.create();
-        EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
+        var vikingEventProcessor = vikingEventProcessor(inMemoryEventStore, vikingSnapshot);
 
         var result = vikingEventProcessor.batchProcessCommand(API.List(
                 new VikingCommand.CreateViking("1", "ragnar", 30),
@@ -254,7 +241,7 @@ public class EventProcessorTest {
     }
 
 
-    private EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, VikingSnapshot vikingSnapshot) {
+    private EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Transaction<VikingEvent, Tuple0, Tuple0>, String, Tuple0, Tuple0> vikingEventProcessor(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, VikingSnapshot vikingSnapshot) {
         return new EventProcessorImpl<>(
                 inMemoryEventStore,
                 new FakeTransactionManager(),
@@ -266,7 +253,7 @@ public class EventProcessorTest {
     }
 
 
-    private EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessor(CommandHandler<String, Viking, VikingCommand, VikingEvent, String, Tuple0> commandHandler, InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, VikingSnapshot vikingSnapshot) {
+    private EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Transaction<VikingEvent, Tuple0, Tuple0>, String, Tuple0, Tuple0> vikingEventProcessor(CommandHandler<String, Viking, VikingCommand, VikingEvent, String, Transaction<VikingEvent, Tuple0, Tuple0>> commandHandler, InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, VikingSnapshot vikingSnapshot) {
         return new EventProcessorImpl<>(
                 inMemoryEventStore,
                 new FakeTransactionManager(),
@@ -277,7 +264,7 @@ public class EventProcessorTest {
         );
     }
 
-    private EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessorWithProjection(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, List<Projection<Tuple0, VikingEvent, Tuple0, Tuple0>> projections) {
+    private EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Transaction<VikingEvent, Tuple0, Tuple0>, String, Tuple0, Tuple0> vikingEventProcessorWithProjection(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, List<Projection<Transaction<VikingEvent, Tuple0, Tuple0>, VikingEvent, Tuple0, Tuple0>> projections) {
         VikingEventHandler vikingEventHandler = new VikingEventHandler();
         FakeTransactionManager fakeTransactionManager = new FakeTransactionManager();
         return new EventProcessorImpl<>(
@@ -291,7 +278,7 @@ public class EventProcessorTest {
     }
 
 
-    private EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Tuple0, String, Tuple0, Tuple0> vikingEventProcessorWithSnapshot(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, AggregateStore<Viking, String, Tuple0> aggregateStore, List<Projection<Tuple0, VikingEvent, Tuple0, Tuple0>> projections) {
+    private EventProcessorImpl<String, Viking, VikingCommand, VikingEvent, Transaction<VikingEvent, Tuple0, Tuple0>, String, Tuple0, Tuple0> vikingEventProcessorWithSnapshot(InMemoryEventStore<VikingEvent, Tuple0, Tuple0> inMemoryEventStore, AggregateStore<Viking, String, Transaction<VikingEvent, Tuple0, Tuple0>> aggregateStore, List<Projection<Transaction<VikingEvent, Tuple0, Tuple0>, VikingEvent, Tuple0, Tuple0>> projections) {
         return new EventProcessorImpl<>(
                 inMemoryEventStore,
                 new FakeTransactionManager(),
@@ -303,13 +290,14 @@ public class EventProcessorTest {
     }
 
 
-    public static class FakeTransactionManager implements TransactionManager<Tuple0> {
+    public static class FakeTransactionManager implements TransactionManager<Transaction<VikingEvent, Tuple0, Tuple0>> {
 
         private AtomicInteger counter = new AtomicInteger(0);
 
+
         @Override
-        public <T> CompletionStage<T> withTransaction(Function<Tuple0, CompletionStage<T>> callBack) {
-            return callBack.apply(Tuple.empty());
+        public <T> CompletionStage<T> withTransaction(Function<Transaction<VikingEvent, Tuple0, Tuple0>, CompletionStage<T>> callBack) {
+            return callBack.apply(new Transaction<>());
         }
 
         @Override
