@@ -106,7 +106,7 @@ public class EventProcessorTest {
 
         assertThat(eventsFromJournal).containsExactly(expectedEnvelope);
 
-        assertThat(vikingEventProcessor.getAggregateStore().getAggregate(any(), eq("1")).toCompletableFuture().join()).isEqualTo(Some(expected));
+        assertThat(vikingEventProcessor.getAggregateStore().getAggregate(Transaction.newTx(), "1").toCompletableFuture().join()).isEqualTo(Some(expected));
         Assertions.assertThat(projection.data.get("1")).isEqualTo(1);
     }
 
