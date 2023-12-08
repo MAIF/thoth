@@ -97,7 +97,7 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
 
             @Override
             public CompletionStage<Long> count(Function<DSLContext, ? extends ResultQuery<Record1<Long>>> queryFunction) {
-                return pgAsyncPool.queryOne(queryFunction).thenApply(opt -> opt.map(qr -> qr.get(0, Long.class)).getOrElse(0L));
+                return pgAsyncPool.queryOne(queryFunction).thenApply(opt -> opt.flatMap(qr -> Option.of(qr.get(0, Long.class))).getOrElse(0L));
             }
 
             @Override
@@ -122,7 +122,7 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
 
             @Override
             public CompletionStage<Long> count(Function<DSLContext, ? extends ResultQuery<Record1<Long>>> queryFunction) {
-                return pgAsyncPool.queryOne(queryFunction).thenApply(opt -> opt.map(qr -> qr.get(0, Long.class)).getOrElse(0L));
+                return pgAsyncPool.queryOne(queryFunction).thenApply(opt -> opt.flatMap(qr -> Option.of(qr.get(0, Long.class))).getOrElse(0L));
             }
 
             @Override
