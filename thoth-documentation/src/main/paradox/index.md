@@ -50,7 +50,7 @@ This documentation focuses on implementing event-sourcing on a simple use case :
 @@dependency[sbt,Maven,Gradle] {
     symbol="ThothVersion"
     value="$project.version.short$"
-    group="fr.maif" artifact="common-events" version="ThothVersion"
+    group="fr.maif" artifact="commons-events" version="ThothVersion"
     group2="fr.maif" artifact2="thoth-core-akka" version2="ThothVersion"
     group3="fr.maif" artifact3="thoth-core-reactor" version3="ThothVersion"
     group4="fr.maif" artifact4="thoth-jooq" version4="ThothVersion"
