@@ -266,7 +266,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                 .from(table(this.tableNames.tableName))
                 .where(PUBLISHED.eq(true))
                 .fetchAsync(executor)
-                .thenApply(r -> r.getValues("max", Long.class).stream().findFirst().orElse(0L));
+                .thenApply(r -> r.getValues("max", Long.class).stream().filter(Objects::nonNull).findFirst().orElse(0L));
     }
 
     @Override
