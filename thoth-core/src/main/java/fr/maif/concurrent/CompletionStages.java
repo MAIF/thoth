@@ -15,9 +15,20 @@ import static java.util.function.Function.identity;
 
 public class CompletionStages {
 
+    public static <U> CompletionStage<U> completedStage(U value) {
+        CompletableFuture<U> completableFuture = new CompletableFuture<>();
+        completableFuture.complete(value);
+        return completableFuture;
+    }
+    public static <U> CompletionStage<U> failedStage(Throwable e) {
+        CompletableFuture<U> completableFuture = new CompletableFuture<>();
+        completableFuture.completeExceptionally(e);
+        return completableFuture;
+    }
+
     public static <T, U> CompletionStage<List<U>> traverse(List<T> elements, Function<T, CompletionStage<U>> handler) {
         return elements.foldLeft(
-                CompletableFuture.completedStage(List.empty()),
+                completedStage(List.empty()),
                 (fResult, elt) ->
                         fResult.thenCompose(listResult -> handler.apply(elt).thenApply(listResult::append))
         );
@@ -25,44 +36,44 @@ public class CompletionStages {
 
     public static <T> CompletionStage<T> fromTry(Supplier<Try<T>> tryValue, Executor executor) {
         return CompletableFuture.supplyAsync(() -> tryValue.get().fold(
-                CompletableFuture::<T>failedStage,
-                CompletableFuture::completedStage
+                CompletionStages::<T>failedStage,
+                CompletionStages::completedStage
         ), executor).thenCompose(identity());
     }
 
     public static <T> CompletionStage<T> fromTry(Supplier<Try<T>> tryValue) {
         return CompletableFuture.supplyAsync(() -> tryValue.get().fold(
-                CompletableFuture::<T>failedStage,
-                CompletableFuture::completedStage
+                CompletionStages::<T>failedStage,
+                CompletionStages::completedStage
         )).thenCompose(identity());
     }
 
     public static <T> CompletionStage<T> of(Supplier<T> tryValue, Executor executor) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return CompletableFuture.completedStage(tryValue.get());
+                return completedStage(tryValue.get());
             } catch (Exception e) {
-                return CompletableFuture.<T>failedStage(e);
+                return CompletionStages.<T>failedStage(e);
             }
         }, executor).thenCompose(identity());
     }
     public static <T> CompletionStage<T> of(Supplier<T> tryValue) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return CompletableFuture.completedStage(tryValue.get());
+                return completedStage(tryValue.get());
             } catch (Exception e) {
-                return CompletableFuture.<T>failedStage(e);
+                return CompletionStages.<T>failedStage(e);
             }
         }).thenCompose(identity());
     }
 
     public static <S> CompletionStage<S> successful(S value) {
-        return CompletableFuture.completedStage(value);
+        return completedStage(value);
     }
     public static <S> CompletionStage<S> failed(Throwable e) {
-        return CompletableFuture.failedStage(e);
+        return CompletionStages.failedStage(e);
     }
     public static CompletionStage<Tuple0> empty() {
-        return CompletableFuture.completedStage(Tuple.empty());
+        return completedStage(Tuple.empty());
     }
 }

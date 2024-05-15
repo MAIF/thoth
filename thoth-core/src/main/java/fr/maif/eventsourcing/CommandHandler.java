@@ -1,13 +1,11 @@
 package fr.maif.eventsourcing;
 
+import fr.maif.concurrent.CompletionStages;
 import io.vavr.Tuple0;
-import io.vavr.Tuple2;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -33,11 +31,11 @@ public interface CommandHandler<Error, State, Command, E extends Event, Message,
     CompletionStage<Either<Error, Events<E, Message>>> handleCommand(TxCtx ctx, Option<State> state, Command command);
 
     default CompletionStage<Either<Error, Events<E, Tuple0>>> eventsAsync(E... events) {
-        return CompletableFuture.completedStage(Either.right(Events.events(List.of(events))));
+        return CompletionStages.completedStage(Either.right(Events.events(List.of(events))));
     }
 
     default CompletionStage<Either<Error, Events<E, Message>>> eventsAsync(Message message, E... events) {
-        return CompletableFuture.completedStage(Either.right(Events.events(message, List.of(events))));
+        return CompletionStages.completedStage(Either.right(Events.events(message, List.of(events))));
     }
 
     default Either<Error, Events<E, Tuple0>> events(E... events) {
@@ -53,7 +51,7 @@ public interface CommandHandler<Error, State, Command, E extends Event, Message,
     }
 
     default CompletionStage<Either<Error, Events<E, Message>>> failAsync(Error error) {
-        return CompletableFuture.completedStage(Either.left(error));
+        return CompletionStages.completedStage(Either.left(error));
     }
 
 }

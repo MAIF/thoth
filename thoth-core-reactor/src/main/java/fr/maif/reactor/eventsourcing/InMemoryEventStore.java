@@ -32,7 +32,7 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
     private final Supplier<CompletionStage<Tuple0>> markAsPublishedTx;
     private final Supplier<CompletionStage<Tuple0>> markAsPublished;
 
-    private final static Supplier<CompletionStage<Tuple0>> NOOP = () -> CompletableFuture.completedStage(Tuple.empty());
+    private final static Supplier<CompletionStage<Tuple0>> NOOP = () -> CompletionStages.completedStage(Tuple.empty());
 
     public InMemoryEventStore(Supplier<CompletionStage<Tuple0>> markAsPublishedTx,
                               Supplier<CompletionStage<Tuple0>> markAsPublished,
@@ -84,26 +84,26 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
                 max.accumulateAndGet(k.sequenceNum, Math::max);
             }
         });
-        return CompletableFuture.completedStage(max.get());
+        return CompletionStages.completedStage(max.get());
     }
 
     @Override
     public CompletionStage<Transaction<E, Meta, Context>> openTransaction() {
-        return CompletableFuture.completedStage(new Transaction<>());
+        return CompletionStages.completedStage(new Transaction<>());
     }
 
     @Override
     public CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(Transaction<E, Meta, Context> tx, EventEnvelope<E, Meta, Context> eventEnvelope) {
         return markAsPublishedTx.get().thenCompose(any -> {
             tx.toPublish().add(eventEnvelope);
-            return CompletableFuture.completedStage(eventEnvelope);
+            return CompletionStages.completedStage(eventEnvelope);
         });
     }
 
     @Override
     public CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(EventEnvelope<E, Meta, Context> eventEnvelope) {
         return markAsPublished.get().thenCompose(any ->
-                CompletableFuture.completedStage(store.compute(eventEnvelope.sequenceNum, (k, event) -> {
+                CompletionStages.completedStage(store.compute(eventEnvelope.sequenceNum, (k, event) -> {
                     if (event == null) {
                         return eventEnvelope.copy().withPublished(true).build();
                     } else {
@@ -115,7 +115,7 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
 
     @Override
     public CompletionStage<Tuple0> persist(Transaction<E, Meta, Context> transactionContext, List<EventEnvelope<E, Meta, Context>> events) {
-        return CompletableFuture.completedStage(transactionContext.addAll(events.toJavaList()));
+        return CompletionStages.completedStage(transactionContext.addAll(events.toJavaList()));
     }
 
     @Override
@@ -130,20 +130,20 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
         }
         tx.events.clear();
         tx.toPublish.clear();
-        return CompletableFuture.completedStage(API.Tuple());
+        return CompletionStages.completedStage(API.Tuple());
     }
 
     @Override
     public CompletionStage<Long> nextSequence(InMemoryEventStore.Transaction<E, Meta, Context> tx) {
         long value = store.values().stream().map(e -> e.sequenceNum).max(Comparator.comparingLong(e -> e)).orElse(0L) + 1;
         sequenceNums.incrementAndGet();
-        return CompletableFuture.completedStage(sequenceNums.accumulateAndGet(value, Math::max));
+        return CompletionStages.completedStage(sequenceNums.accumulateAndGet(value, Math::max));
     }
 
     @Override
     public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
         events.forEach(e -> store.put(e.sequenceNum, e));
-        return CompletableFuture.completedStage(API.Tuple());
+        return CompletionStages.completedStage(API.Tuple());
     }
 
     @Override

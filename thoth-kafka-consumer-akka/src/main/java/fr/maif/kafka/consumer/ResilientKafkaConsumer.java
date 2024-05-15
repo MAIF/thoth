@@ -254,12 +254,25 @@ public abstract class ResilientKafkaConsumer<K, V> {
         this.consumerSettings = config.consumerSettings
                 .withGroupId(config.groupId)
                 .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-        this.onStarted = defaultIfNull(config.onStarted, (__, ___) -> CompletableFuture.completedFuture(done()));
-        this.onStarting = defaultIfNull(config.onStarting, () -> CompletableFuture.completedFuture(done()));
-        this.onStopped = defaultIfNull(config.onStopped, () -> CompletableFuture.completedFuture(done()));
-        this.onStopping = defaultIfNull(config.onStopping, (__) -> CompletableFuture.completedFuture(done()));
-        this.onFailed = defaultIfNull(config.onFailed, (__) -> CompletableFuture.completedFuture(done()));
+        this.onStarted = defaultIfNull(config.onStarted, (__, ___) -> completedStage(done()));
+        this.onStarting = defaultIfNull(config.onStarting, () -> completedStage(done()));
+        this.onStopped = defaultIfNull(config.onStopped, () -> completedStage(done()));
+        this.onStopping = defaultIfNull(config.onStopping, (__) -> completedStage(done()));
+        this.onFailed = defaultIfNull(config.onFailed, (__) -> completedStage(done()));
         this.start();
+    }
+
+
+    public static <U> CompletionStage<U> completedStage(U value) {
+        CompletableFuture<U> completableFuture = new CompletableFuture<>();
+        completableFuture.complete(value);
+        return completableFuture;
+    }
+
+    public static <U> CompletionStage<U> failedStage(Throwable e) {
+        CompletableFuture<U> completableFuture = new CompletableFuture<>();
+        completableFuture.completeExceptionally(e);
+        return completableFuture;
     }
 
     public static <K, V> ResilientKafkaConsumer<K, V> createFromFlow(ActorSystem actorSystem,
@@ -487,7 +500,7 @@ public abstract class ResilientKafkaConsumer<K, V> {
                     .thenCompose(___ -> control.isShutdown())
                     .thenApply(__ -> done());
         } else {
-            return CompletableFuture.completedFuture(done());
+            return completedStage(done());
         }
     }
 }

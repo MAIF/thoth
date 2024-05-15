@@ -156,7 +156,7 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
 
     public CompletionStage<List<Tuple3<C, Option<S>, Either<Error, Events<E, Message>>>>> traverseCommands(List<C> elements, BiFunction<C, List<E>, CompletionStage<Tuple3<C, Option<S>, Either<Error, Events<E, Message>>>>> handler) {
         return elements.foldLeft(
-                CompletableFuture.completedStage(Tuple(List.<Tuple3<C, Option<S>, Either<Error, Events<E, Message>>>>empty(), List.<Events<E, Message>>empty())),
+                CompletionStages.completedStage(Tuple(List.<Tuple3<C, Option<S>, Either<Error, Events<E, Message>>>>empty(), List.<Events<E, Message>>empty())),
                 (fResult, elt) ->
                         fResult.thenCompose(listResult -> handler.apply(elt, listResult._2.flatMap(e -> e.events))
                                 .thenApply(r ->

@@ -6,6 +6,7 @@ import akka.japi.Pair;
 import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.*;
+import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventPublisher;
@@ -58,7 +59,7 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
 
     @Override
     public CompletionStage<Long> lastPublishedSequence() {
-        return CompletableFuture.completedStage(eventStore.stream().filter(e -> e.published).map(e -> e.sequenceNum)
+        return CompletionStages.completedStage(eventStore.stream().filter(e -> e.published).map(e -> e.sequenceNum)
                 .max(Comparator.comparingLong(e -> e))
                 .orElse(0L));
     }
@@ -75,7 +76,7 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
 
     @Override
     public CompletionStage<Tuple0> openTransaction() {
-        return CompletableFuture.completedStage(Tuple.empty());
+        return CompletionStages.empty();
     }
 
     @Override
@@ -85,14 +86,14 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
 
     @Override
     public CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(EventEnvelope<E, Meta, Context> eventEnvelope) {
-        return CompletableFuture.completedStage(
+        return CompletionStages.completedStage(
                 eventEnvelope.copy().withPublished(true).build()
         );
     }
 
     @Override
     public CompletionStage<Long> nextSequence(Tuple0 tx) {
-        return CompletableFuture.completedStage(sequence_num.incrementAndGet());
+        return CompletionStages.completedStage(sequence_num.incrementAndGet());
     }
 
     @Override

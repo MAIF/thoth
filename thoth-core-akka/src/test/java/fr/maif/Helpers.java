@@ -254,7 +254,7 @@ public class Helpers {
 
         @Override
         public CompletionStage<Either<String, Events<VikingEvent, String>>> handleCommand(Tuple0 unit, Option<Viking> state, VikingCommand vikingCommand) {
-            return CompletableFuture.completedStage(
+            return CompletionStages.completedStage(
                     Match(vikingCommand).of(
                             Case(VikingCommand.CreateVikingV1.pattern(), e -> events("C", new VikingEvent.VikingCreated(e.id, e.name))),
                             Case(VikingCommand.UpdateVikingV1.pattern(), e -> events("U", new VikingEvent.VikingUpdated(e.id, e.name))),
@@ -307,12 +307,12 @@ public class Helpers {
 
         @Override
         public CompletionStage<Option<Viking>> getSnapshot(String entityId) {
-            return CompletableFuture.completedStage(Option.of(data.get(entityId)));
+            return CompletionStages.completedStage(Option.of(data.get(entityId)));
         }
 
         @Override
         public CompletionStage<Option<Viking>> getSnapshot(Tuple0 transactionContext, String entityId) {
-            return CompletableFuture.completedStage(Option.of(data.get(entityId)));
+            return CompletionStages.completedStage(Option.of(data.get(entityId)));
         }
 
         @Override
@@ -321,7 +321,7 @@ public class Helpers {
                     Case($Some($()), s -> data.put(s.id, s)),
                     Case($None(), () -> data.remove(id))
             );
-            return CompletableFuture.completedStage(Tuple.empty());
+            return CompletionStages.completedStage(Tuple.empty());
         }
     }
 
