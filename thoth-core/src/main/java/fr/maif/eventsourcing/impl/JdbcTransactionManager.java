@@ -49,12 +49,12 @@ public class JdbcTransactionManager implements TransactionManager<Connection> {
                         .thenCompose(r -> commit(connection).thenApply(__ -> r))
                         .exceptionallyCompose(e -> {
                             LOGGER.error("Error, rollbacking, {}", e);
-                            return rollback(connection).thenCompose(__ -> CompletableFuture.<T>failedStage(e));
+                            return rollback(connection).thenCompose(__ -> CompletionStages.<T>failedStage(e));
                         })
                         .thenCompose(r -> closeConnection(connection).thenApply(__ -> r))
                         .exceptionallyCompose(e -> {
                             LOGGER.error("Error, closing connection, {}", e);
-                            return closeConnection(connection).thenCompose(__ -> CompletableFuture.<T>failedStage(e));
+                            return closeConnection(connection).thenCompose(__ -> CompletionStages.<T>failedStage(e));
                         })
                 );
     }

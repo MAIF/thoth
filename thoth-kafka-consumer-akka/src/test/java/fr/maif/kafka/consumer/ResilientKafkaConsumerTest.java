@@ -146,7 +146,7 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
                                 return completableFuture;
                             } else {
                                 names.set(names.get() + " " + messageAndIndex.first().record().value());
-                                return CompletableFuture.completedFuture(messageAndIndex.first().committableOffset());
+                                return CompletableFuture.completedStage(messageAndIndex.first().committableOffset());
                             }
                         })
         );
