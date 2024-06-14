@@ -76,6 +76,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
         public final Long sequenceFrom;
         public final Long sequenceTo;
         public final Boolean published;
+        public final Boolean shouldLockEntity;
 
         private Query(Query.Builder builder) {
             this.dateFrom = builder.dateFrom;
@@ -87,6 +88,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
             this.published = builder.published;
             this.sequenceFrom = builder.sequenceFrom;
             this.sequenceTo = builder.sequenceTo;
+            this.shouldLockEntity = builder.shouldLockEntity;
         }
 
         public static Builder builder() {
@@ -156,6 +158,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
             Boolean published;
             Long sequenceFrom;
             Long sequenceTo;
+            Boolean shouldLockEntity;
 
             public Builder withDateFrom(LocalDateTime dateFrom) {
                 this.dateFrom = dateFrom;
@@ -199,6 +202,12 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
             public Builder withSequenceTo(Long sequenceTo) {
                 this.sequenceTo = sequenceTo;
+                return this;
+            }
+
+
+            public Builder withShouldLockEntity(Boolean shouldLockEntity) {
+                this.shouldLockEntity = shouldLockEntity;
                 return this;
             }
 

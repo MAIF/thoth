@@ -370,6 +370,10 @@ public class PostgresKafkaEventProcessorBuilder {
         }
 
         public BuilderWithAggregateStore<S, E, Meta, Context> withDefaultAggregateStore() {
+            return this.withDefaultAggregateStore(false);
+        }
+
+        public BuilderWithAggregateStore<S, E, Meta, Context> withDefaultAggregateStore(boolean shouldLockEntityForUpdate) {
             return new BuilderWithAggregateStore<>(
                     
                     dataSource,
@@ -382,7 +386,7 @@ public class PostgresKafkaEventProcessorBuilder {
                     concurrentReplayStrategy,
                     eventStore,
                     eventHandler,
-                    new DefaultAggregateStore<>(eventStore, eventHandler, transactionManager));
+                    new DefaultAggregateStore<>(eventStore, eventHandler, transactionManager, shouldLockEntityForUpdate));
         }
     }
 
