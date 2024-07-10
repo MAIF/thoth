@@ -2,6 +2,7 @@ package fr.maif.eventsourcing;
 
 import fr.maif.concurrent.CompletionStages;
 import io.vavr.Tuple0;
+import io.vavr.Tuple2;
 import io.vavr.Value;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
@@ -76,6 +77,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
         public final Long sequenceFrom;
         public final Long sequenceTo;
         public final Boolean published;
+        public final List<Tuple2<String, Long>> idsAndSequences;
 
         private Query(Query.Builder builder) {
             this.dateFrom = builder.dateFrom;
@@ -87,6 +89,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
             this.published = builder.published;
             this.sequenceFrom = builder.sequenceFrom;
             this.sequenceTo = builder.sequenceTo;
+            this.idsAndSequences = Objects.requireNonNullElse(builder.idsAndSequences, List.empty());
         }
 
         public static Builder builder() {
@@ -125,6 +128,10 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
             return Option.of(sequenceTo);
         }
 
+        public List<Tuple2<String, Long>> idsAndSequences() {
+            return idsAndSequences;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -156,6 +163,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
             Boolean published;
             Long sequenceFrom;
             Long sequenceTo;
+            List<Tuple2<String, Long>> idsAndSequences;
 
             public Builder withDateFrom(LocalDateTime dateFrom) {
                 this.dateFrom = dateFrom;
@@ -199,6 +207,10 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
             public Builder withSequenceTo(Long sequenceTo) {
                 this.sequenceTo = sequenceTo;
+                return this;
+            }
+            public Builder withIdsAndSequences(List<Tuple2<String, Long>> idsAndSequences) {
+                this.idsAndSequences = idsAndSequences;
                 return this;
             }
 
