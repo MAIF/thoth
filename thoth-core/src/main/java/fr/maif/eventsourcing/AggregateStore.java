@@ -3,6 +3,7 @@ package fr.maif.eventsourcing;
 import fr.maif.concurrent.CompletionStages;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
+import io.vavr.collection.HashMap;
 import io.vavr.collection.List;
 import io.vavr.collection.Map;
 import io.vavr.control.Option;
@@ -13,7 +14,10 @@ public interface AggregateStore<S extends State<S>, Id, TxCtx> {
 
     CompletionStage<Option<S>> getAggregate(Id entityId);
 
-    CompletionStage<Map<String, Option<S>>> getAggregates(TxCtx ctx, List<String> entityIds);
+    default CompletionStage<Map<Id, Option<S>>> getAggregates(TxCtx ctx, List<Id> entityIds) {
+        return CompletionStages.traverse(entityIds, id -> getAggregate(ctx, id).thenApply(agg -> Tuple.of(id, agg)))
+                .thenApply(HashMap::ofEntries);
+    }
 
     CompletionStage<Option<S>> getAggregate(TxCtx ctx, Id entityId);
 

@@ -346,6 +346,11 @@ public class Helpers {
         }
 
         @Override
+        public String entityId() {
+            return id;
+        }
+
+        @Override
         public Viking withSequenceNum(Long sequenceNum) {
             this.sequenceNum = sequenceNum;
             return this;

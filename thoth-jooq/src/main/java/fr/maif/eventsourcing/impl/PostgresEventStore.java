@@ -308,7 +308,10 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                 query.userId().map(d -> field(" user_id").eq(d)),
                 query.published().map(d -> field(" published").eq(d)),
                 query.sequenceTo().map(d -> field(" sequence_num").lessOrEqual(d)),
-                query.sequenceFrom().map(d -> field(" sequence_num").greaterOrEqual(d))
+                query.sequenceFrom().map(d -> field(" sequence_num").greaterOrEqual(d)),
+                Option.of(query.idsAndSequences()).filter(Traversable::nonEmpty).map(l ->
+                        l.map(t -> field(" sequence_num").greaterOrEqual(t._2).and(field(" entity_id").eq(t._1))).reduce(Condition::or)
+                )
         ).flatMap(identity());
 
         var tmpJooqQuery = DSL.using(tx)

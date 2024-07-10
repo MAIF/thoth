@@ -15,6 +15,11 @@ public class Account extends AbstractState<Account> {
     }
 
     @Override
+    public String entityId() {
+        return id;
+    }
+
+    @Override
     public Account withSequenceNum(Long sequenceNum) {
         this.sequenceNum = sequenceNum;
         return this;
