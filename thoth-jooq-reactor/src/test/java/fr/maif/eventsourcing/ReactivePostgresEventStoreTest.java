@@ -21,11 +21,11 @@ public class ReactivePostgresEventStoreTest extends AbstractPostgresEventStoreTe
 
         PoolOptions poolOptions = new PoolOptions().setMaxSize(30);
         PgConnectOptions options = new PgConnectOptions()
-                .setPort(port)
+                .setPort(port())
                 .setHost("localhost")
-                .setDatabase(database)
-                .setUser(user)
-                .setPassword(password);
+                .setDatabase(database())
+                .setUser(user())
+                .setPassword(password());
         PgPool client = PgPool.pool(Vertx.vertx(), options, poolOptions);
         return new ReactivePgAsyncPool(client, jooqConfig);
     }
