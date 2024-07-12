@@ -34,6 +34,8 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
     CompletionStage<Long> nextSequence(TxCtx tx);
 
+    CompletionStage<List<Long>> nextSequences(TxCtx tx, Integer count);
+
     CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events);
 
     CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(TxCtx tx, EventEnvelope<E, Meta, Context> eventEnvelope);

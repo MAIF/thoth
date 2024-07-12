@@ -33,6 +33,7 @@ import reactor.core.scheduler.Schedulers;
 import javax.sql.DataSource;
 import java.io.Closeable;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -216,6 +217,14 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
         return CompletionStages.fromTry(() -> Try.of(() ->
                 DSL.using(tx).nextval(name(this.tableNames.sequenceNumName)).longValue()
         ), executor);
+    }
+
+    @Override
+    public CompletionStage<List<Long>> nextSequences(Connection tx, Integer count) {
+        return CompletionStages.fromTry(() -> Try.of(() -> {
+            DSLContext ctx = using(tx);
+            return List.ofAll(ctx.fetchValues(sequence(name(this.tableNames.sequenceNumName)).nextvals(count))).map(BigInteger::longValue);
+        }), executor);
     }
 
     @Override

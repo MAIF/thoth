@@ -291,6 +291,13 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
     }
 
     @Override
+    public CompletionStage<List<Long>> nextSequences(PgAsyncTransaction tx, Integer count) {
+        return tx.query(dsl ->
+                dsl.resultQuery("select nextval('" + this.tableNames.sequenceNumName + "') from generate_series(1, {0})", count)
+        ).thenApply(mayBeResult -> mayBeResult.map(r -> r.get(0, Long.class)));
+    }
+
+    @Override
     public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
         LOGGER.debug("Publishing event {}", events);
         return this.eventPublisher.publish(events);

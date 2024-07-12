@@ -175,9 +175,11 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
     CompletionStage<List<EventEnvelope<E, Meta, Context>>> buildEnvelopes(TxCtx tx, C command, List<E> events) {
         String transactionId = transactionManager.transactionId();
         int nbMessages = events.length();
-        return traverse(events.zipWithIndex(),
-                t -> buildEnvelope(tx, command, t._1, t._2, nbMessages, transactionId)
-        ).thenApply(Value::toList);
+        return eventStore.nextSequences(tx, events.size()).thenApply(s ->
+                events.zip(s).zipWithIndex().map(t ->
+                        buildEnvelope(tx, command, t._1._1, t._1._2, t._2, nbMessages, transactionId)
+                )
+        );
     }
 
     private CompletionStage<Either<Error, Events<E, Message>>> handleCommand(TxCtx txCtx, Option<S> state, C command) {
@@ -193,32 +195,29 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
         }
     }
 
-    private CompletionStage<EventEnvelope<E, Meta, Context>> buildEnvelope(TxCtx tx, Command<Meta, Context> command, E event, Integer numMessage, Integer nbMessages, String transactionId) {
+    private EventEnvelope<E, Meta, Context> buildEnvelope(TxCtx tx, Command<Meta, Context> command, E event, Long nextSequence, Integer numMessage, Integer nbMessages, String transactionId) {
         LOGGER.debug("Writing event {} to envelope", event);
-
 
         UUID id = UUIDgen.generate();
 
-        return eventStore.nextSequence(tx).thenApply(nextSequence -> {
-            EventEnvelope.Builder<E, Meta, Context> builder = EventEnvelope.<E, Meta, Context>builder()
-                    .withId(id)
-                    .withEmissionDate(LocalDateTime.now())
-                    .withEntityId(event.entityId())
-                    .withSequenceNum(nextSequence)
-                    .withEventType(event.type().name())
-                    .withVersion(event.type().version())
-                    .withTotalMessageInTransaction(nbMessages)
-                    .withNumMessageInTransaction(numMessage + 1)
-                    .withTransactionId(transactionId)
-                    .withEvent(event);
+        EventEnvelope.Builder<E, Meta, Context> builder = EventEnvelope.<E, Meta, Context>builder()
+                .withId(id)
+                .withEmissionDate(LocalDateTime.now())
+                .withEntityId(event.entityId())
+                .withSequenceNum(nextSequence)
+                .withEventType(event.type().name())
+                .withVersion(event.type().version())
+                .withTotalMessageInTransaction(nbMessages)
+                .withNumMessageInTransaction(numMessage + 1)
+                .withTransactionId(transactionId)
+                .withEvent(event);
 
-            command.context().forEach(builder::withContext);
-            command.userId().forEach(builder::withUserId);
-            command.systemId().forEach(builder::withSystemId);
-            command.metadata().forEach(builder::withMetadata);
+        command.context().forEach(builder::withContext);
+        command.userId().forEach(builder::withUserId);
+        command.systemId().forEach(builder::withSystemId);
+        command.metadata().forEach(builder::withMetadata);
 
-            return builder.build();
-        });
+        return builder.build();
     }
 
     @Override

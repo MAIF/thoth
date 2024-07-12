@@ -171,6 +171,12 @@ public abstract class AbstractPostgresEventStoreTest {
 
     }
 
+    @Test
+    public void nextSequences() {
+        List<Long> seq = inTransaction(ctx -> postgresEventStore.nextSequences(ctx, 5)).toCompletableFuture().join();
+        assertThat(seq).hasSize(5);
+    }
+
     protected  <T> CompletionStage<T> inTransaction(Function<PgAsyncTransaction, CompletionStage<T>> action) {
         return pgAsyncPool.inTransaction(action);
     }

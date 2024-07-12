@@ -141,6 +141,11 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
     }
 
     @Override
+    public CompletionStage<List<Long>> nextSequences(InMemoryEventStore.Transaction<E, Meta, Context> tx, Integer count) {
+        return CompletionStages.traverse(List.range(0, count), c -> nextSequence(tx));
+    }
+
+    @Override
     public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
         events.forEach(e -> store.put(e.sequenceNum, e));
         return CompletionStages.completedStage(API.Tuple());

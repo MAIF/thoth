@@ -1,8 +1,10 @@
 package fr.maif.eventsourcing;
 
+import fr.maif.concurrent.CompletionStages;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
+import io.vavr.collection.Map;
 import io.vavr.control.Option;
 import reactor.core.publisher.Mono;
 
@@ -14,12 +16,18 @@ public interface ReactorAggregateStore<S extends State<S>, Id, TxCtx> {
 
     Mono<Option<S>> getAggregate(TxCtx ctx, Id entityId);
 
+    Mono<Map<Id, Option<S>>> getAggregates(TxCtx ctx, List<Id> entityIds);
+
     default Mono<Tuple0> storeSnapshot(TxCtx transactionContext, Id id, Option<S> state) {
         return Mono.just(Tuple.empty());
     }
 
     default Mono<Option<S>> getSnapshot(TxCtx transactionContext, Id id) {
         return Mono.just(Option.none());
+    }
+
+    default Mono<List<S>> getSnapshots(TxCtx transactionContext, List<Id> ids) {
+        return Mono.just(List.empty());
     }
 
     default <E extends Event> Mono<Option<S>> buildAggregateAndStoreSnapshot(TxCtx ctx, EventHandler<S, E> eventHandler, Option<S> state, Id id, List<E> events, Option<Long> lastSequenceNum) {
@@ -45,6 +53,11 @@ public interface ReactorAggregateStore<S extends State<S>, Id, TxCtx> {
             public CompletionStage<Option<S>> getAggregate(TxCtx txCtx, Id entityId) {
                 return _this.getAggregate(txCtx, entityId).toFuture();
             }
+
+            @Override
+            public CompletionStage<Map<Id, Option<S>>> getAggregates(TxCtx txCtx, List<Id> entityIds) {
+                return _this.getAggregates(txCtx, entityIds).toFuture();
+            }
         };
     }
 
@@ -60,6 +73,11 @@ public interface ReactorAggregateStore<S extends State<S>, Id, TxCtx> {
             @Override
             public Mono<Option<S>> getAggregate(TxCtx txCtx, Id entityId) {
                 return Mono.fromCompletionStage(() -> aggregateStore.getAggregate(txCtx, entityId));
+            }
+
+            @Override
+            public Mono<Map<Id, Option<S>>> getAggregates(TxCtx txCtx, List<Id> entityIds) {
+                return Mono.fromCompletionStage(() -> aggregateStore.getAggregates(txCtx, entityIds));
             }
         };
     }
