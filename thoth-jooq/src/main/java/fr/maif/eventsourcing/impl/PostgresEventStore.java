@@ -319,7 +319,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                 query.sequenceTo().map(d -> field(" sequence_num").lessOrEqual(d)),
                 query.sequenceFrom().map(d -> field(" sequence_num").greaterOrEqual(d)),
                 Option.of(query.idsAndSequences()).filter(Traversable::nonEmpty).map(l ->
-                        l.map(t -> field(" sequence_num").greaterOrEqual(t._2).and(field(" entity_id").eq(t._1))).reduce(Condition::or)
+                        l.map(t -> field(" sequence_num").greaterThan(t._2).and(field(" entity_id").eq(t._1))).reduce(Condition::or)
                 )
         ).flatMap(identity());
 

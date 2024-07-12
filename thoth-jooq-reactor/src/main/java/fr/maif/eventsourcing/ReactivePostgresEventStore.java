@@ -263,7 +263,7 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
                 query.sequenceTo().map(SEQUENCE_NUM::le),
                 query.sequenceFrom().map(SEQUENCE_NUM::ge),
                 Option.of(query.idsAndSequences()).filter(Traversable::nonEmpty).map(l ->
-                    l.map(t -> SEQUENCE_NUM.ge(t._2).and(ENTITY_ID.eq(t._1))).reduce(Condition::or)
+                    l.map(t -> SEQUENCE_NUM.gt(t._2).and(ENTITY_ID.eq(t._1))).reduce(Condition::or)
                 )
         ).flatMap(identity());
 
