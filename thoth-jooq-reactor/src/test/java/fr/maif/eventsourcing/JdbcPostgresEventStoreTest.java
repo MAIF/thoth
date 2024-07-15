@@ -16,9 +16,9 @@ public class JdbcPostgresEventStoreTest extends AbstractPostgresEventStoreTest {
         jooqConfig.setSQLDialect(SQLDialect.POSTGRES);
 
         PGSimpleDataSource pgSimpleDataSource = new PGSimpleDataSource();
-        pgSimpleDataSource.setUrl("jdbc:postgresql://"+host+":"+port+"/"+database);
-        pgSimpleDataSource.setUser(user);
-        pgSimpleDataSource.setPassword(password);
+        pgSimpleDataSource.setUrl("jdbc:postgresql://"+host()+":"+port()+"/"+database());
+        pgSimpleDataSource.setUser(user());
+        pgSimpleDataSource.setPassword(password());
 
         return new JdbcPgAsyncPool(SQLDialect.POSTGRES, pgSimpleDataSource, Executors.newFixedThreadPool(3));
     }

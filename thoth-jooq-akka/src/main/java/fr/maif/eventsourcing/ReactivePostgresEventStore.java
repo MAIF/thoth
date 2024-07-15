@@ -21,6 +21,7 @@ import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.collection.Seq;
+import io.vavr.collection.Traversable;
 import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
@@ -228,7 +229,10 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
                 query.userId().map(USER_ID::eq),
                 query.published().map(PUBLISHED::eq),
                 query.sequenceTo().map(SEQUENCE_NUM::le),
-                query.sequenceFrom().map(SEQUENCE_NUM::ge)
+                query.sequenceFrom().map(SEQUENCE_NUM::ge),
+                Option.of(query.idsAndSequences()).filter(Traversable::nonEmpty).map(l ->
+                        l.map(t -> SEQUENCE_NUM.gt(t._2).and(ENTITY_ID.eq(t._1))).reduce(Condition::or)
+                )
         ).flatMap(identity());
 
         return Source.fromPublisher(tx.stream(500, dsl -> {
@@ -284,6 +288,13 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
         return tx.queryOne(dsl ->
                 dsl.resultQuery("select nextval('" + this.tableNames.sequenceNumName + "')")
         ).thenApply(mayBeResult -> mayBeResult.map(r -> r.get(0, Long.class)).getOrNull());
+    }
+
+    @Override
+    public CompletionStage<List<Long>> nextSequences(PgAsyncTransaction tx, Integer count) {
+        return tx.query(dsl ->
+                dsl.resultQuery("select nextval('" + this.tableNames.sequenceNumName + "') from generate_series(1, {0})", count)
+        ).thenApply(mayBeResult -> mayBeResult.map(r -> r.get(0, Long.class)));
     }
 
     @Override

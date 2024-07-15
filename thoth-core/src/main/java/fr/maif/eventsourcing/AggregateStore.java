@@ -3,7 +3,9 @@ package fr.maif.eventsourcing;
 import fr.maif.concurrent.CompletionStages;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
+import io.vavr.collection.HashMap;
 import io.vavr.collection.List;
+import io.vavr.collection.Map;
 import io.vavr.control.Option;
 
 import java.util.concurrent.CompletionStage;
@@ -11,6 +13,11 @@ import java.util.concurrent.CompletionStage;
 public interface AggregateStore<S extends State<S>, Id, TxCtx> {
 
     CompletionStage<Option<S>> getAggregate(Id entityId);
+
+    default CompletionStage<Map<Id, Option<S>>> getAggregates(TxCtx ctx, List<Id> entityIds) {
+        return CompletionStages.traverse(entityIds, id -> getAggregate(ctx, id).thenApply(agg -> Tuple.of(id, agg)))
+                .thenApply(HashMap::ofEntries);
+    }
 
     CompletionStage<Option<S>> getAggregate(TxCtx ctx, Id entityId);
 
@@ -20,6 +27,10 @@ public interface AggregateStore<S extends State<S>, Id, TxCtx> {
 
     default CompletionStage<Option<S>> getSnapshot(TxCtx transactionContext, Id id) {
         return CompletionStages.completedStage(Option.none());
+    }
+
+    default CompletionStage<List<S>> getSnapshots(TxCtx transactionContext, List<Id> ids) {
+        return CompletionStages.completedStage(List.empty());
     }
 
     default <E extends Event> CompletionStage<Option<S>> buildAggregateAndStoreSnapshot(TxCtx ctx, EventHandler<S, E> eventHandler, Option<S> state, Id id, List<E> events, Option<Long> lastSequenceNum) {

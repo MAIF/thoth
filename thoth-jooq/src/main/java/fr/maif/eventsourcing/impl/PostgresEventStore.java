@@ -33,6 +33,7 @@ import reactor.core.scheduler.Schedulers;
 import javax.sql.DataSource;
 import java.io.Closeable;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -219,6 +220,14 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
     }
 
     @Override
+    public CompletionStage<List<Long>> nextSequences(Connection tx, Integer count) {
+        return CompletionStages.fromTry(() -> Try.of(() -> {
+            DSLContext ctx = using(tx);
+            return List.ofAll(ctx.fetchValues(sequence(name(this.tableNames.sequenceNumName)).nextvals(count))).map(BigInteger::longValue);
+        }), executor);
+    }
+
+    @Override
     public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
         return this.eventPublisher.publish(events);
     }
@@ -308,7 +317,10 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                 query.userId().map(d -> field(" user_id").eq(d)),
                 query.published().map(d -> field(" published").eq(d)),
                 query.sequenceTo().map(d -> field(" sequence_num").lessOrEqual(d)),
-                query.sequenceFrom().map(d -> field(" sequence_num").greaterOrEqual(d))
+                query.sequenceFrom().map(d -> field(" sequence_num").greaterOrEqual(d)),
+                Option.of(query.idsAndSequences()).filter(Traversable::nonEmpty).map(l ->
+                        l.map(t -> field(" sequence_num").greaterThan(t._2).and(field(" entity_id").eq(t._1))).reduce(Condition::or)
+                )
         ).flatMap(identity());
 
         var tmpJooqQuery = DSL.using(tx)

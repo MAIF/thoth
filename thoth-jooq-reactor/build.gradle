@@ -21,6 +21,10 @@ dependencies {
     testImplementation("org.mockito:mockito-all:1.10.19")
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.3")
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation "org.testcontainers:junit-jupiter:$testContainerVersion"
+    testImplementation "org.testcontainers:testcontainers:$testContainerVersion"
+    testImplementation "org.testcontainers:postgresql:$testContainerVersion"
+    testImplementation 'org.mockito:mockito-core:5.12.0'
 }
 
 test {

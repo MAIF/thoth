@@ -97,6 +97,11 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
     }
 
     @Override
+    public CompletionStage<List<Long>> nextSequences(Tuple0 tx, Integer count) {
+        return CompletionStages.completedStage(List.range(0, count).map(any -> sequence_num.incrementAndGet()));
+    }
+
+    @Override
     public CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events) {
         events.forEach(queue::offer);
         return CompletableFuture.supplyAsync(Tuple::empty);

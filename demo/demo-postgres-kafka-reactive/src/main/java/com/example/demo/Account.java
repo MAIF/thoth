@@ -13,6 +13,11 @@ public class Account implements State<Account> {
         return id;
     }
 
+    @Override
+    public String entityId() {
+        return id;
+    }
+
     public BigDecimal getBalance() {
         return balance;
     }

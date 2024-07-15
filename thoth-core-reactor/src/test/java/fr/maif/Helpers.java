@@ -416,6 +416,11 @@ public class Helpers {
         }
 
         @Override
+        public String entityId() {
+            return id;
+        }
+
+        @Override
         public Long sequenceNum() {
             return sequenceNum;
         }

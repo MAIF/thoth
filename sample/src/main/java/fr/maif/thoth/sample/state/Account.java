@@ -9,6 +9,11 @@ public class Account extends AbstractState<Account> {
     public BigDecimal balance;
     public long sequenceNum;
 
+    @Override
+    public String entityId() {
+        return id;
+    }
+
     public static class AccountBuilder{
         String id;
         BigDecimal balance;

@@ -1,6 +1,6 @@
 package fr.maif.eventsourcing;
 
-public class AbstractState<T> implements State<T> {
+public abstract class AbstractState<T> implements State<T> {
     protected long sequenceNum;
 
     @Override
