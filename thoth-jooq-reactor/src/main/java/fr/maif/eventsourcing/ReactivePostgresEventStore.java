@@ -359,6 +359,17 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
     }
 
     @Override
+    public CompletionStage<List<EventEnvelope<E, Meta, Context>>> markAsPublished(List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
+        return simpleDb.execute(dsl -> dsl
+                .update(table(this.tableNames.tableName))
+                .set(PUBLISHED, true)
+                .where(ID.in(eventEnvelopes.map(evt -> evt.id).toJavaArray(UUID[]::new)))
+        ).thenApply(__ -> eventEnvelopes.map(eventEnvelope -> eventEnvelope.copy().withPublished(true).build()));
+    }
+
+
+
+    @Override
     public void close() throws IOException {
 
     }

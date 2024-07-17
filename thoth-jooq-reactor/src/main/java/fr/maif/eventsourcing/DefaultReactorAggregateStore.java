@@ -7,7 +7,8 @@ import io.vavr.collection.List;
 import io.vavr.collection.Map;
 import io.vavr.collection.Traversable;
 import io.vavr.control.Option;
-import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -15,6 +16,7 @@ import static java.util.function.Function.identity;
 
 public class DefaultReactorAggregateStore<S extends State<S>, E extends Event, Meta, Context, TxCtx> implements ReactorAggregateStore<S, String, TxCtx> {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultReactorAggregateStore.class);
 
     private final ReactorEventStore<TxCtx, E, Meta, Context> eventStore;
     private final EventHandler<S, E> eventEventHandler;
@@ -44,12 +46,11 @@ public class DefaultReactorAggregateStore<S extends State<S>, E extends Event, M
                             empty,
                             (Map<String, Option<S>> states, EventEnvelope<E, Meta, Context> event) -> {
                                 Option<S> mayBeCurrentState = states.get(event.entityId).flatMap(identity());
-                                return states.put(
-                                        event.entityId,
-                                        this.eventEventHandler
-                                                .applyEvent(mayBeCurrentState, event.event)
-                                                .map((S state) -> (S) state.withSequenceNum(event.sequenceNum))
-                                );
+                                Option<S> newState = this.eventEventHandler
+                                        .applyEvent(mayBeCurrentState, event.event)
+                                        .map((S state) -> (S) state.withSequenceNum(event.sequenceNum));
+                                LOGGER.debug("Applying {} to {} : \n -> {}", event.event, mayBeCurrentState, newState);
+                                return states.put(event.entityId, newState);
                             }
                     );
                 });

@@ -146,7 +146,7 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
                                             eventStore,
                                             Option.none(),
                                             bufferTimeout(200, Duration.ofMillis(20)),
-                                            bufferTimeout(200, Duration.ofMillis(20))
+                                            bufferTimeout(200, Duration.ofSeconds(1))
                                     ));
                 })
                 .doOnError(e -> {

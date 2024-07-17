@@ -55,6 +55,26 @@ public class DefaultReactorEventStore<TxCtx, E extends Event, Meta, Context> imp
     }
 
     @Override
+    public Mono<List<EventEnvelope<E, Meta, Context>>> markAsPublished(List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
+        return Mono.fromCompletionStage(() -> eventStore.markAsPublished(eventEnvelopes));
+    }
+
+    @Override
+    public Mono<List<EventEnvelope<E, Meta, Context>>> markAsPublished(TxCtx tx, List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
+        return Mono.fromCompletionStage(() -> eventStore.markAsPublished(tx, eventEnvelopes));
+    }
+
+    @Override
+    public Flux<EventEnvelope<E, Meta, Context>> loadEvents(String id) {
+        return Flux.from(eventStore.loadEvents(id));
+    }
+
+    @Override
+    public Flux<EventEnvelope<E, Meta, Context>> loadAllEvents() {
+        return Flux.from(eventStore.loadAllEvents());
+    }
+
+    @Override
     public Mono<TxCtx> openTransaction() {
         return Mono.fromCompletionStage(() -> eventStore.openTransaction());
     }
