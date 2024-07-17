@@ -8,6 +8,7 @@ import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.Tuple3;
 import io.vavr.Value;
+import io.vavr.collection.HashMap;
 import io.vavr.collection.List;
 import io.vavr.collection.Map;
 import io.vavr.collection.Seq;
@@ -84,19 +85,33 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
                                     // Extract errors from command handling
                                     List<Either<Error, ProcessingSuccess<S, E, Meta, Context, Message>>> errors = commandsAndResults
                                             .map(Tuple3::_3)
-                                            .filter(Either::isLeft)
-                                            .map(e -> Either.left(e.swap().get()));
+                                            .flatMap(Either::swap)
+                                            .map(Either::left);
 
-                                    // Extract success and generate envelopes for each result
-                                    CompletionStage<List<CommandStateAndEvent>> success = traverse(commandsAndResults.filter(t -> t._3.isRight()), t -> {
-                                        C command = t._1;
-                                        Option<S> mayBeState = t._2;
-                                        List<E> events = t._3.get().events.toList();
-                                        return buildEnvelopes(ctx, command, events).thenApply(eventEnvelopes -> {
-                                            Option<Long> mayBeLastSeqNum = eventEnvelopes.lastOption().map(evl -> evl.sequenceNum);
-                                            return new CommandStateAndEvent(command, mayBeState, eventEnvelopes, events, t._3.get().message, mayBeLastSeqNum);
-                                        });
-                                    });
+                                    Map<String, C> commandsById = commandsAndResults.flatMap(t -> t._3.map(any -> t._1)).groupBy(c -> c.entityId().get()).mapValues(List::head);
+                                    Map<String, Message> messageById = HashMap.ofEntries(commandsAndResults.flatMap(t -> t._3.map(any -> Tuple(t._1.entityId().get(), any.message))));
+                                    Map<String, Option<S>> statesById = HashMap.ofEntries(commandsAndResults.flatMap(t -> t._3.map(any -> Tuple(t._1.entityId().get(), t._2))));
+                                    List<E> allEvents = commandsAndResults.flatMap(t -> t._3.map(ev -> ev.events)).flatMap(identity());
+                                    Map<String, List<E>> eventsById = allEvents.groupBy(Event::entityId);
+
+                                    CompletionStage<List<CommandStateAndEvent>> success = eventStore.nextSequences(ctx, allEvents.size())
+                                                    .thenApply(sequences ->
+                                                            buildEnvelopes(ctx, commandsById, sequences, allEvents)
+                                                    )
+                                                    .thenApply(allEnvelopes -> {
+                                                        Map<String, List<EventEnvelope<E, Meta, Context>>> indexed = allEnvelopes.groupBy(env -> env.entityId);
+                                                        return indexed.map(t -> {
+                                                            String entityId = t._1;
+                                                            List<EventEnvelope<E, Meta, Context>> eventEnvelopes = t._2;
+                                                            C command = commandsById.get(entityId).get();
+                                                            Option<S> mayBeState = statesById.get(entityId).get();
+                                                            List<E> events = eventsById.getOrElse(entityId, List.empty());
+                                                            Option<Long> mayBeLastSeqNum = eventEnvelopes.lastOption().map(evl -> evl.sequenceNum);
+                                                            Message message = messageById.get(entityId).get();
+                                                            return new CommandStateAndEvent(command, mayBeState, eventEnvelopes, events, message, mayBeLastSeqNum);
+                                                        }).toList();
+
+                                                    });
 
                                     return success.thenApply(s -> Tuple(s.toList(), errors));
                                 })
@@ -172,13 +187,11 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
         ).thenApply(t -> t._1);
     }
 
-    CompletionStage<List<EventEnvelope<E, Meta, Context>>> buildEnvelopes(TxCtx tx, C command, List<E> events) {
+    List<EventEnvelope<E, Meta, Context>> buildEnvelopes(TxCtx tx, Map<String, C> commands, List<Long> sequences, List<E> events) {
         String transactionId = transactionManager.transactionId();
         int nbMessages = events.length();
-        return eventStore.nextSequences(tx, events.size()).thenApply(s ->
-                events.zip(s).zipWithIndex().map(t ->
-                        buildEnvelope(tx, command, t._1._1, t._1._2, t._2, nbMessages, transactionId)
-                )
+        return events.zip(sequences).zipWithIndex().map(t ->
+                buildEnvelope(tx, commands.get(t._1._1.entityId()).get(), t._1._1, t._1._2, t._2, nbMessages, transactionId)
         );
     }
 
