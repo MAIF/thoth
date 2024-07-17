@@ -99,7 +99,7 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
                                                             buildEnvelopes(ctx, commandsById, sequences, allEvents)
                                                     )
                                                     .thenApply(allEnvelopes -> {
-                                                        Map<String, List<EventEnvelope<E, Meta, Context>>> indexed = allEnvelopes.groupBy(env -> env.entityId);
+                                                        Map<String, List<EventEnvelope<E, Meta, Context>>> indexed = allEnvelopes.groupBy(env -> commandsById.get(env.entityId).get().entityId().get());
                                                         return indexed.map(t -> {
                                                             String entityId = t._1;
                                                             List<EventEnvelope<E, Meta, Context>> eventEnvelopes = t._2;
