@@ -88,7 +88,7 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
                                             .flatMap(Either::swap)
                                             .map(Either::left);
 
-                                    Map<String, C> commandsById = commandsAndResults.flatMap(t -> t._3.map(any -> t._1)).groupBy(c -> c.entityId().get()).mapValues(List::head);
+                                    Map<String, C> commandsById = HashMap.ofEntries(commandsAndResults.flatMap(t -> t._3.toList().flatMap(any -> any.events.map(e -> e.entityId()).distinct().map(id -> Tuple.of(id, t._1))));
                                     Map<String, Message> messageById = HashMap.ofEntries(commandsAndResults.flatMap(t -> t._3.map(any -> Tuple(t._1.entityId().get(), any.message))));
                                     Map<String, Option<S>> statesById = HashMap.ofEntries(commandsAndResults.flatMap(t -> t._3.map(any -> Tuple(t._1.entityId().get(), t._2))));
                                     List<E> allEvents = commandsAndResults.flatMap(t -> t._3.map(ev -> ev.events)).flatMap(identity());
