@@ -136,9 +136,8 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
                                                                 .groupBy(env -> env._1)
                                                                 .mapValues(l -> l.map(t -> t._2));
                                                         // for each original command, we prepare the result that we be returned
-                                                        return indexedByCommandId.map(t -> {
-                                                            CommandAndInfos<C, S, E, Message, Meta, Context> commandAndInfos = t._1;
-                                                            List<EventEnvelope<E, Meta, Context>> eventEnvelopes = t._2;
+                                                        return successes.map(commandAndInfos -> {
+                                                            List<EventEnvelope<E, Meta, Context>> eventEnvelopes = indexedByCommandId.get(commandAndInfos).toList().flatMap(identity());
                                                             var mayBeLastSeqNum = eventEnvelopes.map(e -> e.sequenceNum).max();
                                                             return new CommandStateAndEvent(commandAndInfos.command, commandAndInfos.mayBeState, eventEnvelopes, commandAndInfos.events.events.toList(), commandAndInfos.events.message, mayBeLastSeqNum);
                                                         }).toList();
@@ -173,7 +172,7 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
                                                                         sequences.max()
                                                                 )
                                                                 .thenApply(mayBeNextState ->
-                                                                        new ProcessingSuccess<>(s.state, mayBeNextState, s.getEventEnvelopes(), s.getMessage())
+                                                                        new ProcessingSuccess<>(s.getState(), mayBeNextState, s.getEventEnvelopes(), s.getMessage())
                                                                 );
                                                     })
                                             )
