@@ -1,9 +1,7 @@
 package fr.maif.eventsourcing;
 
-import fr.maif.concurrent.CompletionStages;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
 
 import java.io.Closeable;
 import java.util.concurrent.CompletionStage;
@@ -11,6 +9,7 @@ import java.util.concurrent.CompletionStage;
 public interface EventPublisher<E extends Event, Meta, Context> extends Closeable {
     CompletionStage<Tuple0> publish(List<EventEnvelope<E, Meta, Context>> events);
 
-    default <TxCtx> void start(EventStore<TxCtx, E, Meta, Context> eventStore, EventStore.ConcurrentReplayStrategy concurrentReplayStrategy) {
-    }
+    <TxCtx> CompletionStage<Tuple0> publishNonAcknowledgedFromDb(EventStore<TxCtx, E, Meta, Context> eventStore, EventStore.ConcurrentReplayStrategy concurrentReplayStrategy);
+
+    default <TxCtx> void start(EventStore<TxCtx, E, Meta, Context> eventStore, EventStore.ConcurrentReplayStrategy concurrentReplayStrategy) {}
 }

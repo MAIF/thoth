@@ -80,31 +80,19 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
     }
 
     @Override
+    public <TxCtx> CompletionStage<Tuple0> publishNonAcknowledgedFromDb(EventStore<TxCtx, E, Meta, Context> eventStore, ConcurrentReplayStrategy concurrentReplayStrategy) {
+        return republishFromDBSource(eventStore, concurrentReplayStrategy).runWith(Sink.ignore(), materializer)
+                .thenApply(d -> Tuple.empty());
+    }
+
+    @Override
     public <TxCtx> void start(EventStore<TxCtx, E, Meta, Context> eventStore, ConcurrentReplayStrategy concurrentReplayStrategy) {
         killSwitch = RestartSource
                 .onFailuresWithBackoff(
                         RestartSettings.create(restartInterval, maxRestartInterval, 0),
                         () -> {
                             LOGGER.info("Starting/Restarting publishing event to kafka on topic {}", topic);
-                            return Source.completionStage(eventStore.openTransaction().toCompletableFuture())
-                                    .flatMapConcat(tx -> {
-
-                                        LOGGER.info("Replaying not published in DB for {}", topic);
-                                        ConcurrentReplayStrategy strategy = Objects.isNull(concurrentReplayStrategy) ? WAIT : concurrentReplayStrategy;
-                                        return Source.fromPublisher(eventStore.loadEventsUnpublished(tx, strategy))
-                                                .via(publishToKafka(eventStore, Option.some(tx), groupFlow))
-                                                .alsoTo(logProgress(100))
-                                                .watchTermination((nu, cs) ->
-                                                        cs.whenComplete((d, e) -> {
-                                                            eventStore.commitOrRollback(Option.of(e), tx);
-                                                            if (e != null) {
-                                                                LOGGER.error("Error replaying non published events to kafka for "+topic, e);
-                                                            } else {
-                                                                LOGGER.info("Replaying events not published in DB is finished for {}", topic);
-                                                            }
-                                                        })
-                                                );
-                                    })
+                            return republishFromDBSource(eventStore, concurrentReplayStrategy)
                                     .concat(
                                             this.eventsSource.via(publishToKafka(
                                                     eventStore,
@@ -129,6 +117,28 @@ public class KafkaEventPublisher<E extends Event, Meta, Context> implements Even
                 .viaMat(KillSwitches.single(), Keep.right())
                 .toMat(Sink.ignore(), Keep.both())
                 .run(materializer).first();
+    }
+
+    private <TxCtx> Source<EventEnvelope<E, Meta, Context>, NotUsed> republishFromDBSource(EventStore<TxCtx, E, Meta, Context> eventStore, ConcurrentReplayStrategy concurrentReplayStrategy) {
+        return Source.completionStage(eventStore.openTransaction().toCompletableFuture())
+                .flatMapConcat(tx -> {
+
+                    LOGGER.info("Replaying not published in DB for {}", topic);
+                    ConcurrentReplayStrategy strategy = Objects.isNull(concurrentReplayStrategy) ? WAIT : concurrentReplayStrategy;
+                    return Source.fromPublisher(eventStore.loadEventsUnpublished(tx, strategy))
+                            .via(publishToKafka(eventStore, Option.some(tx), groupFlow))
+                            .alsoTo(logProgress(100))
+                            .watchTermination((nu, cs) ->
+                                    cs.whenComplete((d, e) -> {
+                                        eventStore.commitOrRollback(Option.of(e), tx);
+                                        if (e != null) {
+                                            LOGGER.error("Error replaying non published events to kafka for " + topic, e);
+                                        } else {
+                                            LOGGER.info("Replaying events not published in DB is finished for {}", topic);
+                                        }
+                                    })
+                            );
+                });
     }
 
 

@@ -30,7 +30,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -44,10 +43,7 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
     private final String topic;
     private final Integer queueBufferSize;
 
-    private final AtomicReference<Sinks.Many<EventEnvelope<E, Meta, Context>>> queue = new AtomicReference<>();
-//    private final Sinks.Many<EventEnvelope<E, Meta, Context>> queue;
-    private final AtomicReference<Flux<EventEnvelope<E, Meta, Context>>> eventSource = new AtomicReference<>();
-//    private final Flux<EventEnvelope<E, Meta, Context>> eventSource;
+    private final Sinks.Many<EventEnvelope<E, Meta, Context>> queue;
     private final SenderOptions<String, EventEnvelope<E, Meta, Context>> senderOptions;
     private final Duration restartInterval;
     private final Duration maxRestartInterval;
@@ -68,21 +64,9 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
         this.restartInterval = restartInterval == null ? Duration.of(1, ChronoUnit.SECONDS) : restartInterval;
         this.maxRestartInterval = maxRestartInterval == null ? Duration.of(1, ChronoUnit.MINUTES) : maxRestartInterval;
 
-        
-        
-//        this.queue = Sinks.many().multicast().onBackpressureBuffer(queueBufferSize1, true); //replay().limit(queueBufferSize1); // .multicast().onBackpressureBuffer(queueBufferSize1);
-//        this.eventSource = queue.asFlux();
-        reinitQueue();
+        this.queue = Sinks.many().multicast().onBackpressureBuffer(this.queueBufferSize, false);
         this.senderOptions = senderOptions.stopOnError(true);
         this.kafkaSender = KafkaSender.create(senderOptions);
-    }
-
-    private void reinitQueue() {
-        if (this.queue.get() != null) {
-            this.queue.get().tryEmitComplete();
-        }
-        this.queue.set(Sinks.many().unicast().onBackpressureBuffer()); //replay().limit(queueBufferSize1); // .multicast().onBackpressureBuffer(queueBufferSize1);
-        this.eventSource.set(queue.get().asFlux());
     }
 
     record CountAndMaxSeqNum(Long count, Long lastSeqNum) {
@@ -110,7 +94,44 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
 
         Sinks.Many<EventEnvelope<E, Meta, Context>> logProgressSink = Sinks.many().unicast().onBackpressureBuffer();
         logProgress(logProgressSink.asFlux(), 100).subscribe();
-        killSwitch = Mono.defer(() -> fromCS(eventStore::openTransaction)
+        killSwitch = publishFromDb(eventStore, concurrentReplayStrategy, logProgressSink)
+                .concatMap(countAndLastSeqNum -> {
+//                        Flux.defer(() -> {
+                            LOGGER.debug("Starting consuming in memory queue for {}. Event lower than {} are ignored", topic, countAndLastSeqNum.lastSeqNum);
+                            return queue.asFlux()
+                                    .filter(e -> e.sequenceNum > countAndLastSeqNum.lastSeqNum)
+                                    .transform(publishToKafka(
+                                            eventStore,
+                                            Option.none(),
+                                            bufferTimeout(200, Duration.ofMillis(20)),
+                                            bufferTimeout(200, Duration.ofSeconds(1))
+                                    ));
+                })
+                .doOnError(e -> {
+                    LOGGER.error("Error publishing events to kafka", e);
+                })
+                .retryWhen(Retry.backoff(Long.MAX_VALUE, restartInterval)
+                        .transientErrors(true)
+                        .maxBackoff(maxRestartInterval)
+                        .doBeforeRetry(ctx -> {
+                            LOGGER.error("Error handling events for topic %s retrying for the %s time".formatted(topic, ctx.totalRetries() + 1), ctx.failure());
+                        })
+                )
+                .subscribe();
+    }
+
+    @Override
+    public <TxCtx> CompletionStage<Tuple0> publishNonAcknowledgedFromDb(EventStore<TxCtx, E, Meta, Context> eventStore, ConcurrentReplayStrategy concurrentReplayStrategy) {
+        Sinks.Many<EventEnvelope<E, Meta, Context>> logProgressSink = Sinks.many().unicast().onBackpressureBuffer();
+        logProgress(logProgressSink.asFlux(), 100).subscribe();
+        return publishFromDb(eventStore, concurrentReplayStrategy, logProgressSink)
+                .collectList()
+                .map(any -> Tuple.empty())
+                .toFuture();
+    }
+
+    private <TxCtx> Flux<CountAndMaxSeqNum> publishFromDb(EventStore<TxCtx, E, Meta, Context> eventStore, ConcurrentReplayStrategy concurrentReplayStrategy, Sinks.Many<EventEnvelope<E, Meta, Context>> logProgressSink) {
+        return Mono.defer(() -> fromCS(eventStore::openTransaction)
                         .flatMap(tx -> {
                             LOGGER.info("Replaying events not published from DB in topic {}", topic);
                             ConcurrentReplayStrategy strategy = Objects.isNull(concurrentReplayStrategy) ? WAIT : concurrentReplayStrategy;
@@ -136,31 +157,7 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
                                         }
                                     });
                         }))
-                .flux()
-                .concatMap(countAndLastSeqNum -> {
-//                        Flux.defer(() -> {
-                            LOGGER.debug("Starting consuming in memory queue for {}. Event lower than {} are ignored", topic, countAndLastSeqNum.lastSeqNum);
-                            return eventSource.get()
-                                    .filter(e -> e.sequenceNum > countAndLastSeqNum.lastSeqNum)
-                                    .transform(publishToKafka(
-                                            eventStore,
-                                            Option.none(),
-                                            bufferTimeout(200, Duration.ofMillis(20)),
-                                            bufferTimeout(200, Duration.ofSeconds(1))
-                                    ));
-                })
-                .doOnError(e -> {
-                    reinitQueue();
-                    LOGGER.error("Error publishing events to kafka", e);
-                })
-                .retryWhen(Retry.backoff(Long.MAX_VALUE, restartInterval)
-                        .transientErrors(true)
-                        .maxBackoff(maxRestartInterval)
-                        .doBeforeRetry(ctx -> {
-                            LOGGER.error("Error handling events for topic %s retrying for the %s time".formatted(topic, ctx.totalRetries() + 1), ctx.failure());
-                        })
-                )
-                .subscribe();
+                .flux();
     }
 
     private <TxCtx> Function<Flux<EventEnvelope<E, Meta, Context>>, Flux<EventEnvelope<E, Meta, Context>>> publishToKafka(EventStore<TxCtx, E, Meta, Context> eventStore,
@@ -197,7 +194,7 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
         return Flux
                 .fromIterable(events)
                 .map(t -> {
-                        queue.get().tryEmitNext(t).orThrow();
+                        queue.tryEmitNext(t).orThrow();
                         return Tuple.empty();
                 })
                 .retryWhen(Retry.fixedDelay(50, Duration.ofMillis(1))
@@ -248,10 +245,4 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
                     }
                 });
     }
-
-    public Integer getBufferedElementCount() {
-//        return this.queue.scan(Scannable.Attr.BUFFERED);
-        return 0;
-    }
-
 }

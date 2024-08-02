@@ -186,6 +186,11 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
             }
 
             @Override
+            public <TxCtx> CompletionStage<Tuple0> publishNonAcknowledgedFromDb(EventStore<TxCtx, E, Meta, Context> eventStore, ConcurrentReplayStrategy concurrentReplayStrategy) {
+                return CompletionStages.completedStage(Tuple.empty());
+            }
+
+            @Override
             public void close() throws IOException {
 
             }
