@@ -32,7 +32,8 @@ public interface KafkaContainerTest {
 
     AtomicInteger counter = new AtomicInteger(0);
 
-    KafkaContainer kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"));
+    KafkaContainer kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
+            .withStartupAttempts(2);
 
     static void startContainer() {
         kafkaContainer.start();
