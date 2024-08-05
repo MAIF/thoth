@@ -83,6 +83,9 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
 
     @Override
     public CompletionStage<InTransactionResult<List<Either<Error, ProcessingSuccess<S, E, Meta, Context, Message>>>>> batchProcessCommand(TxCtx ctx, List<C> commands) {
+        if (commands.isEmpty()) {
+            return CompletionStages.completedStage(new InTransactionResult<>(List.empty(), () -> CompletionStages.completedStage(Tuple.empty())));
+        }
         // Collect all states from db
         return aggregateStore.getAggregates(ctx, commands.filter(Command::hasId).map(c -> c.entityId().get()))
                 .thenCompose(states ->
