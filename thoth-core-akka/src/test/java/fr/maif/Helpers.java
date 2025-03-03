@@ -38,11 +38,7 @@ import static fr.maif.Helpers.VikingEvent.VikingDeletedV1;
 import static fr.maif.Helpers.VikingEvent.VikingUpdatedV1;
 import static fr.maif.json.JsonRead._fromClass;
 import static fr.maif.json.JsonRead.ofRead;
-import static io.vavr.API.$;
-import static io.vavr.API.Case;
-import static io.vavr.API.List;
-import static io.vavr.API.Match;
-import static io.vavr.API.Tuple;
+import static io.vavr.API.*;
 import static io.vavr.Patterns.$None;
 import static io.vavr.Patterns.$Some;
 
@@ -322,6 +318,11 @@ public class Helpers {
                     Case($None(), () -> data.remove(id))
             );
             return CompletionStages.completedStage(Tuple.empty());
+        }
+
+        @Override
+        public CompletionStage<Option<Viking>> getPreviousAggregate(Tuple0 tuple0, Long sequenceNum, String entityId) {
+            return CompletionStages.completedStage(None());
         }
     }
 
