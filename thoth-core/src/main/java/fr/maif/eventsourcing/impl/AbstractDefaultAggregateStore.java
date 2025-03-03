@@ -62,6 +62,7 @@ public abstract class AbstractDefaultAggregateStore<S extends State<S>, E extend
                 });
     }
 
+
     public CompletionStage<Option<S>> getAggregate(TxCtx ctx, String entityId) {
 
         return this.getSnapshot(ctx, entityId)
@@ -83,6 +84,43 @@ public abstract class AbstractDefaultAggregateStore<S extends State<S>, E extend
                     );
                 });
     }
+
+    @Override
+    public CompletionStage<Option<S>> getPreviousAggregate(TxCtx ctx, Long sequenceNum, String entityId) {
+
+        return this.getSnapshot(ctx, entityId)
+                .thenCompose(mayBeSnapshot -> {
+
+                    EventStore.Query query = mayBeSnapshot.fold(
+                            // No snapshot defined, we read all the events
+                            () -> EventStore.Query.builder().withEntityId(entityId).withSequenceTo(sequenceNum).build(),
+                            // If a snapshot is defined, we read events from seq num of the snapshot :
+                            s -> {
+                                if (s.sequenceNum() <= sequenceNum) {
+                                    return EventStore.Query.builder().withSequenceFrom(s.sequenceNum()).withSequenceTo(sequenceNum).withEntityId(entityId).build();
+                                } else {
+                                    return EventStore.Query.builder().withEntityId(entityId).withSequenceTo(sequenceNum).build();
+                                }
+                            }
+                    );
+
+                    Publisher<EventEnvelope<E, Meta, Context>> events = this.eventStore.loadEventsByQuery(ctx, query);
+                    return fold(events,
+                            mayBeSnapshot,
+                            (Option<S> mayBeState, EventEnvelope<E, Meta, Context> event) -> {
+                                if (event.sequenceNum < sequenceNum) {
+                                    return this.eventEventHandler
+                                            .applyEvent(mayBeState, event.event)
+                                            .map(state -> state.withSequenceNum(event.sequenceNum));
+                                } else {
+                                    return mayBeState;
+                                }
+                            }
+                    );
+                });
+    }
+
+
 
     protected abstract <T, A> CompletionStage<T> fold(Publisher<A> publisher, T empty, BiFunction<T, A, T> acc);
 }

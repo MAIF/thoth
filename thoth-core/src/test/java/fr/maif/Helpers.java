@@ -309,6 +309,11 @@ public class Helpers {
             );
             return CompletionStages.completedStage(Tuple.empty());
         }
+
+        @Override
+        public CompletionStage<Option<Viking>> getPreviousAggregate(Tuple0 tuple0, Long sequenceNum, String entityId) {
+            return CompletionStages.completedStage(None());
+        }
     }
 
     public static class VikingProjection implements Projection<Tuple0, VikingEvent, Tuple0, Tuple0> {

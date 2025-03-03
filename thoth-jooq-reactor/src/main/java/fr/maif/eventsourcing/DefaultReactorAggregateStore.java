@@ -7,10 +7,13 @@ import io.vavr.collection.List;
 import io.vavr.collection.Map;
 import io.vavr.collection.Traversable;
 import io.vavr.control.Option;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.concurrent.CompletionStage;
 
 import static java.util.function.Function.identity;
 
@@ -74,6 +77,40 @@ public class DefaultReactorAggregateStore<S extends State<S>, E extends Event, M
                                             this.eventEventHandler.applyEvent(mayBeState, event.event)
                                                     .map((S state) -> (S) state.withSequenceNum(event.sequenceNum))
                             );
+                });
+    }
+
+
+    @Override
+    public Mono<Option<S>> getPreviousAggregate(TxCtx ctx, Long sequenceNum, String entityId) {
+
+        return this.getSnapshot(ctx, entityId)
+                .flatMap(mayBeSnapshot -> {
+
+                    EventStore.Query query = mayBeSnapshot.fold(
+                            // No snapshot defined, we read all the events
+                            () -> EventStore.Query.builder().withEntityId(entityId).withSequenceTo(sequenceNum).build(),
+                            // If a snapshot is defined, we read events from seq num of the snapshot :
+                            s -> {
+                                if (s.sequenceNum() <= sequenceNum) {
+                                    return EventStore.Query.builder().withSequenceFrom(s.sequenceNum()).withSequenceTo(sequenceNum).withEntityId(entityId).build();
+                                } else {
+                                    return EventStore.Query.builder().withEntityId(entityId).withSequenceTo(sequenceNum).build();
+                                }
+                            }
+                    );
+                    return this.eventStore.loadEventsByQuery(ctx, query).reduce(
+                            mayBeSnapshot,
+                            (Option<S> mayBeState, EventEnvelope<E, Meta, Context> event) -> {
+                                if (event.sequenceNum < sequenceNum) {
+                                    return this.eventEventHandler
+                                            .applyEvent(mayBeState, event.event)
+                                            .map(state -> state.withSequenceNum(event.sequenceNum));
+                                } else {
+                                    return mayBeState;
+                                }
+                            }
+                    );
                 });
     }
 }

@@ -1,6 +1,5 @@
 package fr.maif.eventsourcing;
 
-import fr.maif.concurrent.CompletionStages;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
@@ -35,15 +34,17 @@ public interface ReactorAggregateStore<S extends State<S>, Id, TxCtx> {
         Option<S> newState = eventHandler.deriveState(state, events.filter(event -> event.entityId().equals(id)));
 
         Option<S> newStatewithSequence = lastSequenceNum
-                .map(num -> newState.map(s -> (S) s.withSequenceNum(num)))
+                .map(num -> newState.map(s -> s.withSequenceNum(num)))
                 .getOrElse(newState);
 
         return storeSnapshot(ctx, id, newStatewithSequence).map(__ -> newState);
     }
 
+    Mono<Option<S>> getPreviousAggregate(TxCtx ctx, Long sequenceNum, String entityId);
+
     default AggregateStore<S, Id, TxCtx> toAggregateStore() {
         var _this = this;
-        return new AggregateStore<S, Id, TxCtx>() {
+        return new AggregateStore<>() {
             @Override
             public CompletionStage<Option<S>> getAggregate(Id entityId) {
                 return _this.getAggregate(entityId).toFuture();
@@ -58,12 +59,17 @@ public interface ReactorAggregateStore<S extends State<S>, Id, TxCtx> {
             public CompletionStage<Map<Id, Option<S>>> getAggregates(TxCtx txCtx, List<Id> entityIds) {
                 return _this.getAggregates(txCtx, entityIds).toFuture();
             }
+
+            @Override
+            public CompletionStage<Option<S>> getPreviousAggregate(TxCtx txCtx, Long sequenceNum, String entityId) {
+                return _this.getPreviousAggregate(txCtx, sequenceNum, entityId).toFuture();
+            }
         };
     }
 
 
     static <S extends State<S>, Id, TxCtx> ReactorAggregateStore<S, Id, TxCtx> fromAggregateStore(AggregateStore<S, Id, TxCtx> aggregateStore) {
-        return new ReactorAggregateStore<S, Id, TxCtx>() {
+        return new ReactorAggregateStore<>() {
 
             @Override
             public Mono<Option<S>> getAggregate(Id entityId) {
@@ -78,6 +84,11 @@ public interface ReactorAggregateStore<S extends State<S>, Id, TxCtx> {
             @Override
             public Mono<Map<Id, Option<S>>> getAggregates(TxCtx txCtx, List<Id> entityIds) {
                 return Mono.fromCompletionStage(() -> aggregateStore.getAggregates(txCtx, entityIds));
+            }
+
+            @Override
+            public Mono<Option<S>> getPreviousAggregate(TxCtx txCtx, Long sequenceNum, String entityId) {
+                return Mono.fromCompletionStage(() -> aggregateStore.getPreviousAggregate(txCtx, sequenceNum, entityId));
             }
         };
     }
