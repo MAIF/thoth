@@ -9,7 +9,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     extra_hosts:
       - "moby:127.0.0.1"
-      - "localhost: 127.0.0.1"
+      - "localhost:127.0.0.1"
   eventsourcing_kafka:
     image: confluentinc/cp-kafka
     ports:
@@ -30,7 +30,7 @@ services:
       KAFKA_NUM_PARTITIONS: 1
     extra_hosts:
       - "moby:127.0.0.1"
-      - "localhost: 127.0.0.1"
+      - "localhost:127.0.0.1"
   eventsourcing_kafdrop:
     image: obsidiandynamics/kafdrop
     ports:
@@ -43,4 +43,4 @@ services:
       SERVER_SERVLET_CONTEXTPATH: "/"
     extra_hosts:
       - "moby:127.0.0.1"
-      - "localhost: 127.0.0.1"
+      - "localhost:127.0.0.1"

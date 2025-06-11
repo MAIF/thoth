@@ -15,7 +15,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     extra_hosts:
       - "moby:127.0.0.1"
-      - "localhost: 127.0.0.1"
+      - "localhost:127.0.0.1"
   kafka_test:
     image: confluentinc/cp-kafka:6.0.1
     ports:
@@ -35,4 +35,4 @@ services:
       KAFKA_NUM_PARTITIONS: 5
     extra_hosts:
       - "moby:127.0.0.1"
-      - "localhost: 127.0.0.1"
+      - "localhost:127.0.0.1"
