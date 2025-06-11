@@ -19,10 +19,7 @@ import io.vavr.collection.Traversable;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
-import org.jooq.Condition;
-import org.jooq.DSLContext;
-import org.jooq.Field;
-import org.jooq.SQLDialect;
+import org.jooq.*;
 import org.jooq.impl.DSL;
 import org.reactivestreams.Publisher;
 import org.slf4j.LoggerFactory;
@@ -78,23 +75,22 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
     private final JacksonSimpleFormat<Meta> metaFormat;
     private final JacksonSimpleFormat<Context> contextFormat;
     private final ObjectMapper objectMapper;
-    private final static String SELECT_CLAUSE =
-            "SELECT " +
-                    "  id," +
-                    "  entity_id," +
-                    "  sequence_num," +
-                    "  event_type," +
-                    "  version," +
-                    "  transaction_id," +
-                    "  event," +
-                    "  metadata," +
-                    "  emission_date," +
-                    "  user_id," +
-                    "  system_id," +
-                    "  total_message_in_transaction," +
-                    "  num_message_in_transaction," +
-                    "  context," +
-                    "  published ";
+    private final static String SELECT_FIELDS = "  id," +
+            "  entity_id," +
+            "  sequence_num," +
+            "  event_type," +
+            "  version," +
+            "  transaction_id," +
+            "  event," +
+            "  metadata," +
+            "  emission_date," +
+            "  user_id," +
+            "  system_id," +
+            "  total_message_in_transaction," +
+            "  num_message_in_transaction," +
+            "  context," +
+            "  published ";
+    private final static String SELECT_CLAUSE = "SELECT " + SELECT_FIELDS;
 
     public PostgresEventStore(EventPublisher<E, Meta, Context> eventPublisher, DataSource dataSource, Executor executor, TableNames tableNames, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat) {
         this.dataSource = dataSource;
@@ -280,26 +276,43 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
 
     @Override
     public Publisher<EventEnvelope<E, Meta, Context>> loadEventsUnpublished(Connection c, ConcurrentReplayStrategy concurrentReplayStrategy) {
-        String tmpQuery = SELECT_CLAUSE +
-                " FROM " + this.tableNames.tableName +
-                " WHERE published = false " +
-                " order by sequence_num ";
-        String query;
+        SelectSeekStep1<Record15<UUID, String, Long, String, Long, String, String, String, String, Integer, Integer, String, String, Timestamp, Boolean>, Long> tmpQuery = DSL.using(c)
+                .select(
+                        ID,
+                        ENTITY_ID,
+                        SEQUENCE_NUM,
+                        EVENT_TYPE,
+                        VERSION,
+                        TRANSACTION_ID,
+                        EVENT,
+                        METADATA,
+                        CONTEXT,
+                        TOTAL_MESSAGE_IN_TRANSACTION,
+                        NUM_MESSAGE_IN_TRANSACTION,
+                        USER_ID,
+                        SYSTEM_ID,
+                        EMISSION_DATE,
+                        PUBLISHED
+                )
+                .from(this.tableNames.tableName)
+                .where(PUBLISHED.eq(false))
+                .orderBy(SEQUENCE_NUM);
+
+        SelectForStep<Record15<UUID, String, Long, String, Long, String, String, String, String, Integer, Integer, String, String, Timestamp, Boolean>> query;
         switch (concurrentReplayStrategy) {
             case WAIT:
-                query = tmpQuery + " for update of " + this.tableNames.tableName;
+                query = tmpQuery.forUpdate().of(table(this.tableNames.tableName));
                 break;
             case SKIP:
-                query = tmpQuery + " for update of " + this.tableNames.tableName + " skip locked ";
+                query = tmpQuery.forUpdate().of(table(this.tableNames.tableName)).skipLocked();
                 break;
             default:
                 query = tmpQuery;
         }
 
-        return Flux.fromStream(() -> DSL.using(c)
-                .resultQuery(query)
+        return Flux.fromStream(() -> query
                 .stream()
-                .map(r -> rsToEnvelope(r.intoResultSet()))
+                .map(r -> rsToEnvelope(r))
         );
     }
 
@@ -324,14 +337,30 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
         ).flatMap(identity());
 
         var tmpJooqQuery = DSL.using(tx)
-                .selectFrom(SELECT_CLAUSE + " FROM " + this.tableNames.tableName)
+                .select(
+                        ID,
+                        ENTITY_ID,
+                        SEQUENCE_NUM,
+                        EVENT_TYPE,
+                        VERSION,
+                        TRANSACTION_ID,
+                        EVENT,
+                        METADATA,
+                        CONTEXT,
+                        TOTAL_MESSAGE_IN_TRANSACTION,
+                        NUM_MESSAGE_IN_TRANSACTION,
+                        USER_ID,
+                        SYSTEM_ID,
+                        EMISSION_DATE,
+                        PUBLISHED
+                )
+                .from(this.tableNames.tableName)
                 .where(clauses.toJavaList())
-                .orderBy(field("sequence_num").asc())
-                ;
+                .orderBy(field("sequence_num").asc());
         var jooqQuery = Objects.nonNull(query.size) ? tmpJooqQuery.limit(query.size) : tmpJooqQuery;
 
         LOGGER.debug("{}", jooqQuery);
-        return Flux.fromStream(() -> jooqQuery.stream().map(r -> rsToEnvelope(r.intoResultSet())))
+        return Flux.fromStream(() -> jooqQuery.stream().map(r -> rsToEnvelope(r)))
                 .doFinally(any -> {
                     if (autoClose) {
                         try {
@@ -351,34 +380,34 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
         );
     }
 
-    private EventEnvelope<E, Meta, Context> rsToEnvelope(ResultSet rs) {
+    private EventEnvelope<E, Meta, Context> rsToEnvelope(Record15<UUID, String, Long, String, Long, String, String, String, String, Integer, Integer, String, String, Timestamp, Boolean> rs) {
         return Try
                 .of(() -> {
-                    String event_type = rs.getString("event_type");
-                    long version = rs.getLong("version");
-                    JsonNode event = readValue(rs.getString("event")).getOrElse(NullNode.getInstance());
+                    String event_type = rs.get(EVENT_TYPE);
+                    long version = rs.get(VERSION);
+                    JsonNode event = readValue(rs.get(EVENT)).getOrElse(NullNode.getInstance());
                     Either<?, E> eventRead = eventFormat.read(event_type, version, event);
                     eventRead.swap().forEach(err -> {
                         LOGGER.error("Error reading event {} : {}", event, err);
                     });
                     EventEnvelope.Builder<E, Meta, Context> builder = EventEnvelope.<E, Meta, Context>builder()
-                            .withId(UUID.fromString(rs.getString("id")))
-                            .withEntityId(rs.getString("entity_id"))
-                            .withSequenceNum(rs.getLong("sequence_num"))
+                            .withId(rs.get(ID))
+                            .withEntityId(rs.get(ENTITY_ID))
+                            .withSequenceNum(rs.get(SEQUENCE_NUM))
                             .withEventType(event_type)
                             .withVersion(version)
-                            .withTransactionId(rs.getString("transaction_id"))
+                            .withTransactionId(rs.get(TRANSACTION_ID))
                             .withEvent(eventRead.get())
-                            .withEmissionDate(rs.getTimestamp("emission_date").toLocalDateTime())
-                            .withPublished(rs.getBoolean("published"))
-                            .withSystemId(rs.getString("system_id"))
-                            .withUserId(rs.getString("user_id"))
-                            .withPublished(rs.getBoolean("published"))
-                            .withNumMessageInTransaction(rs.getInt("num_message_in_transaction"))
-                            .withTotalMessageInTransaction(rs.getInt("total_message_in_transaction"));
+                            .withEmissionDate(rs.get(EMISSION_DATE).toLocalDateTime())
+                            .withPublished(rs.get(PUBLISHED))
+                            .withSystemId(rs.get(SYSTEM_ID))
+                            .withUserId(rs.get(USER_ID))
+                            .withPublished(rs.get(PUBLISHED))
+                            .withNumMessageInTransaction(rs.get(NUM_MESSAGE_IN_TRANSACTION))
+                            .withTotalMessageInTransaction(rs.get(TOTAL_MESSAGE_IN_TRANSACTION));
 
-                    metaFormat.read(readValue(rs.getString("metadata"))).forEach(builder::withMetadata);
-                    contextFormat.read(readValue(rs.getString("context"))).forEach(builder::withContext);
+                    metaFormat.read(readValue(rs.get(METADATA))).forEach(builder::withMetadata);
+                    contextFormat.read(readValue(rs.get(CONTEXT))).forEach(builder::withContext);
                     return builder.build();
                 })
                 .getOrElseThrow(e ->
