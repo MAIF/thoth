@@ -1,10 +1,11 @@
 import sbt.project
 
 lazy val `thoth-documentation` = (project in file("."))
-  .enablePlugins(ParadoxPlugin)
+  .enablePlugins(ParadoxSitePlugin)
   .settings(
     publish / skip := true,
     name := "Thoth doc",
+//    paradox / sourceDirectory := sourceDirectory.value / "doc",
     paradoxTheme := Some(builtinParadoxTheme("generic")),
     paradoxGroups := Map("Language" -> Seq("Java")),
     Compile / paradoxProperties ++= Map(

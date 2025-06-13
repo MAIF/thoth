@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 
 <head>
-<title>Resilient kafka consumption · Thoth</title>
+<title>Getting started · Thoth</title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content='Thoth doc'/>
@@ -36,7 +36,7 @@
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
 <div class="nav-toc">
 <ul>
-  <li><a href="getting-started.html" class="page">Getting started</a></li>
+  <li><a href="getting-started.html" class="active page">Getting started</a></li>
   <li><a href="technical-considerations.html" class="page">Technical considerations</a></li>
   <li><a href="banking.html" class="page">In memory example</a></li>
   <li><a href="standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
@@ -60,7 +60,7 @@
     <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
     <li><a href="non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
   </ul></li>
-  <li><a href="resilient-kafka-consumption.html" class="active page">Resilient kafka consumption</a></li>
+  <li><a href="resilient-kafka-consumption.html" class="page">Resilient kafka consumption</a></li>
 </ul>
 </div>
 
@@ -100,7 +100,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
 <div class="nav-toc">
 <ul>
-  <li><a href="getting-started.html" class="page">Getting started</a></li>
+  <li><a href="getting-started.html" class="active page">Getting started</a></li>
   <li><a href="technical-considerations.html" class="page">Technical considerations</a></li>
   <li><a href="banking.html" class="page">In memory example</a></li>
   <li><a href="standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
@@ -124,7 +124,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
     <li><a href="non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
   </ul></li>
-  <li><a href="resilient-kafka-consumption.html" class="active page">Resilient kafka consumption</a></li>
+  <li><a href="resilient-kafka-consumption.html" class="page">Resilient kafka consumption</a></li>
 </ul>
 </div>
 
@@ -139,7 +139,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="nav-breadcrumbs">
 <ul>
   <li><a href="index.html">Thoth</a></li>
-  <li>Resilient kafka consumption</li>
+  <li>Getting started</li>
 </ul>
 </div>
 </div>
@@ -147,9 +147,102 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
-<h1><a href="#resilient-kafka-consumption" name="resilient-kafka-consumption" class="anchor"><span class="anchor-link"></span></a>Resilient kafka consumption</h1>
-<p>Thoth provides a resilient kafka consumer. </p>
-<h2><a href="#installation" name="installation" class="anchor"><span class="anchor-link"></span></a>Installation</h2><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
+<h1><a href="#getting-started" name="getting-started" class="anchor"><span class="anchor-link"></span></a>Getting started</h1>
+<p>Thoth is published on maven central.</p>
+<p>Thoth is reactive on its core, but it could be used is a blocking context.</p>
+<h2><a href="#modules" name="modules" class="anchor"><span class="anchor-link"></span></a>Modules</h2>
+<h3><a href="#commons-events" name="commons-events" class="anchor"><span class="anchor-link"></span></a>Commons events</h3>
+<p>Basic interface concerning events. This module is required</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
+libraryDependencies += "fr.maif" % "commons-events$" % ThothVersion</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
+  &lt;thoth.version&gt;0.1.0*&lt;/thoth.version&gt;
+&lt;/properties&gt;
+&lt;dependencies&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;commons-events$&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+&lt;/dependencies&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">def versions = [
+  ThothVersion: "0.1.0*"
+]
+dependencies {
+  implementation "fr.maif:commons-events$:${versions.ThothVersion}"
+}</code></pre></dd></dl>
+<h3><a href="#thoth-core" name="thoth-core" class="anchor"><span class="anchor-link"></span></a>Thoth core</h3>
+<p>Main interfaces and implementations. This module is required.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
+libraryDependencies += "fr.maif" % "thoth-core$" % ThothVersion</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
+  &lt;thoth.version&gt;0.1.0*&lt;/thoth.version&gt;
+&lt;/properties&gt;
+&lt;dependencies&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;thoth-core$&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+&lt;/dependencies&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">def versions = [
+  ThothVersion: "0.1.0*"
+]
+dependencies {
+  implementation "fr.maif:thoth-core$:${versions.ThothVersion}"
+}</code></pre></dd></dl>
+<h3><a href="#thoth-core-akka-thoth-jooq-akka-and-thoth-kafka-consumer-akka" name="thoth-core-akka-thoth-jooq-akka-and-thoth-kafka-consumer-akka" class="anchor"><span class="anchor-link"></span></a>Thoth core-akka, thoth-jooq-akka and thoth-kafka-consumer-akka</h3>
+<p>Those modules are not maintained anymore since the version switch of akka.</p>
+<h3><a href="#thoth-core-reactor" name="thoth-core-reactor" class="anchor"><span class="anchor-link"></span></a>Thoth core reactor</h3>
+<p>Basically, this module is used to garanti the publication of events in kafka (outbox pattern). Unless you bring your own implementation, this module is required. It uses reactor, but the reactor API is not exposed.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
+libraryDependencies += "fr.maif" % "thoth-reactor$" % ThothVersion</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
+  &lt;thoth.version&gt;0.1.0*&lt;/thoth.version&gt;
+&lt;/properties&gt;
+&lt;dependencies&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;thoth-reactor$&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+&lt;/dependencies&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">def versions = [
+  ThothVersion: "0.1.0*"
+]
+dependencies {
+  implementation "fr.maif:thoth-reactor$:${versions.ThothVersion}"
+}</code></pre></dd></dl>
+<h3><a href="#jdbc-thoth-jooq-" name="jdbc-thoth-jooq-" class="anchor"><span class="anchor-link"></span></a>Jdbc (Thoth jooq)</h3>
+<p>A jooq + jdbc implémentation of the event store.</p>
+<p>If your app is running on a servlet context, you should use this module. Jooq is used on the inner implementation but, it&rsquo;s not required for your business code.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
+libraryDependencies += "fr.maif" % "thoth-jooq$" % ThothVersion</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
+  &lt;thoth.version&gt;0.1.0*&lt;/thoth.version&gt;
+&lt;/properties&gt;
+&lt;dependencies&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;thoth-jooq$&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+&lt;/dependencies&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">def versions = [
+  ThothVersion: "0.1.0*"
+]
+dependencies {
+  implementation "fr.maif:thoth-jooq$:${versions.ThothVersion}"
+}</code></pre></dd></dl>
+<h3><a href="#reactive-thoth-jooq-reactor-" name="reactive-thoth-jooq-reactor-" class="anchor"><span class="anchor-link"></span></a>Reactive (Thoth jooq reactor)</h3>
+<p>A jooq with jdbc or vertx-sql implémentation of the event store.</p>
+<p>This module is based on <a href="https://github.com/MAIF/jooq-async">https://github.com/MAIF/jooq-async</a> to access database. Jooq async provided a jdbc (thread pool based) and vertx implémentation (reactive) at the moment.</p>
+<p>If your app is running on a reactive context, you should use this module. Jooq is used on the inner implementation but, it&rsquo;s not required for your business code.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
+libraryDependencies += "fr.maif" % "thoth-jooq-reactor$" % ThothVersion</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
+  &lt;thoth.version&gt;0.1.0*&lt;/thoth.version&gt;
+&lt;/properties&gt;
+&lt;dependencies&gt
+  &lt;dependency&gt;
+    &lt;groupId&gt;fr.maif&lt;/groupId&gt;
+    &lt;artifactId&gt;thoth-jooq-reactor$&lt;/artifactId&gt;
+    &lt;version&gt;${thoth.version}&lt;/version&gt;
+  &lt;/dependency&gt
+&lt;/dependencies&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">def versions = [
+  ThothVersion: "0.1.0*"
+]
+dependencies {
+  implementation "fr.maif:thoth-jooq-reactor$:${versions.ThothVersion}"
+}</code></pre></dd></dl>
+<h3><a href="#thoth-kafka-consumer-reactor" name="thoth-kafka-consumer-reactor" class="anchor"><span class="anchor-link"></span></a>thoth-kafka-consumer-reactor</h3>
+<p>A helper module to consume kafka topics. This module handle for you retries, concurrent consumption by partition etc</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
 libraryDependencies += "fr.maif" % "thoth-kafka-consumer-reactor$" % ThothVersion</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
   &lt;thoth.version&gt;0.1.0*&lt;/thoth.version&gt;
 &lt;/properties&gt;
@@ -165,134 +258,28 @@ libraryDependencies += "fr.maif" % "thoth-kafka-consumer-reactor$" % ThothVersio
 dependencies {
   implementation "fr.maif:thoth-kafka-consumer-reactor$:${versions.ThothVersion}"
 }</code></pre></dd></dl>
-<h2><a href="#usage" name="usage" class="anchor"><span class="anchor-link"></span></a>Usage</h2>
-<pre class="prettyprint"><code class="language-java"><br/>ResilientKafkaConsumer&lt;String, String&gt; resilientKafkaConsumer = ResilientKafkaConsumer.create(
-        // Name of the consumer (for logs etc ...)
-        &quot;test&quot;,
-        ResilientKafkaConsumer.Config.create(
-            List.of(topic),
-            groupId,
-            receiverOptions
-        ),
-        event -&gt; {
-            System.out.println(event.value());
-        }
-);
-</code></pre>
-<h2><a href="#consuming-event" name="consuming-event" class="anchor"><span class="anchor-link"></span></a>Consuming event</h2>
-<p>There 3 way to consume events : blocking, non-blocking, streams </p>
-<h3><a href="#blocking" name="blocking" class="anchor"><span class="anchor-link"></span></a>Blocking</h3>
-<p>It append when you a blocking call (i.e JDBC), in this case, a &ldquo;parallel&rdquo; scheduler is chosen. </p>
-<pre class="prettyprint"><code class="language-java">ResilientKafkaConsumer&lt;String, String&gt; resilientKafkaConsumer = ResilientKafkaConsumer.create(
-        // Name of the consumer (for logs etc ...)
-        &quot;test&quot;,
-        ResilientKafkaConsumer.Config.create(
-            List.of(topic),
-            groupId,
-            receiverOptions
-        ),
-        event -&gt; {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
-</code></pre>
-<h3><a href="#non-blocking" name="non-blocking" class="anchor"><span class="anchor-link"></span></a>Non Blocking</h3>
-<pre class="prettyprint"><code class="language-java">ResilientKafkaConsumer&lt;String, String&gt; resilientKafkaConsumer = ResilientKafkaConsumer.create(
-        &quot;test&quot;,
-        ResilientKafkaConsumer.Config.create(
-            List.of(topic),
-            groupId,
-            receiverOptions
-        ),  
-        // Non blocking handling 
-        (ReceiverRecord&lt;String, String&gt; event) -&gt; Mono.fromCallable(() -&gt; {
-            System.out.println(event.value());
-            return event;
-        })
-);
-</code></pre>
-<h3><a href="#streams" name="streams" class="anchor"><span class="anchor-link"></span></a>Streams</h3>
-<p>Stream handling is done using the reactor <code>Flux</code>. </p>
-<p>In that stream you can, skip, group etc do whatever you want but at the end you have to give back the event. </p>
-<pre class="prettyprint"><code class="language-java">        ResilientKafkaConsumer.createFromFlow(
-            &quot;test&quot;,
-            ResilientKafkaConsumer.Config.create(
-                List.of(topic),
-                groupId,
-                receiverOptions
-            ),
-            flux -&gt; flux
-                .index()
-                .concatMap(messageAndIndex -&gt; {
-                    Long index = messageAndIndex.getT1();
-                    System.out.println(&quot;Message number &quot; + index);
-                    var event = messageAndIndex.getT2();
-                    Mono&lt;String&gt; asyncApiCall = asyncApiCall();
-                    return asyncApiCall.map(it -&gt; event);
-                })
-        );
-</code></pre>
-<h2><a href="#handling-crash" name="handling-crash" class="anchor"><span class="anchor-link"></span></a>Handling crash</h2>
-<p>The goal of this consumer is to handle crashes by retrying the failed event consumption. There two types of errors :</p>
-<ul>
-  <li>Parsing / Business errors : in that case, you should push the failing event in a dead letter queue to analyse the issue and move to the next event.</li>
-  <li>Technical errors : e.g. a database or an API that is not available at time, in that case, you have to let it crash.  The consumer will let the event uncommitted, will disconnect from kafka and restart later, reading the message again.</li>
-</ul>
-<p>You can configure the consumer to set appropriate values for restart interval &hellip; </p>
-<pre class="prettyprint"><code class="language-java ">ResilientKafkaConsumer.Config.create(
-                                List.of(topic),
-                                groupId,
-                                receiverOptions
-                        )
-                        .withCommitSize(5)
-                        .withMinBackoff(Duration.ofMillis(200))
-                        .withMaxBackoff(Duration.ofMinutes(10))
-                        .withRandomFactor(0.2d);
-</code></pre>
-<h2><a href="#status-and-lifecycles" name="status-and-lifecycles" class="anchor"><span class="anchor-link"></span></a>Status and lifecycles</h2>
-<p>The resilient kafka consumer has a lifecycle and will have the following states : </p>
-<ul>
-  <li><code>Starting</code>: The consumer is starting</li>
-  <li><code>Started</code>: The consumer has started</li>
-  <li><code>Failed</code>: The consumer has crashed and will restart, the kafka client is no longer connected to the cluster.</li>
-  <li><code>Stopping</code> : The consumer is stopping</li>
-  <li><code>Stopped</code> : The consumer is stopped, the kafka client is no longer connected to the cluster.</li>
-</ul>
-<p>The status is exposed by the <code>ResilientKafkaConsumer</code> using the <code>status</code> method. </p>
-<pre class="prettyprint"><code class="language-java">ResilientKafkaConsumer&lt;String, String&gt; resilientKafkaConsumer = ResilientKafkaConsumer.create(...);
-
-Status status = resilientKafkaConsumer.status();
-</code></pre>
-<p>You can also register callbacks : </p>
-<pre class="prettyprint"><code class="language-java">    ResilientKafkaConsumer&lt;String, String&gt; resilientKafkaConsumer = ResilientKafkaConsumer.create(
-            ResilientKafkaConsumer.Config.create(
-                List.of(topic),
-                groupId,
-                receiverOptions
-            )
-            .withOnStarting(() -&gt; Mono.fromRunnable(() -&gt; {
-    
-            }))
-            .withOnStarted((c, time) -&gt; Mono.fromRunnable(() -&gt; {
-    
-            }))
-            .withOnStopping(() -&gt; Mono.fromRunnable(() -&gt; {
-    
-            }))
-            .withOnStopped(() -&gt; Mono.fromRunnable(() -&gt; {
-    
-            }))
-            .withOnFailed(e -&gt; Mono.fromRunnable(() -&gt; {
-    
-            })), 
-            event -&gt; {
-                names.set(names.get() + &quot; &quot; + event.record().value());
-            }
-    );
-</code></pre>
+<h2><a href="#summary-by-usages" name="summary-by-usages" class="anchor"><span class="anchor-link"></span></a>Summary by usages</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Context </th>
+      <th>Dependencies </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Servlet / Blocking / Thread based </td>
+      <td>commons-events<br/>thoth-core<br/>thoth-core-reactor<br/>thoth-jooq </td>
+    </tr>
+    <tr>
+      <td>Reactive </td>
+      <td>commons-events<br/>thoth-core<br/>thoth-core-reactor<br/>thoth-jooq-reactor </td>
+    </tr>
+  </tbody>
+</table>
+<div class="nav-next">
+<p><strong>Next:</strong> <a href="technical-considerations.html">Technical considerations</a></p>
+</div>
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>
 <nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
@@ -300,13 +287,10 @@ Status status = resilientKafkaConsumer.status();
 <div class="nav-title">On this page:</div>
 <div class="nav-toc">
 <ul>
-  <li><a href="resilient-kafka-consumption.html#resilient-kafka-consumption" class="header">Resilient kafka consumption</a>
+  <li><a href="getting-started.html#getting-started" class="header">Getting started</a>
   <ul>
-    <li><a href="resilient-kafka-consumption.html#installation" class="header">Installation</a></li>
-    <li><a href="resilient-kafka-consumption.html#usage" class="header">Usage</a></li>
-    <li><a href="resilient-kafka-consumption.html#consuming-event" class="header">Consuming event</a></li>
-    <li><a href="resilient-kafka-consumption.html#handling-crash" class="header">Handling crash</a></li>
-    <li><a href="resilient-kafka-consumption.html#status-and-lifecycles" class="header">Status and lifecycles</a></li>
+    <li><a href="getting-started.html#modules" class="header">Modules</a></li>
+    <li><a href="getting-started.html#summary-by-usages" class="header">Summary by usages</a></li>
   </ul></li>
 </ul>
 </div>

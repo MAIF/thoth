@@ -1,2 +1,2 @@
 
-addSbtPlugin("com.lightbend.paradox" % "sbt-paradox" % "0.10.3") // Apache 2.0
+addSbtPlugin("com.github.sbt" % "sbt-site-paradox" % "1.5.0")

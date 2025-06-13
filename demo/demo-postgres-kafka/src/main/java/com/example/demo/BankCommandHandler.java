@@ -1,36 +1,29 @@
 package com.example.demo;
 
-import fr.maif.concurrent.CompletionStages;
-import fr.maif.eventsourcing.CommandHandler;
 import fr.maif.eventsourcing.Events;
+import fr.maif.eventsourcing.blocking.CommandHandler;
 import io.vavr.collection.List;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
-import java.util.concurrent.CompletionStage;
 
-import static com.example.demo.BankCommand.CloseAccount;
-import static com.example.demo.BankCommand.Deposit;
-import static com.example.demo.BankCommand.OpenAccount;
-import static com.example.demo.BankCommand.Withdraw;
-import static io.vavr.API.Left;
-import static io.vavr.API.List;
-import static io.vavr.API.Right;
+import static com.example.demo.BankCommand.*;
+import static io.vavr.API.*;
 
 public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, List<String>, Connection> {
     @Override
-    public CompletionStage<Either<String, Events<BankEvent, List<String>>>> handleCommand(
+    public Either<String, Events<BankEvent, List<String>>> handleCommand(
             Connection transactionContext,
             Option<Account> previousState,
             BankCommand command) {
-        return CompletionStages.of(() -> switch (command) {
+        return switch (command) {
             case Withdraw withdraw -> this.handleWithdraw(previousState, withdraw);
             case Deposit deposit -> this.handleDeposit(previousState, deposit);
             case OpenAccount openAccount -> this.handleOpening(openAccount);
             case CloseAccount close -> this.handleClosing(previousState, close);
-        });
+        };
     }
 
     private Either<String, Events<BankEvent, List<String>>> handleOpening(

@@ -3,6 +3,7 @@
 
 @@@ index
 
+* [Getting started and modules](getting-started.md)
 * [Technical considerations](technical-considerations.md)
 * [In memory example](banking.md)
 * [Standard implementation](standard/index.md)

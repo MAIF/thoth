@@ -119,7 +119,7 @@ public class Bank {
                             builder.eventHandler,
                             builder.transactionManager
                     ))
-                .withCommandHandler(commandHandler)
+                .withCommandHandler(commandHandler, executorService)
                 .withProjections(meanWithdrawProjection)
                 .build();
     }

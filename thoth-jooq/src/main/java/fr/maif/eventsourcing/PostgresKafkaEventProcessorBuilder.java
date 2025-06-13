@@ -15,6 +15,7 @@ import reactor.kafka.sender.SenderOptions;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
@@ -453,6 +454,41 @@ public class PostgresKafkaEventProcessorBuilder {
                     aggregateStore,
                     eventHandler,
                     commandHandler.apply(this)
+            );
+        }
+        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(fr.maif.eventsourcing.blocking.CommandHandler<Error, S, C, E, Message, Connection> commandHandler, Executor executor) {
+            return new BuilderWithCommandHandler<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    eventStore,
+                    aggregateStore,
+                    eventHandler,
+                    commandHandler.toCommandHandler(executor)
+            );
+        }
+
+        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(Function<BuilderWithAggregateStore<S, E, Meta, Context>, fr.maif.eventsourcing.blocking.CommandHandler<Error, S, C, E, Message, Connection>> commandHandler, Executor executor) {
+            return new BuilderWithCommandHandler<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    eventStore,
+                    aggregateStore,
+                    eventHandler,
+                    commandHandler.apply(this).toCommandHandler(executor)
             );
         }
     }
