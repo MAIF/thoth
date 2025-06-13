@@ -4,33 +4,29 @@ import com.example.demo.BankCommand.CloseAccount;
 import com.example.demo.BankCommand.Deposit;
 import com.example.demo.BankCommand.OpenAccount;
 import com.example.demo.BankCommand.Withdraw;
-import fr.maif.concurrent.CompletionStages;
-import fr.maif.eventsourcing.CommandHandler;
 import fr.maif.eventsourcing.Events;
+import fr.maif.eventsourcing.blocking.CommandHandler;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 
 import java.math.BigDecimal;
-import java.util.concurrent.CompletionStage;
 
-import static io.vavr.API.Left;
-import static io.vavr.API.List;
-import static io.vavr.API.Right;
+import static io.vavr.API.*;
 
 public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, Tuple0, Tuple0> {
     @Override
-    public CompletionStage<Either<String, Events<BankEvent, Tuple0>>> handleCommand(
+    public Either<String, Events<BankEvent, Tuple0>> handleCommand(
             Tuple0 transactionContext,
             Option<Account> previousState,
             BankCommand command) {
-        return CompletionStages.of(() -> switch (command) {
+        return switch (command) {
             case Withdraw withdraw -> this.handleWithdraw(previousState, withdraw);
             case Deposit deposit -> this.handleDeposit(previousState, deposit);
             case OpenAccount openAccount -> this.handleOpening(openAccount);
             case CloseAccount close -> this.handleClosing(previousState, close);
-        });
+        };
     }
 
     private Either<String, Events<BankEvent, Tuple0>> handleOpening(

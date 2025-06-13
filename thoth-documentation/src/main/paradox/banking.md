@@ -116,17 +116,17 @@ Now that we got a state representation, some commands and events, it's time to i
 Let's start small with account creation:
 
 ```java
-import java.util.concurrent.CompletableFuture;
+import fr.maif.eventsourcing.blocking.CommandHandler;
 
 public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, Tuple0, Tuple0> {
   @Override
-  public CompletableFuture<Either<String, Events<BankEvent, Tuple0>>> handleCommand(
+  public Either<String, Events<BankEvent, Tuple0>> handleCommand(
           Tuple0 transactionContext,
           Option<Account> previousState,
           BankCommand command) {
-    return CompletableFuture.supplyAsync(() -> switch (command) {
+    return switch (command) {
       case OpenAccount openAccount -> this.handleOpening(openAccount);
-    });
+    };
   }
 
   private Either<String, Events<BankEvent, Tuple0>> handleOpening(
@@ -233,11 +233,12 @@ public class Bank {
                 ) {
         InMemoryEventStore<BankEvent, Tuple0, Tuple0> eventStore = InMemoryEventStore.create(actorSystem);
         TransactionManager<Tuple0> transactionManager = noOpTransactionManager();
+      ExecutorService executor = Executors.newCachedThreadPool();
         this.eventProcessor = new EventProcessorImpl<>(
                 eventStore,
                 transactionManager,
                 new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager),
-                commandHandler,
+                commandHandler.toCommandHandler(executor),
                 eventHandler,
                 List.empty()
         );

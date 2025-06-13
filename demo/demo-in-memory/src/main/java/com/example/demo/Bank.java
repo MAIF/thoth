@@ -17,6 +17,8 @@ import io.vavr.control.Option;
 
 import java.math.BigDecimal;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 public class Bank {
@@ -30,11 +32,12 @@ public class Bank {
                 ) {
         InMemoryEventStore<BankEvent, Tuple0, Tuple0> eventStore = InMemoryEventStore.create(actorSystem);
         TransactionManager<Tuple0> transactionManager = noOpTransactionManager();
+        ExecutorService executor = Executors.newCachedThreadPool();
         this.eventProcessor = new EventProcessorImpl<>(
                 eventStore,
                 transactionManager,
                 new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager),
-                commandHandler,
+                commandHandler.toCommandHandler(executor),
                 eventHandler,
                 List.empty()
         );

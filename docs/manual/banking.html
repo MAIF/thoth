@@ -237,17 +237,17 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <h2><a href="#from-command-to-event" name="from-command-to-event" class="anchor"><span class="anchor-link"></span></a>From command to event</h2>
 <p>Now that we got a state representation, some commands and events, it&rsquo;s time to implement our first command handler.</p>
 <p>Let&rsquo;s start small with account creation:</p>
-<pre class="prettyprint"><code class="language-java">import java.util.concurrent.CompletableFuture;
+<pre class="prettyprint"><code class="language-java">import fr.maif.eventsourcing.blocking.CommandHandler;
 
 public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, Tuple0, Tuple0&gt; {
   @Override
-  public CompletableFuture&lt;Either&lt;String, Events&lt;BankEvent, Tuple0&gt;&gt;&gt; handleCommand(
+  public Either&lt;String, Events&lt;BankEvent, Tuple0&gt;&gt; handleCommand(
           Tuple0 transactionContext,
           Option&lt;Account&gt; previousState,
           BankCommand command) {
-    return CompletableFuture.supplyAsync(() -&gt; switch (command) {
+    return switch (command) {
       case OpenAccount openAccount -&gt; this.handleOpening(openAccount);
-    });
+    };
   }
 
   private Either&lt;String, Events&lt;BankEvent, Tuple0&gt;&gt; handleOpening(
@@ -336,11 +336,12 @@ public class BankCommandHandler implements CommandHandler&lt;String, Account, Ba
                 ) {
         InMemoryEventStore&lt;BankEvent, Tuple0, Tuple0&gt; eventStore = InMemoryEventStore.create(actorSystem);
         TransactionManager&lt;Tuple0&gt; transactionManager = noOpTransactionManager();
+      ExecutorService executor = Executors.newCachedThreadPool();
         this.eventProcessor = new EventProcessorImpl&lt;&gt;(
                 eventStore,
                 transactionManager,
                 new DefaultAggregateStore&lt;&gt;(eventStore, eventHandler, actorSystem, transactionManager),
-                commandHandler,
+                commandHandler.toCommandHandler(executor),
                 eventHandler,
                 List.empty()
         );
