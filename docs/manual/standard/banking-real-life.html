@@ -209,13 +209,13 @@ dependencies {
     @Override
     public Either&lt;String, BankEvent&gt; read(String type, Long version, JsonNode json) {
         return Either.narrow(switch (Tuple.of(type, version)) {
-            case Tuple2&lt;String, Long&gt; t &amp;&amp; MoneyDepositedV1.match(t) -&gt;
+            case Tuple2&lt;String, Long&gt; t when MoneyDepositedV1.match(t) -&gt;
                     Json.fromJson(json, BankEvent.MoneyDeposited.class).toEither().mapLeft(errs -&gt; errs.mkString(&quot;,&quot;));
-            case Tuple2&lt;String, Long&gt; t &amp;&amp; MoneyWithdrawnV1.match(t) -&gt;
+            case Tuple2&lt;String, Long&gt; t when MoneyWithdrawnV1.match(t) -&gt;
                     Json.fromJson(json, BankEvent.MoneyWithdrawn.class).toEither().mapLeft(errs -&gt; errs.mkString(&quot;,&quot;));
-            case Tuple2&lt;String, Long&gt; t &amp;&amp; AccountClosedV1.match(t) -&gt;
+            case Tuple2&lt;String, Long&gt; t when AccountClosedV1.match(t) -&gt;
                     Json.fromJson(json, BankEvent.AccountClosed.class).toEither().mapLeft(errs -&gt; errs.mkString(&quot;,&quot;));
-            case Tuple2&lt;String, Long&gt; t &amp;&amp; AccountOpenedV1.match(t) -&gt;
+            case Tuple2&lt;String, Long&gt; t when AccountOpenedV1.match(t) -&gt;
                     Json.fromJson(json, BankEvent.AccountOpened.class).toEither().mapLeft(errs -&gt; errs.mkString(&quot;,&quot;));
             default -&gt; Either.&lt;String, BankEvent&gt;left(&quot;Unknown event type &quot; + type + &quot;(v&quot; + version + &quot;)&quot;);
         });
@@ -298,8 +298,15 @@ dependencies {
 </code></pre>
 <p>Since this implementation will use a real database, we need to change TransactionContext type from <code>Tuple0</code> to <code>Connection</code> in <code>CommandHandler</code>.</p>
 <p>This transaction context allows sharing database context for command verification and events insertion.</p>
-<pre class="prettyprint"><code class="language-java">public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, Tuple0, Connection&gt; {
-    //...
+<pre class="prettyprint"><code class="language-java">import fr.maif.eventsourcing.blocking.CommandHandler;
+
+public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, Tuple0, Connection&gt; {
+    public Either&lt;String, Events&lt;BankEvent, Tuple0&gt;&gt; handleCommand(
+            Connection transactionContext,
+            Option&lt;Account&gt; previousState,
+            BankCommand command) {
+        //...
+    }
 }
 </code></pre>
 <h2><a href="#kafka-connection" name="kafka-connection" class="anchor"><span class="anchor-link"></span></a>Kafka connection</h2>
@@ -353,7 +360,7 @@ dependencies {
                         builder.eventHandler,
                         builder.transactionManager
                 ))
-                .withCommandHandler(commandHandler)
+                .withCommandHandler(commandHandler, executorService)
                 .build();
     }
     //...

@@ -67,13 +67,13 @@ public class BankEventFormat implements JacksonEventFormat<String, BankEvent> {
     @Override
     public Either<String, BankEvent> read(String type, Long version, JsonNode json) {
         return Either.narrow(switch (Tuple.of(type, version)) {
-            case Tuple2<String, Long> t && MoneyDepositedV1.match(t) ->
+            case Tuple2<String, Long> t when MoneyDepositedV1.match(t) ->
                     Json.fromJson(json, BankEvent.MoneyDeposited.class).toEither().mapLeft(errs -> errs.mkString(","));
-            case Tuple2<String, Long> t && MoneyWithdrawnV1.match(t) ->
+            case Tuple2<String, Long> t when MoneyWithdrawnV1.match(t) ->
                     Json.fromJson(json, BankEvent.MoneyWithdrawn.class).toEither().mapLeft(errs -> errs.mkString(","));
-            case Tuple2<String, Long> t && AccountClosedV1.match(t) ->
+            case Tuple2<String, Long> t when AccountClosedV1.match(t) ->
                     Json.fromJson(json, BankEvent.AccountClosed.class).toEither().mapLeft(errs -> errs.mkString(","));
-            case Tuple2<String, Long> t && AccountOpenedV1.match(t) ->
+            case Tuple2<String, Long> t when AccountOpenedV1.match(t) ->
                     Json.fromJson(json, BankEvent.AccountOpened.class).toEither().mapLeft(errs -> errs.mkString(","));
             default -> Either.<String, BankEvent>left("Unknown event type " + type + "(v" + version + ")");
         });
@@ -172,8 +172,15 @@ Since this implementation will use a real database, we need to change Transactio
 This transaction context allows sharing database context for command verification and events insertion.
 
 ```java
+import fr.maif.eventsourcing.blocking.CommandHandler;
+
 public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, Tuple0, Connection> {
-    //...
+    public Either<String, Events<BankEvent, Tuple0>> handleCommand(
+            Connection transactionContext,
+            Option<Account> previousState,
+            BankCommand command) {
+        //...
+    }
 }
 ```
 
@@ -240,7 +247,7 @@ public class Bank {
                         builder.eventHandler,
                         builder.transactionManager
                 ))
-                .withCommandHandler(commandHandler)
+                .withCommandHandler(commandHandler, executorService)
                 .build();
     }
     //...
