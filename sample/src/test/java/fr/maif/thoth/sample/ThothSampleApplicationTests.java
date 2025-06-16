@@ -1,31 +1,18 @@
 package fr.maif.thoth.sample;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.math.BigDecimal;
-import java.sql.SQLException;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.DeleteTopicsResult;
-import org.apache.kafka.clients.admin.KafkaAdminClient;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import fr.maif.eventsourcing.EventEnvelope;
+import fr.maif.eventsourcing.format.JacksonSimpleFormat;
+import fr.maif.json.EventEnvelopeJson;
+import fr.maif.thoth.sample.api.AccountDTO;
+import fr.maif.thoth.sample.api.BalanceDTO;
+import fr.maif.thoth.sample.api.TransferDTO;
+import fr.maif.thoth.sample.api.TransferResultDTO;
+import fr.maif.thoth.sample.events.BankEvent;
+import fr.maif.thoth.sample.events.BankEventFormat;
+import io.vavr.Tuple0;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -33,11 +20,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -51,24 +34,19 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.format.JacksonSimpleFormat;
-import fr.maif.json.EventEnvelopeJson;
-import fr.maif.thoth.sample.api.AccountDTO;
-import fr.maif.thoth.sample.api.BalanceDTO;
-import fr.maif.thoth.sample.api.TransferDTO;
-import fr.maif.thoth.sample.api.TransferResultDTO;
-import fr.maif.thoth.sample.events.BankEvent;
-import fr.maif.thoth.sample.events.BankEventFormat;
-import io.vavr.Tuple;
-import io.vavr.Tuple0;
-import io.vavr.Tuple2;
 import org.testcontainers.utility.DockerImageName;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
