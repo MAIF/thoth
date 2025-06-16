@@ -60,6 +60,7 @@ This documentation focuses on implementing event-sourcing on a simple use case :
     group7="fr.maif" artifact7="thoth-kafka-consumer-reactor" version7="ThothVersion"
 }
 
-More détail [here](getting-started.md).
+More détails @ref:[on this page](getting-started.md) 
+
 
 @@toc { depth=2 }

@@ -378,4 +378,27 @@ As we can see, BankEvents aren't published directly into kafka topic, they are w
 * `userId`: can be use to identify user that emitted command
 * `systemId`: can be use to identify system that emitted events
 
+## Java vanilla 
+
+You can have a java vanilla (no vavr) processor using the `buildVanilla` méthode on the builder :
+
+```java
+this.eventProcessor = PostgresKafkaEventProcessor
+                .withDataSource(dataSource())
+                .withTables(tableNames)
+                .withTransactionManager(transactionManager, executorService)
+                .withEventFormater(eventFormat)
+                .withNoMetaFormater()
+                .withNoContextFormater()
+                .withKafkaSettings(topic, producerSettings)
+                .withEventHandler(eventHandler)
+                .withAggregateStore(builder -> new BankAggregateStore(
+                        builder.eventStore,
+                        builder.eventHandler,
+                        builder.transactionManager
+                ))
+                .withCommandHandler(commandHandler, executorService)
+                .buildVanilla();
+```
+
 [Complete executable example.](https://github.com/MAIF/thoth/tree/master/demo/demo-postgres-kafka)

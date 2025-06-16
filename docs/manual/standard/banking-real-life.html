@@ -471,6 +471,25 @@ String id = bank.createAccount(BigDecimal.valueOf(100)).toCompletableFuture().jo
   <li><code>userId</code>: can be use to identify user that emitted command</li>
   <li><code>systemId</code>: can be use to identify system that emitted events</li>
 </ul>
+<h2><a href="#java-vanilla" name="java-vanilla" class="anchor"><span class="anchor-link"></span></a>Java vanilla</h2>
+<p>You can have a java vanilla (no vavr) processor using the <code>buildVanilla</code> méthode on the builder :</p>
+<pre class="prettyprint"><code class="language-java">this.eventProcessor = PostgresKafkaEventProcessor
+                .withDataSource(dataSource())
+                .withTables(tableNames)
+                .withTransactionManager(transactionManager, executorService)
+                .withEventFormater(eventFormat)
+                .withNoMetaFormater()
+                .withNoContextFormater()
+                .withKafkaSettings(topic, producerSettings)
+                .withEventHandler(eventHandler)
+                .withAggregateStore(builder -&gt; new BankAggregateStore(
+                        builder.eventStore,
+                        builder.eventHandler,
+                        builder.transactionManager
+                ))
+                .withCommandHandler(commandHandler, executorService)
+                .buildVanilla();
+</code></pre>
 <p><a href="https://github.com/MAIF/thoth/tree/master/demo/demo-postgres-kafka">Complete executable example.</a></p>
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../standard/projections.html">Projections</a></p>
