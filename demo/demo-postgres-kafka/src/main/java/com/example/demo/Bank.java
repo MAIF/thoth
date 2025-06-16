@@ -2,14 +2,12 @@ package com.example.demo;
 
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
-import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventProcessorImpl;
-import fr.maif.eventsourcing.PostgresKafkaEventProcessor;
-import fr.maif.eventsourcing.ProcessingSuccess;
+import fr.maif.eventsourcing.*;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.eventsourcing.impl.JdbcTransactionManager;
 import fr.maif.eventsourcing.impl.PostgresEventStore;
+import fr.maif.eventsourcing.vanilla.EventProcessor;
 import fr.maif.reactor.eventsourcing.ReactorKafkaEventPublisher;
 import fr.maif.eventsourcing.impl.TableNames;
 import fr.maif.kafka.JsonSerializer;
@@ -26,12 +24,13 @@ import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Bank {
-    private final EventProcessorImpl<String, Account, BankCommand, BankEvent, Connection, List<String>, Tuple0, Tuple0> eventProcessor;
+    private final EventProcessor<String, Account, BankCommand, BankEvent, Connection, List<String>, Tuple0, Tuple0> eventProcessor;
     private final MeanWithdrawProjection meanWithdrawProjection;
     private static final TimeBasedGenerator UUIDgenerator = Generators.timeBasedGenerator();
     private final String SCHEMA = """
@@ -121,7 +120,7 @@ public class Bank {
                     ))
                 .withCommandHandler(commandHandler, executorService)
                 .withProjections(meanWithdrawProjection)
-                .build();
+                .buildVanilla();
     }
 
     private ReactorKafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher(
@@ -140,28 +139,28 @@ public class Bank {
     }
 
 
-    public CompletionStage<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> createAccount(
+    public CompletionStage<Result<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> createAccount(
             BigDecimal amount) {
         Lazy<String> lazyId = Lazy.of(() -> UUIDgenerator.generate().toString());
         return eventProcessor.processCommand(new BankCommand.OpenAccount(lazyId, amount));
     }
 
-    public CompletionStage<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> withdraw(
+    public CompletionStage<Result<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> withdraw(
             String account, BigDecimal amount) {
         return eventProcessor.processCommand(new BankCommand.Withdraw(account, amount));
     }
 
-    public CompletionStage<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> deposit(
+    public CompletionStage<Result<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> deposit(
             String account, BigDecimal amount) {
         return eventProcessor.processCommand(new BankCommand.Deposit(account, amount));
     }
 
-    public CompletionStage<Either<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> close(
+    public CompletionStage<Result<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> close(
             String account) {
         return eventProcessor.processCommand(new BankCommand.CloseAccount(account));
     }
 
-    public CompletionStage<Option<Account>> findAccountById(String id) {
+    public CompletionStage<Optional<Account>> findAccountById(String id) {
         return eventProcessor.getAggregate(id);
     }
 

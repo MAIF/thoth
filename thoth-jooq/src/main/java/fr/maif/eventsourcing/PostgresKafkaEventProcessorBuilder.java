@@ -3,6 +3,8 @@ package fr.maif.eventsourcing;
 import fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
+import fr.maif.eventsourcing.vanilla.EventProcessor;
+import fr.maif.eventsourcing.vanilla.EventProcessorVanilla;
 import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
 import fr.maif.eventsourcing.impl.JdbcTransactionManager;
 import fr.maif.eventsourcing.impl.PostgresEventStore;
@@ -10,11 +12,17 @@ import fr.maif.reactor.eventsourcing.ReactorKafkaEventPublisher;
 import fr.maif.eventsourcing.impl.TableNames;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
+import io.vavr.control.Either;
 import io.vavr.control.Option;
+import org.reactivestreams.Publisher;
 import reactor.kafka.sender.SenderOptions;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.sql.Connection;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
@@ -617,6 +625,17 @@ public class PostgresKafkaEventProcessorBuilder {
             this.eventHandler = eventHandler;
             this.commandHandler = commandHandler;
             this.projections = projections;
+        }
+
+        private static <E, A> Result<E, A> fromEither(Either<E, A> either) {
+            return either.fold(
+                    err -> new Result.Error<>(err),
+                    success -> new Result.Success<>(success)
+            );
+        }
+
+        public EventProcessor<Error, S, C, E, Connection, Message, Meta, Context> buildVanilla() {
+            return new EventProcessorVanilla<>(build());
         }
 
         public PostgresKafkaEventProcessor<Error, S, C, E, Message, Meta, Context> build() {

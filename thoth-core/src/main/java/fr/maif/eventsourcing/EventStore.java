@@ -68,7 +68,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
         SKIP, WAIT, NO_STRATEGY
     }
 
-    class Query {
+    public class Query {
 
         public final LocalDateTime dateFrom;
         public final LocalDateTime dateTo;
