@@ -52,7 +52,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
-class ThothSampleApplicationTests {
+public class ThothSampleApplicationTests {
 	private static final String groupId = "test-groupid";
 	@Autowired
 	private TestRestTemplate restTemplate;
