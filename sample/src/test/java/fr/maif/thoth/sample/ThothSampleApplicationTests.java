@@ -53,6 +53,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
 public class ThothSampleApplicationTests {
+
 	private static final String groupId = "test-groupid";
 	@Autowired
 	private TestRestTemplate restTemplate;
@@ -71,7 +72,6 @@ public class ThothSampleApplicationTests {
 		postgres.start();
 		kafka.start();
 	}
-
 
 	@DynamicPropertySource
 	static void databaseProperties(DynamicPropertyRegistry registry) {
@@ -110,7 +110,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void postAccountShouldCreateAccount() {
+	public void postAccountShouldCreateAccount() {
 		final String id = "test";
 		AccountDTO payload = new AccountDTO(new BigDecimal("100"), id);
 
@@ -122,7 +122,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void deleteAccountShouldDeleteAccount() {
+	public void deleteAccountShouldDeleteAccount() {
 		final String id = "test";
 		AccountDTO payload = new AccountDTO(new BigDecimal("100"), id);
 
@@ -134,7 +134,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void withdraw() {
+	public void withdraw() {
 		String id = "test";
 		AccountDTO payload = new AccountDTO(new BigDecimal("100"), id);
 
@@ -148,7 +148,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void deposit() {
+	public void deposit() {
 		String id = "test";
 		AccountDTO payload = new AccountDTO(new BigDecimal("100"), id);
 
@@ -162,7 +162,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void withdrawShouldFailOnInsufficientBalance() {
+	public void withdrawShouldFailOnInsufficientBalance() {
 		String id = "test";
 
 		AccountDTO payload = new AccountDTO(new BigDecimal("100"), id);
@@ -175,7 +175,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void withdrawShouldFailOnNonExistantAccount() {
+	public void withdrawShouldFailOnNonExistantAccount() {
 		String id = "test";
 
 		AccountDTO expected = AccountDTO.error("Account does not exist");
@@ -186,7 +186,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void depositShouldFailOnNonExistantAccount() {
+	public void depositShouldFailOnNonExistantAccount() {
 		String id = "test";
 
 		AccountDTO expected = AccountDTO.error("Account does not exist");
@@ -197,7 +197,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void creationShouldFailOnNegativeAmount() {
+	public void creationShouldFailOnNegativeAmount() {
 		final String id = "test";
 		AccountDTO payload = new AccountDTO(new BigDecimal("-100"), id);
 
@@ -209,7 +209,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void creationShouldFailOnExistantAccount() {
+	public void creationShouldFailOnExistantAccount() {
 		final String id = "test";
 		AccountDTO payload = new AccountDTO(new BigDecimal("100"), id);
 		createAccount(payload);
@@ -219,7 +219,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void deleteAccountShouldFailOnNonExistantAccount() {
+	public void deleteAccountShouldFailOnNonExistantAccount() {
 		final String id = "test";
 		final Optional<String> maybeError = closeAccount(id);
 		assertThat(maybeError.get()).isEqualTo("Account does not exist");
@@ -229,7 +229,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void globalBalanceShouldBeAccurate() {
+	public void globalBalanceShouldBeAccurate() {
 		createAccount(new AccountDTO(new BigDecimal("100"), "test"));
 		createAccount(new AccountDTO(new BigDecimal("200"), "test2"));
 		deposit("test", new BigDecimal("50"));
@@ -239,7 +239,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void meanWithdrawByMonthShouldBeAccurate() throws InterruptedException {
+	public void meanWithdrawByMonthShouldBeAccurate() throws InterruptedException {
 		final String id = "test";
 		createAccount(new AccountDTO(new BigDecimal("1000"), id));
 		withdraw(id, new BigDecimal("100"));
@@ -254,7 +254,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void meanWithdrawShouldBeAccurate() throws InterruptedException {
+	public void meanWithdrawShouldBeAccurate() throws InterruptedException {
 		final String id = "test";
 		createAccount(new AccountDTO(new BigDecimal("1000"), id));
 		withdraw(id, new BigDecimal("100"));
@@ -270,7 +270,7 @@ public class ThothSampleApplicationTests {
 
 
 	@Test
-	void transferShouldWork() {
+	public void transferShouldWork() {
 		final String sourceId = "from";
 		final String targetId = "to";
 
@@ -283,7 +283,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void transferShouldFailIfBalanceIsTooLow() {
+	public void transferShouldFailIfBalanceIsTooLow() {
 		final String sourceId = "from";
 		final String targetId = "to";
 
@@ -295,7 +295,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void transferShouldFailIfSourceAccountDoesNotExist() {
+	public void transferShouldFailIfSourceAccountDoesNotExist() {
 		final String targetId = "to";
 
 		createAccount(new AccountDTO(new BigDecimal("10"), targetId));
@@ -305,7 +305,7 @@ public class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void transferShouldFailIfTargetAccountDoesNotExist() {
+	public void transferShouldFailIfTargetAccountDoesNotExist() {
 		final String sourceId = "from";
 
 		createAccount(new AccountDTO(new BigDecimal("1000"), sourceId));

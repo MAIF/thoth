@@ -2,6 +2,13 @@
 tasks.withType(PublishToMavenRepository).configureEach { it.enabled = false }
 project.tasks.publishToSonatype.enabled = false
 
+ext {
+    vavrVersion = "0.10.6"
+    jacksonVersion = "2.18.4"
+    lombokVersion = "1.18.38"
+    jupiterVersion = "5.13.1"
+}
+
 dependencies {
 
     implementation project(':commons-events')
@@ -13,18 +20,18 @@ dependencies {
     implementation("fr.maif:functional-json:$functionalJsonVersion")
     implementation("org.springframework.boot:spring-boot-starter:3.4.5")
     implementation("org.springframework.boot:spring-boot-starter-web:3.4.5")
+    implementation('org.postgresql:postgresql:42.7.7')
+    implementation("io.projectreactor:reactor-core:$reactorVersion")
     implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
-    implementation("org.postgresql:postgresql:42.2.5")
 
-    testImplementation("org.testcontainers:postgresql:1.19.6")
-    testImplementation("org.testcontainers:kafka:1.19.6")
-    testImplementation("org.testcontainers:junit-jupiter:1.19.6")
+    testImplementation(platform("org.junit:junit-bom:$jupiterVersion"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    testImplementation("org.testcontainers:postgresql:$testContainerVersion")
+    testImplementation("org.testcontainers:kafka:$testContainerVersion")
+    testImplementation("org.testcontainers:junit-jupiter:$testContainerVersion")
     testImplementation("org.springframework.boot:spring-boot-starter-test:3.4.5")
     testImplementation("org.assertj:assertj-core:3.19.0")
-    testImplementation("net.aichler:jupiter-interface:0.9.1")
-    testImplementation("org.junit.platform:junit-platform-launcher:1.4.2")
-    testImplementation("org.junit.platform:junit-platform-commons:1.4.2")
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.4.2")
-    testImplementation("org.junit.vintage:junit-vintage-engine:5.4.2")
 
 }
