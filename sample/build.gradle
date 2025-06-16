@@ -35,3 +35,10 @@ dependencies {
     testImplementation("org.assertj:assertj-core:3.19.0")
 
 }
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+    testLogging {
+        events "passed"
+    }
+}
