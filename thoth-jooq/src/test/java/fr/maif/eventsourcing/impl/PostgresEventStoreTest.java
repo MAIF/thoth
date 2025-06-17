@@ -295,10 +295,10 @@ public class PostgresEventStoreTest {
         props.setProperty("maximumPoolSize", "20");
         HikariConfig config = new HikariConfig(props);
         this.dataSource = new HikariDataSource(config);
-//        this.dataSource.setJdbcUrl("jdbc:postgresql://localhost:5557/eventsourcing");
-//        this.dataSource.setUsername("eventsourcing");
-//        this.dataSource.setPassword("eventsourcing");
-//        this.dataSource.setDataSourceClassName("org.postgresql.ds.PGSimpleDataSource");
+        this.dataSource.setJdbcUrl("jdbc:postgresql://localhost:5557/eventsourcing");
+        this.dataSource.setUsername("eventsourcing");
+        this.dataSource.setPassword("eventsourcing");
+        this.dataSource.setDataSourceClassName("org.postgresql.ds.PGSimpleDataSource");
 
         this.dslContext = DSL.using(dataSource, SQLDialect.POSTGRES);
         Try.of(() -> {
