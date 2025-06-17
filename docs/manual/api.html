@@ -150,19 +150,216 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#words-on-api" name="words-on-api" class="anchor"><span class="anchor-link"></span></a>Words on API</h1>
-<p>Thoth is non-blocking by default and rely on vavr but, you can choose if you use it or not. </p>
-<h2><a href="#basic-api" name="basic-api" class="anchor"><span class="anchor-link"></span></a>Basic API</h2>
-<p>The basic API use vavr for several reasons : * <code>Either</code> : to handle success or error * <code>Option</code> : instead of java Optional to handle missing values * <code>Tuple</code> : to collect data * <code>Tuple0</code> : to return values not handled (like Void but not exactly the same) * <code>List</code> : instead of java List, because the API is better * <code>Lazy</code> : for lazy values </p>
-<p>The basic API, is exposed with package <code>fr.maif.eventsourcing</code>. </p>
-<h2><a href="#vanilla-api" name="vanilla-api" class="anchor"><span class="anchor-link"></span></a>Vanilla API</h2>
-<p>If you don&rsquo;t want to use vavr, there is a vanilla API : * <code>Either</code> -&gt; <code>fr.maif.eventsourcing.Result</code>: a custom type to handle success or error * <code>Option</code> -&gt; <code>Optional</code> * <code>Tuple</code> : internal * <code>Tuple0</code> -&gt; <code>fr.maif.eventsourcing.Unit</code> : a custom type to return values not handled (like Void but not exactly the same) * <code>List</code> : -&gt; <code>java.util.List</code><br/>* <code>Lazy</code> : for lazy values</p>
-<p>The package to use is <code>fr.maif.eventsourcing.vanilla</code> : * <code>AggregateStore</code> * <code>CommandHandler</code> * <code>EventHandler</code> * <code>EventProcessor</code> * <code>EventPublisher</code> * <code>Events</code> * <code>EventStore</code> * <code>ProcessingSuccess</code> * <code>Projection</code> * <code>SimpleCommand</code></p>
-<h2><a href="#blocking-api" name="blocking-api" class="anchor"><span class="anchor-link"></span></a>Blocking API</h2>
-<p>If you don&rsquo;t to handle the non-blocking aspect, you can implement blocking interface, ie the blocking <code>CommandHandler</code>. </p>
-<p>The component to use * <code>fr.maif.eventsourcing.blocking.CommandHandler</code> : with standard API (vavr) * <code>fr.maif.eventsourcing.vanilla.blocking.CommandHandler</code> : with vanilla API</p>
-<h2><a href="#reactive-api-using-reactor" name="reactive-api-using-reactor" class="anchor"><span class="anchor-link"></span></a>Reactive API using reactor</h2>
-<p>There is a reactor API to use <code>Mono</code> instead of <code>CompletionStage</code>. The classes are prefixed with <code>Reactor</code> : * <code>ReactorAggregateStore</code> * <code>ReactorCommandHandler</code> * <code>ReactorEventProcessor</code> * <code>ReactorEventStore</code> * <code>ReactorPostgresKafkaEventProcessorBuilder</code> * <code>ReactorProjection</code> * <code>ReactorTransactionManager</code></p>
-<p>At the moment, the reactor API use vavr, there is no vanilla API. </p>
+<p>Thoth is non-blocking by default and rely on vavr but, you can choose if you use it or not.</p>
+<h2><a href="#fifty-shades-of-apis" name="fifty-shades-of-apis" class="anchor"><span class="anchor-link"></span></a>Fifty shades of APIs</h2>
+<h3><a href="#basic-api" name="basic-api" class="anchor"><span class="anchor-link"></span></a>Basic API</h3>
+<p>The basic API use vavr for several reasons :</p>
+<ul>
+  <li><code>Either</code> : to handle success or error</li>
+  <li><code>Option</code> : instead of java Optional to handle missing values</li>
+  <li><code>Tuple</code> : to collect data</li>
+  <li><code>Tuple0</code> : to return values not handled (like Void but not exactly the same)</li>
+  <li><code>List</code> : instead of java List, because the API is better</li>
+  <li><code>Lazy</code> : for lazy values</li>
+</ul>
+<p>The basic API, is exposed with package <code>fr.maif.eventsourcing</code>.</p>
+<p>With the basic API, you&rsquo;ll have to implement something like :</p>
+<pre class="prettyprint"><code class="language-java">public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, List&lt;String&gt;, TxCtx&gt; {
+
+    @Override
+    public CompletionStage&lt;Either&lt;String, Events&lt;BankEvent, List&lt;String&gt;&gt;&gt;&gt; handleCommand(
+            TxCtx transactionContext,
+            Option&lt;Account&gt; previousState,
+            BankCommand command) {
+        return switch (command) {
+            case Withdraw withdraw -&gt; this.handleWithdraw(previousState, withdraw);
+            case Deposit deposit -&gt; this.handleDeposit(previousState, deposit);
+            case OpenAccount openAccount -&gt; this.handleOpening(openAccount);
+            case CloseAccount close -&gt; this.handleClosing(previousState, close);
+        };
+    }
+}
+</code></pre>
+<h3><a href="#vanilla-api" name="vanilla-api" class="anchor"><span class="anchor-link"></span></a>Vanilla API</h3>
+<p>If you don&rsquo;t want to use vavr, there is a vanilla API :</p>
+<ul>
+  <li><code>Either</code> -&gt; <code>fr.maif.eventsourcing.Result</code>: a custom type to handle success or error</li>
+  <li><code>Option</code> -&gt; <code>Optional</code></li>
+  <li><code>Tuple</code> : internal</li>
+  <li><code>Tuple0</code> -&gt; <code>fr.maif.eventsourcing.Unit</code> : a custom type to return values not handled (like Void but not exactly the  same)</li>
+  <li><code>List</code> : -&gt; <code>java.util.List</code></li>
+  <li><code>Lazy</code> : for lazy values</li>
+</ul>
+<p>The package to use is <code>fr.maif.eventsourcing.vanilla</code> :</p>
+<ul>
+  <li><code>AggregateStore</code></li>
+  <li><code>CommandHandler</code></li>
+  <li><code>EventHandler</code></li>
+  <li><code>EventProcessor</code></li>
+  <li><code>EventPublisher</code></li>
+  <li><code>Events</code></li>
+  <li><code>EventStore</code></li>
+  <li><code>ProcessingSuccess</code></li>
+  <li><code>Projection</code></li>
+  <li><code>SimpleCommand</code></li>
+</ul>
+<p>With the vanilla API, you&rsquo;ll have to implement something like :</p>
+<pre class="prettyprint"><code class="language-java">public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, List&lt;String&gt;, TxCtx&gt; {
+
+    @Override
+    public CompletionStage&lt;Result&lt;String, Events&lt;BankEvent, List&lt;String&gt;&gt;&gt;&gt; handleCommand(
+            TxCtx transactionContext,
+            Optional&lt;Account&gt; previousState,
+            BankCommand command) {
+        return switch (command) {
+            case Withdraw withdraw -&gt; this.handleWithdraw(previousState, withdraw);
+            case Deposit deposit -&gt; this.handleDeposit(previousState, deposit);
+            case OpenAccount openAccount -&gt; this.handleOpening(openAccount);
+            case CloseAccount close -&gt; this.handleClosing(previousState, close);
+        };
+    }
+}
+</code></pre>
+<h3><a href="#blocking-api" name="blocking-api" class="anchor"><span class="anchor-link"></span></a>Blocking API</h3>
+<p>If you don&rsquo;t to handle the non-blocking aspect, you can implement blocking interface, ie the blocking <code>CommandHandler</code>.</p>
+<p>The component to use</p>
+<ul>
+  <li><code>fr.maif.eventsourcing.blocking.CommandHandler</code> : with standard API (vavr)</li>
+  <li><code>fr.maif.eventsourcing.vanilla.blocking.CommandHandler</code> : with vanilla API</li>
+</ul>
+<p>With the blocking API, you&rsquo;ll have to implement something like :</p>
+<pre class="prettyprint"><code class="language-java">public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, List&lt;String&gt;, TxCtx&gt; {
+
+    @Override
+    public Result&lt;String, Events&lt;BankEvent, List&lt;String&gt;&gt;&gt; handleCommand(
+            TxCtx transactionContext,
+            Optional&lt;Account&gt; previousState,
+            BankCommand command) {
+        return switch (command) {
+            case Withdraw withdraw -&gt; this.handleWithdraw(previousState, withdraw);
+            case Deposit deposit -&gt; this.handleDeposit(previousState, deposit);
+            case OpenAccount openAccount -&gt; this.handleOpening(openAccount);
+            case CloseAccount close -&gt; this.handleClosing(previousState, close);
+        };
+    }
+}
+</code></pre>
+<h3><a href="#reactive-api-using-reactor" name="reactive-api-using-reactor" class="anchor"><span class="anchor-link"></span></a>Reactive API using reactor</h3>
+<p>There is a reactor API to use <code>Mono</code> instead of <code>CompletionStage</code>. The classes are prefixed with <code>Reactor</code> :</p>
+<ul>
+  <li><code>ReactorAggregateStore</code></li>
+  <li><code>ReactorCommandHandler</code></li>
+  <li><code>ReactorEventProcessor</code></li>
+  <li><code>ReactorEventStore</code></li>
+  <li><code>ReactorPostgresKafkaEventProcessorBuilder</code></li>
+  <li><code>ReactorProjection</code></li>
+  <li><code>ReactorTransactionManager</code></li>
+</ul>
+<p>At the moment, the reactor API use vavr, there is no vanilla API.</p>
+<p>With the reactive API, you&rsquo;ll have to implement something like :</p>
+<pre class="prettyprint"><code class="language-java">public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, List&lt;String&gt;, TxCtx&gt; {
+
+    @Override
+    public Mono&lt;Either&lt;String, Events&lt;BankEvent, List&lt;String&gt;&gt;&gt;&gt; handleCommand(
+            TxCtx transactionContext,
+            Option&lt;Account&gt; previousState,
+            BankCommand command) {
+        return switch (command) {
+            case Withdraw withdraw -&gt; this.handleWithdraw(previousState, withdraw);
+            case Deposit deposit -&gt; this.handleDeposit(previousState, deposit);
+            case OpenAccount openAccount -&gt; this.handleOpening(openAccount);
+            case CloseAccount close -&gt; this.handleClosing(previousState, close);
+        };
+    }
+}
+</code></pre>
+<h2><a href="#cheat-sheet" name="cheat-sheet" class="anchor"><span class="anchor-link"></span></a>Cheat sheet</h2>
+<h3><a href="#concepts-and-vocabulary" name="concepts-and-vocabulary" class="anchor"><span class="anchor-link"></span></a>Concepts and vocabulary</h3>
+<ul>
+  <li>a command : an action coming from the user that the system has to handle</li>
+  <li>an event : something that append in the system</li>
+  <li>a journal : a place where the events are stored</li>
+  <li>a state or aggregate : the current state, the results of the previous events</li>
+  <li>a projection : an alternative view of the events, this is a read model</li>
+</ul>
+<h3><a href="#overview-of-interface-to-implement" name="overview-of-interface-to-implement" class="anchor"><span class="anchor-link"></span></a>Overview of interface to implement</h3>
+<p>Here the list of interface you need or, you could implement (and the reason why).</p>
+<table>
+  <thead>
+    <tr>
+      <th>Interface </th>
+      <th>Required </th>
+      <th>Role </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>State</code> </td>
+      <td>yes </td>
+      <td>The current state built from events </td>
+    </tr>
+    <tr>
+      <td><code>Command</code> </td>
+      <td>yes </td>
+      <td>The command represents the data that comes in </td>
+    </tr>
+    <tr>
+      <td><code>CommandHandler</code> </td>
+      <td>yes </td>
+      <td>The component that handle commands and produce events </td>
+    </tr>
+    <tr>
+      <td><code>EventHandler</code> </td>
+      <td>yes </td>
+      <td>The component that handle events and produce a state </td>
+    </tr>
+    <tr>
+      <td><code>Projection</code> </td>
+      <td>if you need read models </td>
+      <td>The component that handle events and produce read model </td>
+    </tr>
+    <tr>
+      <td><code>AbstractDefaultAggregateStore</code> </td>
+      <td>if you need snapshots </td>
+      <td>The component that load state from events in the journal </td>
+    </tr>
+    <tr>
+      <td><code>EventFormat</code> </td>
+      <td>no </td>
+      <td>The component that serialize / deserialize events </td>
+    </tr>
+    <tr>
+      <td><code>JacksonEventFormat</code> </td>
+      <td>yes (prefered) </td>
+      <td>The component that serialize / deserialize events to json </td>
+    </tr>
+    <tr>
+      <td><code>SimpleFormat</code> </td>
+      <td>yes </td>
+      <td>The component that serialize / deserialize events ignoring errors </td>
+    </tr>
+    <tr>
+      <td><code>JacksonSimpleFormat</code> </td>
+      <td>yes </td>
+      <td>The component that serialize / deserialize events to json ignoring errors </td>
+    </tr>
+    <tr>
+      <td><code>EventPublisher</code> </td>
+      <td>no (only if don&rsquo;t use Kafka) </td>
+      <td>The component that publish events </td>
+    </tr>
+    <tr>
+      <td><code>EventStore</code> </td>
+      <td>no (only if don&rsquo;t use PG) </td>
+      <td>The component that store and query events </td>
+    </tr>
+    <tr>
+      <td><code>EventProcessor</code> </td>
+      <td>no </td>
+      <td>The component orchestrate all the magic </td>
+    </tr>
+  </tbody>
+</table>
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="technical-considerations.html">Technical considerations</a></p>
 </div>
@@ -175,10 +372,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <ul>
   <li><a href="api.html#words-on-api" class="header">Words on API</a>
   <ul>
-    <li><a href="api.html#basic-api" class="header">Basic API</a></li>
-    <li><a href="api.html#vanilla-api" class="header">Vanilla API</a></li>
-    <li><a href="api.html#blocking-api" class="header">Blocking API</a></li>
-    <li><a href="api.html#reactive-api-using-reactor" class="header">Reactive API using reactor</a></li>
+    <li><a href="api.html#fifty-shades-of-apis" class="header">Fifty shades of APIs</a></li>
+    <li><a href="api.html#cheat-sheet" class="header">Cheat sheet</a></li>
   </ul></li>
 </ul>
 </div>
