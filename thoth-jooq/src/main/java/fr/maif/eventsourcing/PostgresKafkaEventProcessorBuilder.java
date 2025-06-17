@@ -447,7 +447,9 @@ public class PostgresKafkaEventProcessorBuilder {
             );
         }
 
-        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(Function<BuilderWithAggregateStore<S, E, Meta, Context>, CommandHandler<Error, S, C, E, Message, Connection>> commandHandler) {
+        public interface CommandHandlerFunction<Error, C extends Command<Meta, Context>, S extends State<S>, E extends Event, Message, Meta, Context> extends Function<BuilderWithAggregateStore<S, E, Meta, Context>, CommandHandler<Error, S, C, E, Message, Connection>> { }
+
+        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(CommandHandlerFunction<Error, C, S, E, Message, Meta, Context> commandHandler) {
             return new BuilderWithCommandHandler<>(
                     
                     dataSource,
@@ -464,6 +466,42 @@ public class PostgresKafkaEventProcessorBuilder {
                     commandHandler.apply(this)
             );
         }
+        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(fr.maif.eventsourcing.vanilla.CommandHandler<Error, S, C, E, Message, Connection> commandHandler) {
+            return new BuilderWithCommandHandler<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    eventStore,
+                    aggregateStore,
+                    eventHandler,
+                    commandHandler.toCommandHandler()
+            );
+        }
+
+        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(Function<BuilderWithAggregateStore<S, E, Meta, Context>, fr.maif.eventsourcing.vanilla.CommandHandler<Error, S, C, E, Message, Connection>> commandHandler) {
+            return new BuilderWithCommandHandler<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    eventStore,
+                    aggregateStore,
+                    eventHandler,
+                    commandHandler.apply(this).toCommandHandler()
+            );
+        }
+
         public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(fr.maif.eventsourcing.blocking.CommandHandler<Error, S, C, E, Message, Connection> commandHandler, Executor executor) {
             return new BuilderWithCommandHandler<>(
 
@@ -482,7 +520,44 @@ public class PostgresKafkaEventProcessorBuilder {
             );
         }
 
-        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(Function<BuilderWithAggregateStore<S, E, Meta, Context>, fr.maif.eventsourcing.blocking.CommandHandler<Error, S, C, E, Message, Connection>> commandHandler, Executor executor) {
+        public interface BlockingCommandHandlerFunction<Error, C extends Command<Meta, Context>, S extends State<S>, E extends Event, Message, Meta, Context> extends Function<BuilderWithAggregateStore<S, E, Meta, Context>, fr.maif.eventsourcing.blocking.CommandHandler<Error, S, C, E, Message, Connection>> { }
+
+        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(BlockingCommandHandlerFunction<Error, C, S, E, Message, Meta, Context> commandHandler, Executor executor) {
+            return new BuilderWithCommandHandler<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    eventStore,
+                    aggregateStore,
+                    eventHandler,
+                    commandHandler.apply(this).toCommandHandler(executor)
+            );
+        }
+        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(fr.maif.eventsourcing.vanilla.blocking.CommandHandler<Error, S, C, E, Message, Connection> commandHandler, Executor executor) {
+            return new BuilderWithCommandHandler<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    eventStore,
+                    aggregateStore,
+                    eventHandler,
+                    commandHandler.toCommandHandler(executor)
+            );
+        }
+
+        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(Function<BuilderWithAggregateStore<S, E, Meta, Context>, fr.maif.eventsourcing.vanilla.blocking.CommandHandler<Error, S, C, E, Message, Connection>> commandHandler, Executor executor) {
             return new BuilderWithCommandHandler<>(
 
                     dataSource,

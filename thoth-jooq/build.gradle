@@ -10,7 +10,7 @@ dependencies {
     implementation("org.postgresql:postgresql:42.2.5")
     implementation("org.jooq:jooq:$jooqVersion")
     implementation("javax.annotation:jsr250-api:1.0")
-    implementation("io.vavr:vavr-jackson:$vavrVersion")
+    implementation("io.vavr:vavr-jackson:$vavrJacksonVersion")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
 

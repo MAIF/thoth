@@ -50,6 +50,9 @@ public class Events<E extends Event, Message> {
     public static <E extends Event> Events<E, Tuple0> events(Seq<E> events) {
         return new Events<>(events, Tuple.empty());
     }
+    public static <E extends Event> Events<E, Tuple0> events(java.util.List<E> events) {
+        return new Events<>(List.ofAll(events), Tuple.empty());
+    }
     public static <E extends Event, M> Events<E, M> events(M message, E... events) {
         return new Events<>(List.of(events), message);
     }

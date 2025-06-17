@@ -7,6 +7,13 @@ public sealed interface Result<E, V> {
     record Success<E, V>(V value) implements Result<E, V> {}
     record Error<E, V>(E value) implements Result<E, V> {}
 
+    static <E, V> Success<E, V> success(V value) {
+        return new Success<>(value);
+    }
+    static <E, V> Error<E, V> error(E value) {
+        return new Error<>(value);
+    }
+
     default V get() {
         return switch (this) {
             case Success(var value) -> value;

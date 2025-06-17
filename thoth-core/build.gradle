@@ -3,7 +3,7 @@ dependencies {
     implementation project(':commons-events')
     implementation project(':thoth-kafka-consumer-akka')
     implementation("io.vavr:vavr:$vavrVersion")
-    implementation("io.vavr:vavr-jackson:$vavrVersion")
+    implementation("io.vavr:vavr-jackson:$vavrJacksonVersion")
     implementation("com.fasterxml.uuid:java-uuid-generator:3.1.5")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")

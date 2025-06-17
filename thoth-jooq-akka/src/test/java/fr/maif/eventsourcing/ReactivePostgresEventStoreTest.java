@@ -3,8 +3,9 @@ package fr.maif.eventsourcing;
 import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.reactive.ReactivePgAsyncPool;
 import io.vertx.core.Vertx;
+import io.vertx.pgclient.PgBuilder;
 import io.vertx.pgclient.PgConnectOptions;
-import io.vertx.pgclient.PgPool;
+import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DefaultConfiguration;
@@ -24,7 +25,11 @@ public class ReactivePostgresEventStoreTest extends AbstractPostgresEventStoreTe
                 .setDatabase(database)
                 .setUser(user)
                 .setPassword(password);
-        PgPool client = PgPool.pool(Vertx.vertx(), options, poolOptions);
+        Pool client = PgBuilder.pool()
+                .using(Vertx.vertx())
+                .connectingTo(options)
+                .with(poolOptions)
+                .build();
         return new ReactivePgAsyncPool(client, jooqConfig);
     }
 

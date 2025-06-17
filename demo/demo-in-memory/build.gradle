@@ -6,43 +6,22 @@ tasks.withType(PublishToMavenRepository).configureEach { it.enabled = false }
 compileJava {
     // To enable argument names in reporting and debugging
     options.compilerArgs += '-parameters'
-    options.compilerArgs += '--enable-preview'
 }
 
 compileTestJava {
     // To enable argument names in reporting and debugging
     options.compilerArgs += '-parameters'
-    options.compilerArgs += '--enable-preview'
-}
-
-tasks.withType(Test) {
-    jvmArgs += "--enable-preview"
-}
-
-tasks.withType(JavaCompile) {
-    options.compilerArgs += "--enable-preview"
-}
-
-tasks.withType(Javadoc) {
-    options.addStringOption("source", "17")
-    options.addBooleanOption("-enable-preview", true)
-}
-
-tasks.withType(JavaExec) {
-    jvmArgs += '--enable-preview'
 }
 
 dependencies {
 
     implementation project(':commons-events')
     implementation project(':thoth-core')
-    implementation project(':thoth-core-akka')
+    implementation project(':thoth-core-reactor')
     implementation project(':thoth-kafka-consumer-reactor')
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("fr.maif:functional-json:$functionalJsonVersion")
     implementation("com.fasterxml.uuid:java-uuid-generator:4.0.1")
-    implementation("org.postgresql:postgresql:42.2.5")
-    implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
-    implementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")
+    implementation('org.postgresql:postgresql:42.7.7')
 
 }

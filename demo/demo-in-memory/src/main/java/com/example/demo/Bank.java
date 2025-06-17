@@ -1,15 +1,12 @@
 package com.example.demo;
 
-import akka.actor.ActorSystem;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
-import fr.maif.eventsourcing.EventProcessor;
-import fr.maif.eventsourcing.EventProcessorImpl;
-import fr.maif.eventsourcing.ProcessingSuccess;
-import fr.maif.eventsourcing.TransactionManager;
-import fr.maif.akka.eventsourcing.DefaultAggregateStore;
-import fr.maif.akka.eventsourcing.InMemoryEventStore;
+import fr.maif.eventsourcing.*;
+import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
+import fr.maif.reactor.eventsourcing.InMemoryEventStore;
 import fr.maif.eventsourcing.vanilla.EventProcessorVanilla;
+import fr.maif.reactor.eventsourcing.InMemoryEventStore.Transaction;
 import io.vavr.Lazy;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
@@ -24,22 +21,21 @@ import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 public class Bank {
-    private final EventProcessor<String, Account, BankCommand, BankEvent, Tuple0, Tuple0, Tuple0, Tuple0> eventProcessor;
-    private final fr.maif.eventsourcing.vanilla.EventProcessor<String, Account, BankCommand, BankEvent, Tuple0, Tuple0, Tuple0, Tuple0> eventProcessorVanilla;
+    private final EventProcessor<String, Account, BankCommand, BankEvent, Transaction<BankEvent, Tuple0, Tuple0>, Tuple0, Tuple0, Tuple0> eventProcessor;
+    private final fr.maif.eventsourcing.vanilla.EventProcessor<String, Account, BankCommand, BankEvent, Transaction<BankEvent, Tuple0, Tuple0>, Tuple0, Tuple0, Tuple0> eventProcessorVanilla;
     private static final TimeBasedGenerator UUIDgenerator = Generators.timeBasedGenerator();
 
 
-    public Bank(ActorSystem actorSystem,
+    public Bank(
                 BankCommandHandler commandHandler,
-                BankEventHandler eventHandler
-                ) {
-        InMemoryEventStore<BankEvent, Tuple0, Tuple0> eventStore = InMemoryEventStore.create(actorSystem);
-        TransactionManager<Tuple0> transactionManager = noOpTransactionManager();
+                BankEventHandler eventHandler) {
+        EventStore<Transaction<BankEvent, Tuple0, Tuple0>, BankEvent, Tuple0, Tuple0> eventStore = InMemoryEventStore.create();
+        TransactionManager<Transaction<BankEvent, Tuple0, Tuple0>> transactionManager = noOpTransactionManager();
         ExecutorService executor = Executors.newCachedThreadPool();
         this.eventProcessor = new EventProcessorImpl<>(
                 eventStore,
                 transactionManager,
-                new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager),
+                new DefaultAggregateStore<>(eventStore, eventHandler, transactionManager),
                 commandHandler.toCommandHandler(executor),
                 eventHandler,
                 List.empty()
@@ -47,11 +43,11 @@ public class Bank {
         this.eventProcessorVanilla = new EventProcessorVanilla<>(this.eventProcessor);
     }
 
-    private TransactionManager<Tuple0> noOpTransactionManager() {
+    private TransactionManager<Transaction<BankEvent, Tuple0, Tuple0>> noOpTransactionManager() {
         return new TransactionManager<>() {
             @Override
-            public <T> CompletionStage<T> withTransaction(Function<Tuple0, CompletionStage<T>> function) {
-                return function.apply(Tuple.empty());
+            public <T> CompletionStage<T> withTransaction(Function<Transaction<BankEvent, Tuple0, Tuple0>, CompletionStage<T>> function) {
+                return function.apply(new Transaction<>());
             }
         };
     }
