@@ -29,7 +29,7 @@ import static fr.maif.concurrent.CompletionStages.traverse;
 import static io.vavr.API.*;
 import static java.util.function.Function.identity;
 
-public class EventProcessorImpl<Error, S extends State<S>, C extends RootCommand<Meta, Context>, E extends Event, TxCtx, Message, Meta, Context> implements EventProcessor<Error, S, C, E, TxCtx, Message, Meta, Context> {
+public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, TxCtx, Message, Meta, Context> implements EventProcessor<Error, S, C, E, TxCtx, Message, Meta, Context> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EventProcessorImpl.class);
     private static final TimeBasedGenerator UUIDgen = Generators.timeBasedGenerator();
