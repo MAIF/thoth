@@ -21,7 +21,6 @@ import org.jooq.Record;
 import org.jooq.SQLDialect;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
-import org.junit.Ignore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,7 +56,7 @@ public class PostgresEventStoreTest {
             .withDatabaseName("eventsourcing");
 
     protected static boolean isCi() {
-        return "true".equals(System.getenv("CI"));
+        return false; //"true".equals(System.getenv("CI"));
     }
 
     static {
@@ -101,7 +100,6 @@ public class PostgresEventStoreTest {
 
             int count = this.dslContext.fetchCount(vikings_journal);
             assertThat(count).isEqualTo(3);
-
 
             List<EventEnvelope<VikingEvent, Void, Void>> eventEnvelopes = getFromQuery(EventStore.Query.builder().withEntityId("bjorn@gmail.com").build());
 
