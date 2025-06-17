@@ -8,7 +8,7 @@ import fr.maif.eventsourcing.Events;
 import fr.maif.eventsourcing.Result;
 import fr.maif.eventsourcing.Unit;
 import fr.maif.eventsourcing.vanilla.blocking.CommandHandler;
-import fr.maif.reactor.eventsourcing.InMemoryEventStore.Transaction;
+import fr.maif.reactor.eventsourcing.vanilla.InMemoryEventStore.Transaction;
 
 
 import java.math.BigDecimal;

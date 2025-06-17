@@ -140,7 +140,7 @@ public class Bank {
     public CompletionStage<Result<String, ProcessingSuccess<Account, BankEvent, Unit, Unit, List<String>>>> createAccount(
             BigDecimal amount) {
         Lazy<String> lazyId = Lazy.of(() -> UUIDgenerator.generate().toString());
-        return eventProcessor.processCommand(new BankCommand.OpenAccount(lazyId.toVavr(), amount));
+        return eventProcessor.processCommand(new BankCommand.OpenAccount(lazyId, amount));
     }
 
     public CompletionStage<Result<String, ProcessingSuccess<Account, BankEvent, Unit, Unit, List<String>>>> withdraw(

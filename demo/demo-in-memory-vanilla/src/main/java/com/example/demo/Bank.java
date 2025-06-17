@@ -2,21 +2,17 @@ package com.example.demo;
 
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
-import fr.maif.eventsourcing.EventProcessorImpl;
-import fr.maif.eventsourcing.EventStore;
-import fr.maif.eventsourcing.vanilla.ProcessingSuccess;
+import fr.maif.eventsourcing.Lazy;
 import fr.maif.eventsourcing.Result;
 import fr.maif.eventsourcing.TransactionManager;
 import fr.maif.eventsourcing.Unit;
-import fr.maif.eventsourcing.vanilla.EventProcessor;
-import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
-import fr.maif.reactor.eventsourcing.InMemoryEventStore;
-import fr.maif.eventsourcing.vanilla.EventProcessorVanilla;
-import fr.maif.reactor.eventsourcing.InMemoryEventStore.Transaction;
-import io.vavr.Lazy;
-import io.vavr.collection.List;
+import fr.maif.eventsourcing.vanilla.*;
+import fr.maif.reactor.eventsourcing.vanilla.DefaultAggregateStore;
+import fr.maif.reactor.eventsourcing.vanilla.InMemoryEventStore;
+import fr.maif.reactor.eventsourcing.vanilla.InMemoryEventStore.Transaction;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
@@ -31,17 +27,19 @@ public class Bank {
     public Bank(
                 BankCommandHandler commandHandler,
                 BankEventHandler eventHandler) {
+
         EventStore<Transaction<BankEvent, Unit, Unit>, BankEvent, Unit, Unit> eventStore = InMemoryEventStore.create();
         TransactionManager<Transaction<BankEvent, Unit, Unit>> transactionManager = noOpTransactionManager();
         ExecutorService executor = Executors.newCachedThreadPool();
-        this.eventProcessor = new EventProcessorVanilla<>(new EventProcessorImpl<>(
+        DefaultAggregateStore<Account, BankEvent, Unit, Unit, Transaction<BankEvent, Unit, Unit>> aggregateStore = new DefaultAggregateStore<>(eventStore, eventHandler, transactionManager);
+        this.eventProcessor = new EventProcessorImpl<>(
                 eventStore,
                 transactionManager,
-                new DefaultAggregateStore<>(eventStore, eventHandler, transactionManager),
+                aggregateStore,
                 commandHandler.toCommandHandler(executor),
                 eventHandler,
-                List.empty()
-        ));
+                List.of()
+        );
     }
 
     private TransactionManager<Transaction<BankEvent, Unit, Unit>> noOpTransactionManager() {

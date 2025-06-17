@@ -51,12 +51,30 @@ public interface CommandHandler<Error, State, Command, E extends Event, Message,
     }
 
 
-    default fr.maif.eventsourcing.CommandHandler<Error, State, Command, E, Message, TxCtx> toCommandHandler(Executor executor) {
+    default fr.maif.eventsourcing.vanilla.CommandHandler<Error, State, Command, E, Message, TxCtx> toCommandHandler(Executor executor) {
         var _this = this;
-        return (tx, state, command) ->
-                CompletableFuture.supplyAsync(() -> switch (_this.handleCommand(tx, state.toJavaOptional(), command)){
-                    case Result.Success(var s) -> Either.right(s);
-                    case Result.Error(var e) -> Either.left(e);
-                }, executor);
+        return new fr.maif.eventsourcing.vanilla.CommandHandler<>() {
+            @Override
+            public CompletionStage<Result<Error, fr.maif.eventsourcing.vanilla.Events<E, Message>>> handleCommand(TxCtx txCtx, Optional<State> state, Command command) {
+                return CompletableFuture.supplyAsync(() -> {
+                            Result<Error, Events<E, Message>> errorEventsResult = _this.handleCommand(txCtx, state, command);
+                            return errorEventsResult.map(events -> new fr.maif.eventsourcing.vanilla.Events<>(events.events.toJavaList(), events.message));
+                        }
+                        , executor);
+            }
+
+            @Override
+            public fr.maif.eventsourcing.CommandHandler<Error, State, Command, E, Message, TxCtx> commandHandler() {
+                return new fr.maif.eventsourcing.CommandHandler<>() {
+                    @Override
+                    public CompletionStage<Either<Error, Events<E, Message>>> handleCommand(TxCtx txCtx, Option<State> state, Command command) {
+                        return CompletableFuture.supplyAsync(() -> switch (_this.handleCommand(txCtx, state.toJavaOptional(), command)){
+                            case Result.Success(var s) -> Either.right(s);
+                            case Result.Error(var e) -> Either.left(e);
+                        }, executor);
+                    }
+                };
+            }
+        };
     }
 }

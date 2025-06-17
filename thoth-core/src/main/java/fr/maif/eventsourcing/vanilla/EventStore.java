@@ -1,9 +1,15 @@
 package fr.maif.eventsourcing.vanilla;
 
+import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
+import io.vavr.Tuple;
+import io.vavr.Tuple0;
+import io.vavr.Value;
+import io.vavr.control.Option;
 import org.reactivestreams.Publisher;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -38,17 +44,23 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
     CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(TxCtx tx, EventEnvelope<E, Meta, Context> eventEnvelope);
 
-    CompletionStage<List<EventEnvelope<E, Meta, Context>>> markAsPublished(TxCtx tx, List<EventEnvelope<E, Meta, Context>> eventEnvelopes);
+    default CompletionStage<List<EventEnvelope<E, Meta, Context>>> markAsPublished(TxCtx tx, List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
+        return CompletionStages.traverse(eventEnvelopes.stream(), evt -> this.markAsPublished(tx, evt))
+                .thenApply(Value::toJavaList);
+    }
 
     CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(EventEnvelope<E, Meta, Context> eventEnvelope);
 
-    CompletionStage<List<EventEnvelope<E, Meta, Context>>> markAsPublished(List<EventEnvelope<E, Meta, Context>> eventEnvelopes);
+    default CompletionStage<List<EventEnvelope<E, Meta, Context>>> markAsPublished(List<EventEnvelope<E, Meta, Context>> eventEnvelopes) {
+        return CompletionStages.traverse(eventEnvelopes.stream(), this::markAsPublished).thenApply(Value::toJavaList);
+    }
 
     CompletionStage<TxCtx> openTransaction();
 
     CompletionStage<Void> commitOrRollback(Optional<Throwable> of, TxCtx tx);
 
     EventPublisher<E, Meta, Context> eventPublisher();
+
 
     record IdAndSequence(String id, Long sequence) {}
 
@@ -210,4 +222,115 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
         }
 
     }
+
+    default fr.maif.eventsourcing.EventStore<TxCtx,E,Meta,Context> toEventStore() {
+        var _this = this;
+        return new fr.maif.eventsourcing.EventStore<TxCtx, E, Meta, Context>() {
+            @Override
+            public CompletionStage<Tuple0> persist(TxCtx transactionContext, io.vavr.collection.List<EventEnvelope<E, Meta, Context>> events) {
+                return _this.persist(transactionContext, events.toJavaList()).thenApply(any -> Tuple.empty());
+            }
+
+            @Override
+            public CompletionStage<Long> lastPublishedSequence() {
+                return _this.lastPublishedSequence();
+            }
+
+            @Override
+            public Publisher<EventEnvelope<E, Meta, Context>> loadEventsUnpublished(TxCtx tx, ConcurrentReplayStrategy concurrentReplayStrategy) {
+                return _this.loadEventsUnpublished(tx, convert(concurrentReplayStrategy));
+            }
+
+            private EventStore.ConcurrentReplayStrategy convert(ConcurrentReplayStrategy concurrentReplayStrategy) {
+                return switch (concurrentReplayStrategy) {
+                    case SKIP -> EventStore.ConcurrentReplayStrategy.SKIP;
+                    case WAIT -> EventStore.ConcurrentReplayStrategy.WAIT;
+                    case NO_STRATEGY -> EventStore.ConcurrentReplayStrategy.NO_STRATEGY;
+                };
+            }
+
+            @Override
+            public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(TxCtx tx, Query query) {
+                return _this.loadEventsByQuery(tx, convert(query));
+            }
+
+            private EventStore.Query convert(Query query) {
+                return EventStore.Query.builder()
+                        .withDateFrom(query.dateFrom)
+                        .withDateTo(query.dateTo)
+                        .withEntityId(query.entityId)
+                        .withSize(query.size)
+                        .withUserId(query.userId)
+                        .withSystemId(query.systemId)
+                        .withSequenceFrom(query.sequenceFrom)
+                        .withSequenceTo(query.sequenceTo)
+                        .withPublished(query.published)
+                        .withIdsAndSequences(query.idsAndSequences.map(t -> new IdAndSequence(t._1, t._2)).toJavaList())
+                        .build();
+            }
+
+            @Override
+            public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(Query query) {
+                return _this.loadEventsByQuery(convert(query));
+            }
+
+            @Override
+            public CompletionStage<Long> nextSequence(TxCtx tx) {
+                return _this.nextSequence(tx);
+            }
+
+            @Override
+            public CompletionStage<io.vavr.collection.List<Long>> nextSequences(TxCtx tx, Integer count) {
+                return _this.nextSequences(tx, count).thenApply(any -> io.vavr.collection.List.ofAll(any));
+            }
+
+            @Override
+            public CompletionStage<Tuple0> publish(io.vavr.collection.List<EventEnvelope<E, Meta, Context>> events) {
+                return _this.publish(events.toJavaList()).thenApply(any -> Tuple.empty());
+            }
+
+            @Override
+            public CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(TxCtx tx, EventEnvelope<E, Meta, Context> eventEnvelope) {
+                return _this.markAsPublished(tx, eventEnvelope);
+            }
+
+            @Override
+            public CompletionStage<EventEnvelope<E, Meta, Context>> markAsPublished(EventEnvelope<E, Meta, Context> eventEnvelope) {
+                return _this.markAsPublished(eventEnvelope);
+            }
+
+            @Override
+            public CompletionStage<TxCtx> openTransaction() {
+                return _this.openTransaction();
+            }
+
+            @Override
+            public CompletionStage<Tuple0> commitOrRollback(Option<Throwable> of, TxCtx tx) {
+                return _this.commitOrRollback(of.toJavaOptional(), tx).thenApply(any -> Tuple.empty());
+            }
+
+            @Override
+            public fr.maif.eventsourcing.EventPublisher<E, Meta, Context> eventPublisher() {
+                EventPublisher<E, Meta, Context> innnerPublisher = _this.eventPublisher();
+                return new fr.maif.eventsourcing.EventPublisher<E, Meta, Context>() {
+                    @Override
+                    public CompletionStage<Tuple0> publish(io.vavr.collection.List<EventEnvelope<E, Meta, Context>> events) {
+                        return innnerPublisher.publish(events.toJavaList()).thenApply(any -> Tuple.empty());
+                    }
+
+                    @Override
+                    public <TxCtx> CompletionStage<Tuple0> publishNonAcknowledgedFromDb(fr.maif.eventsourcing.EventStore<TxCtx, E, Meta, Context> eventStore, ConcurrentReplayStrategy concurrentReplayStrategy) {
+                        return innnerPublisher.publishNonAcknowledgedFromDb(_this, convert(concurrentReplayStrategy))
+                                .thenApply(any -> Tuple.empty());
+                    }
+
+                    @Override
+                    public void close() throws IOException {
+                        innnerPublisher.close();
+                    }
+                };
+            }
+        };
+    }
+
 }

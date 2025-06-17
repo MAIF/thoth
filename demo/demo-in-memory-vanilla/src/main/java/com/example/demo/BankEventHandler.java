@@ -1,9 +1,9 @@
 package com.example.demo;
 
-import fr.maif.eventsourcing.EventHandler;
-import io.vavr.control.Option;
+import fr.maif.eventsourcing.vanilla.EventHandler;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 import static com.example.demo.BankEvent.AccountClosed;
 import static com.example.demo.BankEvent.AccountOpened;
@@ -12,8 +12,8 @@ import static com.example.demo.BankEvent.MoneyWithdrawn;
 
 public class BankEventHandler implements EventHandler<Account, BankEvent> {
     @Override
-    public Option<Account> applyEvent(
-            Option<Account> previousState,
+    public Optional<Account> applyEvent(
+            Optional<Account> previousState,
             BankEvent event) {
         return switch (event) {
             case AccountOpened accountOpened -> BankEventHandler.handleAccountOpened(accountOpened);
@@ -23,12 +23,12 @@ public class BankEventHandler implements EventHandler<Account, BankEvent> {
         };
     }
 
-    private static Option<Account> handleAccountClosed(BankEvent.AccountClosed close) {
-        return Option.none();
+    private static Optional<Account> handleAccountClosed(BankEvent.AccountClosed close) {
+        return Optional.empty();
     }
 
-    private static Option<Account> handleMoneyWithdrawn(
-            Option<Account> previousState,
+    private static Optional<Account> handleMoneyWithdrawn(
+            Optional<Account> previousState,
             BankEvent.MoneyWithdrawn withdraw) {
         return previousState.map(account -> {
             account.balance = account.balance.subtract(withdraw.amount());
@@ -36,16 +36,16 @@ public class BankEventHandler implements EventHandler<Account, BankEvent> {
         });
     }
 
-    private static Option<Account> handleAccountOpened(BankEvent.AccountOpened event) {
+    private static Optional<Account> handleAccountOpened(BankEvent.AccountOpened event) {
         Account account = new Account();
         account.id = event.accountId();
         account.balance = BigDecimal.ZERO;
 
-        return Option.some(account);
+        return Optional.of(account);
     }
 
-    private static Option<Account> handleMoneyDeposited(
-            Option<Account> previousState,
+    private static Optional<Account> handleMoneyDeposited(
+            Optional<Account> previousState,
             BankEvent.MoneyDeposited event) {
         return previousState.map(state -> {
             state.balance = state.balance.add(event.amount());

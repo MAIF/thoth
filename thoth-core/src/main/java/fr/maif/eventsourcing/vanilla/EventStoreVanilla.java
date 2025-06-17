@@ -90,7 +90,7 @@ public class EventStoreVanilla<TxCtx, E extends Event, Meta, Context> implements
 
     @Override
     public fr.maif.eventsourcing.vanilla.EventPublisher<E, Meta, Context> eventPublisher() {
-        return new EventPublisherVanilla<>(eventStore.eventPublisher());
+        return new EventPublisherImpl<>(eventStore.eventPublisher());
     }
 
     private static fr.maif.eventsourcing.EventStore.Query convert(EventStore.Query query) {
@@ -108,7 +108,7 @@ public class EventStoreVanilla<TxCtx, E extends Event, Meta, Context> implements
                 .build();
     }
 
-    private static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy convert(EventStore.ConcurrentReplayStrategy strategy) {
+    static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy convert(EventStore.ConcurrentReplayStrategy strategy) {
         return switch (strategy) {
             case SKIP -> fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
             case WAIT -> fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.WAIT;

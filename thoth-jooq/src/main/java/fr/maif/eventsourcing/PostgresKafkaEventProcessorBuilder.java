@@ -7,7 +7,7 @@ import fr.maif.eventsourcing.impl.JdbcTransactionManager;
 import fr.maif.eventsourcing.impl.PostgresEventStore;
 import fr.maif.eventsourcing.impl.TableNames;
 import fr.maif.eventsourcing.vanilla.EventProcessor;
-import fr.maif.eventsourcing.vanilla.EventProcessorVanilla;
+import fr.maif.eventsourcing.vanilla.EventProcessorImpl;
 import fr.maif.eventsourcing.vanilla.EventStoreVanilla;
 import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
 import fr.maif.reactor.eventsourcing.ReactorKafkaEventPublisher;
@@ -628,7 +628,7 @@ public class PostgresKafkaEventProcessorBuilder {
                     eventStore,
                     aggregateStore,
                     eventHandler,
-                    commandHandler.toCommandHandler(executor)
+                    commandHandler.toCommandHandler(executor).toCommandHandler()
             );
         }
 
@@ -666,7 +666,7 @@ public class PostgresKafkaEventProcessorBuilder {
                     eventStore,
                     aggregateStore,
                     eventHandler,
-                    commandHandler.apply(this).toCommandHandler(executor)
+                    commandHandler.apply(this).toCommandHandler(executor).toCommandHandler()
             );
         }
     }
@@ -809,7 +809,8 @@ public class PostgresKafkaEventProcessorBuilder {
         }
 
         public EventProcessor<Error, S, C, E, Connection, Message, Meta, Context> buildVanilla() {
-            return new EventProcessorVanilla<>(build());
+            fr.maif.eventsourcing.EventProcessor<Error, S, C, E, Connection, Message, Meta, Context> build = build();
+            return new EventProcessorImpl<Error, S, C, E, Connection, Message, Meta, Context>(build);
         }
 
         public PostgresKafkaEventProcessor<Error, S, C, E, Message, Meta, Context> build() {

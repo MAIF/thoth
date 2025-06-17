@@ -9,6 +9,10 @@ public class Lazy<T> {
         this.inner = inner;
     }
 
+    public T get() {
+        return inner.get();
+    }
+
     public static <T> Lazy<T> of(Supplier<T> supplier) {
         return new Lazy<>(io.vavr.Lazy.of(supplier));
     }

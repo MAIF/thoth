@@ -10,6 +10,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static java.util.function.Function.identity;
 
@@ -32,6 +33,10 @@ public class CompletionStages {
                 (fResult, elt) ->
                         fResult.thenCompose(listResult -> handler.apply(elt).thenApply(listResult::append))
         );
+    }
+
+    public static <T, U> CompletionStage<List<U>> traverse(Stream<T> elements, Function<T, CompletionStage<U>> handler) {
+        return traverse(List.ofAll(elements), handler);
     }
 
     public static <T> CompletionStage<T> fromTry(Supplier<Try<T>> tryValue, Executor executor) {

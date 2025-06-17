@@ -2,13 +2,9 @@ package fr.maif.eventsourcing;
 
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
-import io.vavr.Tuple0;
 import io.vavr.Tuple;
+import io.vavr.Tuple0;
 import io.vavr.Tuple2;
-import io.vavr.Value;
-import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
-import io.vavr.control.Either;
 
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
