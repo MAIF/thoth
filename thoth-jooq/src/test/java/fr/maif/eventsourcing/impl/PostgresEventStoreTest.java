@@ -22,9 +22,12 @@ import org.jooq.SQLDialect;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.junit.Ignore;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.io.InputStream;
 import java.sql.Connection;
@@ -47,6 +50,29 @@ import static org.jooq.impl.DSL.table;
 import static org.mockito.Mockito.mock;
 
 public class PostgresEventStoreTest {
+
+    private static final PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(DockerImageName.parse("postgres:14"))
+            .withUsername("eventsourcing")
+            .withPassword("eventsourcing")
+            .withDatabaseName("eventsourcing");
+
+    protected static boolean isCi() {
+        return "true".equals(System.getenv("CI"));
+    }
+
+    static {
+        if(!isCi()) {
+            postgreSQLContainer.start();
+        }
+    }
+
+
+    @AfterAll
+    public static void stopDb() {
+        if(!isCi()) {
+            postgreSQLContainer.stop();
+        }
+    }
 
     private ActorSystem system;
     private PostgresEventStore<VikingEvent, Void, Void> postgresEventStore;
@@ -278,6 +304,29 @@ public class PostgresEventStoreTest {
         }
     }
 
+
+    protected static String host() {
+        return "localhost";
+    }
+    protected static String database() {
+        return "eventsourcing";
+    }
+    protected static String user() {
+        return "eventsourcing";
+    }
+    protected static String password() {
+        return "eventsourcing";
+    }
+    protected static Integer port() {
+        if (isCi()) {
+            return 5557;
+        } else {
+            return postgreSQLContainer.getFirstMappedPort();
+        }
+    }
+
+
+
     @BeforeEach
     public void setUp() {
 
@@ -287,17 +336,17 @@ public class PostgresEventStoreTest {
         this.system = ActorSystem.create();
         Properties props = new Properties();
         props.setProperty("dataSourceClassName", "org.postgresql.ds.PGSimpleDataSource");
-        props.setProperty("dataSource.serverName", "localhost");
-        props.setProperty("dataSource.portNumber", "5557");
-        props.setProperty("dataSource.user", "eventsourcing");
-        props.setProperty("dataSource.password", "eventsourcing");
-        props.setProperty("dataSource.databaseName", "eventsourcing");
+        props.setProperty("dataSource.serverName", host());
+        props.setProperty("dataSource.portNumber", port().toString());
+        props.setProperty("dataSource.user", user());
+        props.setProperty("dataSource.password", password());
+        props.setProperty("dataSource.databaseName", database());
         props.setProperty("maximumPoolSize", "20");
         HikariConfig config = new HikariConfig(props);
         this.dataSource = new HikariDataSource(config);
-        this.dataSource.setJdbcUrl("jdbc:postgresql://localhost:5557/eventsourcing");
-        this.dataSource.setUsername("eventsourcing");
-        this.dataSource.setPassword("eventsourcing");
+        this.dataSource.setJdbcUrl("jdbc:postgresql://%s:%s/%s".formatted(host(), port(), database()));
+        this.dataSource.setUsername(user());
+        this.dataSource.setPassword(password());
         this.dataSource.setDataSourceClassName("org.postgresql.ds.PGSimpleDataSource");
 
         this.dslContext = DSL.using(dataSource, SQLDialect.POSTGRES);
