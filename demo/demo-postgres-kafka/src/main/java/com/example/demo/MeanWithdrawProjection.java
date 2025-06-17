@@ -1,25 +1,22 @@
 package com.example.demo;
 
-import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.Projection;
-import io.vavr.Tuple;
-import io.vavr.Tuple0;
-import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
+import fr.maif.eventsourcing.Unit;
+import fr.maif.eventsourcing.vanilla.Projection;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-public class MeanWithdrawProjection implements Projection<Connection, BankEvent, Tuple0, Tuple0> {
+public class MeanWithdrawProjection implements Projection<Connection, BankEvent, Unit, Unit> {
     private BigDecimal withDrawTotal = BigDecimal.ZERO;
     private long withdrawCount = 0L;
 
     @Override
-    public CompletionStage<Tuple0> storeProjection(Connection connection, List<EventEnvelope<BankEvent, Tuple0, Tuple0>> envelopes) {
-        return CompletableFuture.supplyAsync(() -> {
+    public CompletionStage<Void> storeProjection(Connection connection, List<EventEnvelope<BankEvent, Unit, Unit>> envelopes) {
+        return CompletableFuture.runAsync(() -> {
             envelopes.forEach(envelope -> {
                 BankEvent bankEvent = envelope.event;
                 if(envelope.event instanceof BankEvent.MoneyWithdrawn) {
@@ -27,7 +24,6 @@ public class MeanWithdrawProjection implements Projection<Connection, BankEvent,
                     withdrawCount ++;
                 }
             });
-            return Tuple.empty();
         });
     }
 

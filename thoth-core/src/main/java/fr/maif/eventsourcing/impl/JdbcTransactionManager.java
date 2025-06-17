@@ -12,6 +12,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
@@ -19,9 +20,9 @@ public class JdbcTransactionManager implements TransactionManager<Connection> {
 
     private final Logger LOGGER = LoggerFactory.getLogger(JdbcTransactionManager.class);
     private final DataSource dataSource;
-    private final ExecutorService executor;
+    private final Executor executor;
 
-    public JdbcTransactionManager(DataSource dataSource, ExecutorService executor) {
+    public JdbcTransactionManager(DataSource dataSource, Executor executor) {
         this.dataSource = dataSource;
         this.executor = executor;
     }

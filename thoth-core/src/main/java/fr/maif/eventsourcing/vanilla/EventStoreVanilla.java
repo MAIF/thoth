@@ -2,11 +2,11 @@ package fr.maif.eventsourcing.vanilla;
 
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
+import io.vavr.Tuple;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
 import org.reactivestreams.Publisher;
 
-import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
@@ -29,18 +29,18 @@ public class EventStoreVanilla<TxCtx, E extends Event, Meta, Context> implements
     }
 
     @Override
-    public Publisher<EventEnvelope<E, Meta, Context>> loadEventsUnpublished(TxCtx tx, fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy concurrentReplayStrategy) {
-        return eventStore.loadEventsUnpublished(tx, concurrentReplayStrategy);
+    public Publisher<EventEnvelope<E, Meta, Context>> loadEventsUnpublished(TxCtx tx, EventStore.ConcurrentReplayStrategy concurrentReplayStrategy) {
+        return eventStore.loadEventsUnpublished(tx, convert(concurrentReplayStrategy));
     }
 
     @Override
-    public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(TxCtx tx, fr.maif.eventsourcing.EventStore.Query query) {
-        return eventStore.loadEventsByQuery(tx, query);
+    public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(TxCtx tx, EventStore.Query query) {
+        return eventStore.loadEventsByQuery(tx, convert(query));
     }
 
     @Override
-    public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(fr.maif.eventsourcing.EventStore.Query query) {
-        return eventStore.loadEventsByQuery(query);
+    public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(EventStore.Query query) {
+        return eventStore.loadEventsByQuery(convert(query));
     }
 
     @Override
@@ -91,5 +91,28 @@ public class EventStoreVanilla<TxCtx, E extends Event, Meta, Context> implements
     @Override
     public fr.maif.eventsourcing.vanilla.EventPublisher<E, Meta, Context> eventPublisher() {
         return new EventPublisherVanilla<>(eventStore.eventPublisher());
+    }
+
+    private static fr.maif.eventsourcing.EventStore.Query convert(EventStore.Query query) {
+        return fr.maif.eventsourcing.EventStore.Query.builder()
+                .withDateFrom(query.dateFrom)
+                .withDateTo(query.dateTo)
+                .withEntityId(query.entityId)
+                .withSize(query.size)
+                .withUserId(query.userId)
+                .withSystemId(query.systemId)
+                .withPublished(query.published)
+                .withSequenceFrom(query.sequenceFrom)
+                .withSequenceTo(query.sequenceTo)
+                .withIdsAndSequences(List.ofAll(query.idsAndSequences).map(idAndSequence -> Tuple.of(idAndSequence.id(), idAndSequence.sequence())))
+                .build();
+    }
+
+    private static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy convert(EventStore.ConcurrentReplayStrategy strategy) {
+        return switch (strategy) {
+            case SKIP -> fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
+            case WAIT -> fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.WAIT;
+            case NO_STRATEGY -> fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRATEGY;
+        };
     }
 }

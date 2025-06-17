@@ -15,6 +15,7 @@ public sealed interface BankCommand extends SimpleCommand {
     }
 
     record OpenAccount(Lazy<String> id, BigDecimal initialBalance) implements BankCommand {
+
         @Override
         public Lazy<String> entityId() {
             return id;

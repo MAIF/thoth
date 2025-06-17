@@ -3,20 +3,16 @@ package com.example.demo;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
 import fr.maif.eventsourcing.*;
-import fr.maif.eventsourcing.format.JacksonEventFormat;
-import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.eventsourcing.impl.JdbcTransactionManager;
 import fr.maif.eventsourcing.impl.PostgresEventStore;
-import fr.maif.eventsourcing.vanilla.EventProcessor;
-import fr.maif.reactor.eventsourcing.ReactorKafkaEventPublisher;
 import fr.maif.eventsourcing.impl.TableNames;
+import fr.maif.eventsourcing.vanilla.EventProcessor;
+import fr.maif.eventsourcing.vanilla.ProcessingSuccess;
+import fr.maif.eventsourcing.vanilla.format.JacksonEventFormat;
+import fr.maif.eventsourcing.vanilla.format.JacksonSimpleFormat;
 import fr.maif.kafka.JsonSerializer;
+import fr.maif.reactor.eventsourcing.ReactorKafkaEventPublisher;
 import fr.maif.reactor.kafka.KafkaSettings;
-import io.vavr.Lazy;
-import io.vavr.Tuple0;
-import io.vavr.collection.List;
-import io.vavr.control.Either;
-import io.vavr.control.Option;
 import org.postgresql.ds.PGSimpleDataSource;
 import reactor.kafka.sender.SenderOptions;
 
@@ -24,13 +20,15 @@ import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Bank {
-    private final EventProcessor<String, Account, BankCommand, BankEvent, Connection, List<String>, Tuple0, Tuple0> eventProcessor;
+    private final EventProcessor<String, Account, BankCommand, BankEvent, Connection, List<String>, Unit, Unit> eventProcessor;
     private final MeanWithdrawProjection meanWithdrawProjection;
     private static final TimeBasedGenerator UUIDgenerator = Generators.timeBasedGenerator();
     private final String SCHEMA = """
@@ -75,13 +73,13 @@ public class Bank {
         return KafkaSettings.newBuilder("localhost:29092").build();
     }
 
-    private SenderOptions<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings(
+    private SenderOptions<String, EventEnvelope<BankEvent, Unit, Unit>> producerSettings(
             KafkaSettings kafkaSettings,
             JacksonEventFormat<String, BankEvent> eventFormat) {
         return kafkaSettings.producerSettings(JsonSerializer.of(
                 eventFormat,
-                JacksonSimpleFormat.empty(),
-                JacksonSimpleFormat.empty()
+                JacksonSimpleFormat.<Unit>empty(),
+                JacksonSimpleFormat.<Unit>empty()
             )
         );
     }
@@ -94,68 +92,68 @@ public class Bank {
     public Bank(BankCommandHandler commandHandler, BankEventHandler eventHandler) throws SQLException {
         String topic = "bank";
         JacksonEventFormat<String, BankEvent> eventFormat = new BankEventFormat();
-        SenderOptions<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings = producerSettings(settings(), eventFormat);
+        SenderOptions<String, EventEnvelope<BankEvent, Unit, Unit>> producerSettings = producerSettings(settings(), eventFormat);
         DataSource dataSource = dataSource();
         dataSource.getConnection().prepareStatement(SCHEMA).execute();
         TableNames tableNames = tableNames();
 
         this.meanWithdrawProjection = new MeanWithdrawProjection();
 
-        ExecutorService executorService = Executors.newFixedThreadPool(5);
-        JdbcTransactionManager transactionManager = new JdbcTransactionManager(dataSource(), executorService);
+        Executor executor = Executors.newFixedThreadPool(5);
+        JdbcTransactionManager transactionManager = new JdbcTransactionManager(dataSource(), executor);
 
         this.eventProcessor = PostgresKafkaEventProcessor
                 .withDataSource(dataSource())
                 .withTables(tableNames)
-                .withTransactionManager(transactionManager, executorService)
-                .withEventFormater(eventFormat)
-                .withNoMetaFormater()
-                .withNoContextFormater()
+                .withTransactionManager(transactionManager, executor)
+                .withEventFormater(eventFormat.toFormat())
+                .withMetaFormater(JacksonSimpleFormat.<Unit>empty().toFormat())
+                .withContextFormater(JacksonSimpleFormat.<Unit>empty().toFormat())
                 .withKafkaSettings(topic, producerSettings)
                 .withEventHandler(eventHandler)
                 .withAggregateStore(builder -> new BankAggregateStore(
-                            builder.eventStore,
-                            builder.eventHandler,
-                            builder.transactionManager
-                    ))
-                .withCommandHandler(commandHandler, executorService)
+                        builder.eventStore,
+                        builder.eventHandler,
+                        builder.transactionManager
+                ))
+                .withCommandHandler(commandHandler, executor)
                 .withProjections(meanWithdrawProjection)
                 .buildVanilla();
     }
 
-    private ReactorKafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher(
-            SenderOptions<String, EventEnvelope<BankEvent, Tuple0, Tuple0>> producerSettings,
+    private ReactorKafkaEventPublisher<BankEvent, Unit, Unit> kafkaEventPublisher(
+            SenderOptions<String, EventEnvelope<BankEvent, Unit, Unit>> producerSettings,
             String topic) {
         return new ReactorKafkaEventPublisher<>(producerSettings, topic);
     }
 
-    private PostgresEventStore<BankEvent, Tuple0, Tuple0> eventStore(
-            ReactorKafkaEventPublisher<BankEvent, Tuple0, Tuple0> kafkaEventPublisher,
+    private PostgresEventStore<BankEvent, Unit, Unit> eventStore(
+            ReactorKafkaEventPublisher<BankEvent, Unit, Unit> kafkaEventPublisher,
             DataSource dataSource,
             ExecutorService executorService,
             TableNames tableNames,
             JacksonEventFormat<String, BankEvent> jacksonEventFormat) {
-        return PostgresEventStore.create(kafkaEventPublisher, dataSource, executorService, tableNames, jacksonEventFormat);
+        return PostgresEventStore.create(kafkaEventPublisher, dataSource, executorService, tableNames, jacksonEventFormat.toFormat());
     }
 
 
-    public CompletionStage<Result<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> createAccount(
+    public CompletionStage<Result<String, ProcessingSuccess<Account, BankEvent, Unit, Unit, List<String>>>> createAccount(
             BigDecimal amount) {
         Lazy<String> lazyId = Lazy.of(() -> UUIDgenerator.generate().toString());
-        return eventProcessor.processCommand(new BankCommand.OpenAccount(lazyId, amount));
+        return eventProcessor.processCommand(new BankCommand.OpenAccount(lazyId.toVavr(), amount));
     }
 
-    public CompletionStage<Result<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> withdraw(
+    public CompletionStage<Result<String, ProcessingSuccess<Account, BankEvent, Unit, Unit, List<String>>>> withdraw(
             String account, BigDecimal amount) {
         return eventProcessor.processCommand(new BankCommand.Withdraw(account, amount));
     }
 
-    public CompletionStage<Result<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> deposit(
+    public CompletionStage<Result<String, ProcessingSuccess<Account, BankEvent, Unit, Unit, List<String>>>> deposit(
             String account, BigDecimal amount) {
         return eventProcessor.processCommand(new BankCommand.Deposit(account, amount));
     }
 
-    public CompletionStage<Result<String, ProcessingSuccess<Account, BankEvent, Tuple0, Tuple0, List<String>>>> close(
+    public CompletionStage<Result<String, ProcessingSuccess<Account, BankEvent, Unit, Unit, List<String>>>> close(
             String account) {
         return eventProcessor.processCommand(new BankCommand.CloseAccount(account));
     }

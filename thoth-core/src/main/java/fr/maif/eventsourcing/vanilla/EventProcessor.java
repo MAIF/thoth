@@ -1,6 +1,10 @@
 package fr.maif.eventsourcing.vanilla;
 
-import fr.maif.eventsourcing.*;
+import fr.maif.eventsourcing.Command;
+import fr.maif.eventsourcing.Event;
+import fr.maif.eventsourcing.Result;
+import fr.maif.eventsourcing.State;
+import fr.maif.eventsourcing.TransactionManager;
 
 import java.io.Closeable;
 import java.io.IOException;

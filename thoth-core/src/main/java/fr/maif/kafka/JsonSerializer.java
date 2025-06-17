@@ -3,8 +3,10 @@ package fr.maif.kafka;
 import com.fasterxml.jackson.databind.JsonNode;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
+import fr.maif.eventsourcing.format.EventFormat;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
+import fr.maif.eventsourcing.format.SimpleFormat;
 import fr.maif.json.EventEnvelopeJson;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -29,13 +31,27 @@ public class JsonSerializer<E extends Event, Meta, Context> implements Serialize
         return new JsonSerializer<>(eventFormat, JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty());
     }
 
+    public static <E extends Event, Meta, Context> JsonSerializer<E, Meta, Context> of(fr.maif.eventsourcing.vanilla.format.JacksonEventFormat<?, E> eventFormat) {
+        return new JsonSerializer<>(eventFormat.toFormat(), JacksonSimpleFormat.empty(), JacksonSimpleFormat.empty());
+    }
+
     public static <E extends Event, Meta, Context> JsonSerializer<E, Meta, Context> of(JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat) {
         return new JsonSerializer<>(eventFormat, metaFormat, contextFormat);
     }
 
+    public static <E extends Event, Meta, Context> JsonSerializer<E, Meta, Context> of(fr.maif.eventsourcing.vanilla.format.JacksonEventFormat<?, E> eventFormat, fr.maif.eventsourcing.vanilla.format.JacksonSimpleFormat<Meta> metaFormat, fr.maif.eventsourcing.vanilla.format.JacksonSimpleFormat<Context> contextFormat) {
+        JacksonSimpleFormat<Meta> simpleFormat = metaFormat.toFormat();
+        JacksonSimpleFormat<Context> simpleFormat1 = contextFormat.toFormat();
+        JacksonEventFormat<?, E> format = eventFormat.toFormat();
+        return new JsonSerializer<>(format, simpleFormat, simpleFormat1);
+    }
 
     public static <E extends Event> JsonSerializer<E, JsonNode, JsonNode> ofJsonCtxMeta(JacksonEventFormat<?, E> eventFormat) {
         return new JsonSerializer<>(eventFormat, JacksonSimpleFormat.json(), JacksonSimpleFormat.json());
+    }
+
+    public static <E extends Event> JsonSerializer<E, JsonNode, JsonNode> ofJsonCtxMeta(fr.maif.eventsourcing.vanilla.format.JacksonEventFormat<?, E> eventFormat) {
+        return new JsonSerializer<>(eventFormat.toFormat(), JacksonSimpleFormat.json(), JacksonSimpleFormat.json());
     }
 
     @Override

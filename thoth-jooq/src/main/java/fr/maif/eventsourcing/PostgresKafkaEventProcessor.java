@@ -47,7 +47,7 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
     public static class PostgresKafkaEventProcessorConfig<Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, Message, Meta, Context> {
 
         public final EventStore.ConcurrentReplayStrategy concurrentReplayStrategy;
-        public final PostgresEventStore<E, Meta, Context> eventStore;
+        public final EventStore<Connection, E, Meta, Context> eventStore;
         public final TransactionManager<Connection> transactionManager;
         public final AggregateStore<S, String, Connection> aggregateStore;
         public final CommandHandler<Error, S, C, E, Message, Connection> commandHandler;
@@ -122,7 +122,7 @@ public class PostgresKafkaEventProcessor<Error, S extends State<S>, C extends Co
         }
 
         public PostgresKafkaEventProcessorConfig(
-                EventStore.ConcurrentReplayStrategy concurrentReplayStrategy, PostgresEventStore<E, Meta, Context> eventStore,
+                EventStore.ConcurrentReplayStrategy concurrentReplayStrategy, EventStore<Connection, E, Meta, Context> eventStore,
                 TransactionManager<Connection> transactionManager,
                 AggregateStore<S, String, Connection> aggregateStore,
                 CommandHandler<Error, S, C, E, Message, Connection> commandHandler,

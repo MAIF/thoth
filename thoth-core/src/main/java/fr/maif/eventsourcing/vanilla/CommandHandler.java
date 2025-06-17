@@ -1,14 +1,13 @@
 package fr.maif.eventsourcing.vanilla;
 
 import fr.maif.concurrent.CompletionStages;
+import fr.maif.eventsourcing.CommandHandlerGetter;
 import fr.maif.eventsourcing.Event;
-import fr.maif.eventsourcing.Events;
 import fr.maif.eventsourcing.Result;
 import fr.maif.eventsourcing.Unit;
-import io.vavr.collection.List;
 import io.vavr.control.Either;
-import io.vavr.control.Option;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
@@ -23,7 +22,7 @@ import java.util.concurrent.CompletionStage;
  * @param <Message> the type message
  * @param <TxCtx> the type of the transaction context e.g the connection in a jdbc context
  */
-public interface CommandHandler<Error, State, Command, E extends Event, Message, TxCtx> {
+public interface CommandHandler<Error, State, Command, E extends Event, Message, TxCtx> extends CommandHandlerGetter<Error, State, Command, E, Message, TxCtx> {
 
     /**
      *
@@ -61,7 +60,7 @@ public interface CommandHandler<Error, State, Command, E extends Event, Message,
     default fr.maif.eventsourcing.CommandHandler<Error, State, Command, E, Message, TxCtx> toCommandHandler() {
         var _this = this;
         return (txCtx, state, command) -> _this.handleCommand(txCtx, state.toJavaOptional(), command).thenApply(r -> switch (r){
-            case Result.Success(var s) -> Either.right(s);
+            case Result.Success(var s) -> Either.right(new fr.maif.eventsourcing.Events<>(io.vavr.collection.List.ofAll(s.events), s.message));
             case Result.Error(var s) -> Either.left(s);
         });
     }

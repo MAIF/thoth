@@ -5,7 +5,7 @@ import fr.maif.eventsourcing.EventHandler;
 import fr.maif.eventsourcing.State;
 import io.vavr.control.Option;
 
-import java.sql.Connection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -53,8 +53,8 @@ public class AggregateStoreVanilla<S extends State<S>, Id, TxCtx> implements Agg
     }
 
     @Override
-    public <E extends Event> CompletionStage<Optional<S>> buildAggregateAndStoreSnapshot(TxCtx connection, EventHandler<S, E> eventHandler, Optional<S> state, String s, java.util.List<E> events, Optional<Long> lastSequenceNum) {
-        return aggregateStore.buildAggregateAndStoreSnapshot(connection, eventHandler, Option.ofOptional(state), s, io.vavr.collection.List.ofAll(events), Option.ofOptional(lastSequenceNum))
+    public <E extends Event> CompletionStage<Optional<S>> buildAggregateAndStoreSnapshot(TxCtx txCtx, fr.maif.eventsourcing.vanilla.EventHandler<S, E> eventHandler, Optional<S> state, String s, List<E> events, Optional<Long> lastSequenceNum) {
+        return aggregateStore.buildAggregateAndStoreSnapshot(txCtx, eventHandler.toEventHandler(), Option.ofOptional(state), s, io.vavr.collection.List.ofAll(events), Option.ofOptional(lastSequenceNum))
                 .thenApply(opt -> opt.toJavaOptional());
     }
 }
