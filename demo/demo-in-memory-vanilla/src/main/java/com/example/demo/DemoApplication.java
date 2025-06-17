@@ -12,8 +12,9 @@ public class DemoApplication {
 
 		String id = bank.createAccount(BigDecimal.valueOf(100))
 				.whenComplete((either, e) -> {
-					if (Objects.nonNull(e)) {
-						either.onSuccess(result -> result.currentState
+					if (Objects.isNull(e)) {
+						either
+								.onSuccess(result -> result.currentState
 										.ifPresent(account -> System.out.println(account.balance))
 								)
 								.onError(System.err::println);

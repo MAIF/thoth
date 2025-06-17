@@ -12,7 +12,7 @@ public class DemoApplication {
 
 		String id = bank.createAccount(BigDecimal.valueOf(100))
 				.whenComplete((either, e) -> {
-					if (Objects.nonNull(e)) {
+					if (Objects.isNull(e)) {
 						either.map(result -> result.currentState
 										.peek(account -> System.out.println(account.balance))
 								)
