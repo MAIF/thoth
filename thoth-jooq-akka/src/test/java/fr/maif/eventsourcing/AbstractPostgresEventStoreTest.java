@@ -69,7 +69,7 @@ public abstract class AbstractPostgresEventStoreTest {
     }
 
     protected static boolean isCi() {
-        return false; //"true".equals(System.getenv("CI"));
+        return "true".equals(System.getenv("CI"));
     }
 
     protected static Integer port() {

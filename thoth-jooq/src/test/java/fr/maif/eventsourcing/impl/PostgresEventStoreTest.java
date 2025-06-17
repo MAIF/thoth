@@ -56,7 +56,7 @@ public class PostgresEventStoreTest {
             .withDatabaseName("eventsourcing");
 
     protected static boolean isCi() {
-        return false; //"true".equals(System.getenv("CI"));
+        return "true".equals(System.getenv("CI"));
     }
 
     static {
