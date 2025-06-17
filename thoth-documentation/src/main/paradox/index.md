@@ -4,6 +4,7 @@
 @@@ index
 
 * [Getting started and modules](getting-started.md)
+* [Words on API](api.md)
 * [Technical considerations](technical-considerations.md)
 * [In memory example](banking.md)
 * [Standard implementation](standard/index.md)
