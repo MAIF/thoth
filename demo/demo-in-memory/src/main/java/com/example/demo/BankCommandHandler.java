@@ -6,6 +6,7 @@ import com.example.demo.BankCommand.OpenAccount;
 import com.example.demo.BankCommand.Withdraw;
 import fr.maif.eventsourcing.Events;
 import fr.maif.eventsourcing.blocking.CommandHandler;
+import fr.maif.reactor.eventsourcing.InMemoryEventStore.Transaction;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Either;
@@ -15,10 +16,10 @@ import java.math.BigDecimal;
 
 import static io.vavr.API.*;
 
-public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, Tuple0, Tuple0> {
+public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, Tuple0, Transaction<BankEvent, Tuple0, Tuple0>> {
     @Override
     public Either<String, Events<BankEvent, Tuple0>> handleCommand(
-            Tuple0 transactionContext,
+            Transaction<BankEvent, Tuple0, Tuple0> transactionContext,
             Option<Account> previousState,
             BankCommand command) {
         return switch (command) {

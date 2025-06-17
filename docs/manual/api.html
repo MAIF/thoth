@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+
+<head>
+<title>Words on API · Thoth</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content='Thoth doc'/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="lib/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="js/page.js"></script>
+<script type="text/javascript" src="js/groups.js"></script>
+<link rel="stylesheet" type="text/css" href="lib/normalize.css/normalize.css"/>
+<link rel="stylesheet" type="text/css" href="lib/foundation/dist/foundation.min.css"/>
+<link rel="stylesheet" type="text/css" href="css/page.css"/>
+
+<!--
+<link rel="shortcut icon" href="images/favicon.ico" />
+-->
+</head>
+
+<body>
+<div class="off-canvas-wrapper">
+<div class="off-canvas-wrapper-inner" data-off-canvas-wrapper>
+
+<div class="off-canvas position-left" id="off-canvas-menu" data-off-canvas>
+<nav class="off-canvas-nav">
+<div class="nav-home">
+<a href="index.html" >
+<span class="home-icon">⌂</span>Thoth
+</a>
+<div class="version-number">
+0.1.0*
+</div>
+</div>
+<select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
+<div class="nav-toc">
+<ul>
+  <li><a href="getting-started.html" class="page">Getting started</a></li>
+  <li><a href="api.html" class="active page">Words on API</a></li>
+  <li><a href="technical-considerations.html" class="page">Technical considerations</a></li>
+  <li><a href="banking.html" class="page">In memory example</a></li>
+  <li><a href="standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
+  <ul>
+    <li><a href="standard/banking-real-life.html" class="page">Postgres Kafka event sourcing</a></li>
+    <li><a href="standard/projections.html" class="page">Projections</a></li>
+  </ul></li>
+  <li><a href="database-configuration.html" class="page">Database configuration</a></li>
+  <li><a href="advanced/index.html" class="page">Advanced use cases</a>
+  <ul>
+    <li><a href="advanced/message.html" class="page">Warning / Info messages</a></li>
+    <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
+    <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
+    <li><a href="advanced/event-replay.html" class="page">Event replay</a></li>
+    <li><a href="advanced/multi-command.html" class="page">Multiple command handling in the same transaction</a></li>
+  </ul></li>
+  <li><a href="eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
+  <li><a href="kafka-consumption.html" class="page">Using published events</a></li>
+  <li><a href="non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
+  <ul>
+    <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
+    <li><a href="non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
+  </ul></li>
+  <li><a href="resilient-kafka-consumption.html" class="page">Resilient kafka consumption</a></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="off-canvas-content" data-off-canvas-content>
+
+<header class="site-header expanded row">
+<div class="small-12 column">
+<a href="#" class="off-canvas-toggle hide-for-medium" data-toggle="off-canvas-menu"><svg class="svg-icon svg-icon-menu" version="1.1" id="Menu" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve"> <path class="svg-icon-menu-path" fill="#53CDEC" d="M16.4,9H3.6C3.048,9,3,9.447,3,10c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,9.447,16.952,9,16.4,9z M16.4,13
+H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
+C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
+</a>
+<div class="title-wrapper">
+<div class="title-logo"></div>
+<div class="title"><a href="index.html">Thoth</a></div>
+</div>
+<!--
+<a href="https://www.example.com" class="logo show-for-medium">logo</a>
+-->
+</div>
+</header>
+
+<div class="expanded row">
+
+<div class="medium-3 large-2 show-for-medium column">
+<nav class="site-nav">
+<div class="nav-home">
+<a href="index.html" >
+<span class="home-icon">⌂</span>Thoth
+</a>
+<div class="version-number">
+0.1.0*
+</div>
+</div>
+<select class="supergroup" name="Language"><option class="group" value="group-java">Java</option></select>
+<div class="nav-toc">
+<ul>
+  <li><a href="getting-started.html" class="page">Getting started</a></li>
+  <li><a href="api.html" class="active page">Words on API</a></li>
+  <li><a href="technical-considerations.html" class="page">Technical considerations</a></li>
+  <li><a href="banking.html" class="page">In memory example</a></li>
+  <li><a href="standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
+  <ul>
+    <li><a href="standard/banking-real-life.html" class="page">Postgres Kafka event sourcing</a></li>
+    <li><a href="standard/projections.html" class="page">Projections</a></li>
+  </ul></li>
+  <li><a href="database-configuration.html" class="page">Database configuration</a></li>
+  <li><a href="advanced/index.html" class="page">Advanced use cases</a>
+  <ul>
+    <li><a href="advanced/message.html" class="page">Warning / Info messages</a></li>
+    <li><a href="advanced/event-ordering.html" class="page">Custom message ordering</a></li>
+    <li><a href="advanced/aggregatestore.html" class="page">Aggregate store</a></li>
+    <li><a href="advanced/event-replay.html" class="page">Event replay</a></li>
+    <li><a href="advanced/multi-command.html" class="page">Multiple command handling in the same transaction</a></li>
+  </ul></li>
+  <li><a href="eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
+  <li><a href="kafka-consumption.html" class="page">Using published events</a></li>
+  <li><a href="non-blocking/index.html" class="page">Non blocking JOOQ implementation</a>
+  <ul>
+    <li><a href="non-blocking/banking-real-life-non-blocking.html" class="page">Postgres Kafka, non blocking event sourcing</a></li>
+    <li><a href="non-blocking/projections-non-blocking.html" class="page">Projections</a></li>
+  </ul></li>
+  <li><a href="resilient-kafka-consumption.html" class="page">Resilient kafka consumption</a></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="small-12 medium-9 large-10 column">
+<section class="site-content">
+
+<div class="page-header row">
+<div class="medium-12 show-for-medium column">
+<div class="nav-breadcrumbs">
+<ul>
+  <li><a href="index.html">Thoth</a></li>
+  <li>Words on API</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="page-content row">
+<div class="small-12 large-9 column" id="docs">
+<h1><a href="#words-on-api" name="words-on-api" class="anchor"><span class="anchor-link"></span></a>Words on API</h1>
+<p>Thoth is non-blocking by default and rely on vavr but, you can choose if you use it or not.</p>
+<h2><a href="#fifty-shades-of-apis" name="fifty-shades-of-apis" class="anchor"><span class="anchor-link"></span></a>Fifty shades of APIs</h2>
+<h3><a href="#basic-api" name="basic-api" class="anchor"><span class="anchor-link"></span></a>Basic API</h3>
+<p>The basic API use vavr for several reasons :</p>
+<ul>
+  <li><code>Either</code> : to handle success or error</li>
+  <li><code>Option</code> : instead of java Optional to handle missing values</li>
+  <li><code>Tuple</code> : to collect data</li>
+  <li><code>Tuple0</code> : to return values not handled (like Void but not exactly the same)</li>
+  <li><code>List</code> : instead of java List, because the API is better</li>
+  <li><code>Lazy</code> : for lazy values</li>
+</ul>
+<p>The basic API, is exposed with package <code>fr.maif.eventsourcing</code>.</p>
+<p>With the basic API, you&rsquo;ll have to implement something like :</p>
+<pre class="prettyprint"><code class="language-java">public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, List&lt;String&gt;, TxCtx&gt; {
+
+    @Override
+    public CompletionStage&lt;Either&lt;String, Events&lt;BankEvent, List&lt;String&gt;&gt;&gt;&gt; handleCommand(
+            TxCtx transactionContext,
+            Option&lt;Account&gt; previousState,
+            BankCommand command) {
+        return switch (command) {
+            case Withdraw withdraw -&gt; this.handleWithdraw(previousState, withdraw);
+            case Deposit deposit -&gt; this.handleDeposit(previousState, deposit);
+            case OpenAccount openAccount -&gt; this.handleOpening(openAccount);
+            case CloseAccount close -&gt; this.handleClosing(previousState, close);
+        };
+    }
+}
+</code></pre>
+<h3><a href="#vanilla-api" name="vanilla-api" class="anchor"><span class="anchor-link"></span></a>Vanilla API</h3>
+<p>If you don&rsquo;t want to use vavr, there is a vanilla API :</p>
+<ul>
+  <li><code>Either</code> -&gt; <code>fr.maif.eventsourcing.Result</code>: a custom type to handle success or error</li>
+  <li><code>Option</code> -&gt; <code>Optional</code></li>
+  <li><code>Tuple</code> : internal</li>
+  <li><code>Tuple0</code> -&gt; <code>fr.maif.eventsourcing.Unit</code> : a custom type to return values not handled (like Void but not exactly the  same)</li>
+  <li><code>List</code> : -&gt; <code>java.util.List</code></li>
+  <li><code>Lazy</code> : for lazy values</li>
+</ul>
+<p>The package to use is <code>fr.maif.eventsourcing.vanilla</code> :</p>
+<ul>
+  <li><code>AggregateStore</code></li>
+  <li><code>CommandHandler</code></li>
+  <li><code>EventHandler</code></li>
+  <li><code>EventProcessor</code></li>
+  <li><code>EventPublisher</code></li>
+  <li><code>Events</code></li>
+  <li><code>EventStore</code></li>
+  <li><code>ProcessingSuccess</code></li>
+  <li><code>Projection</code></li>
+  <li><code>SimpleCommand</code></li>
+</ul>
+<p>With the vanilla API, you&rsquo;ll have to implement something like :</p>
+<pre class="prettyprint"><code class="language-java">public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, List&lt;String&gt;, TxCtx&gt; {
+
+    @Override
+    public CompletionStage&lt;Result&lt;String, Events&lt;BankEvent, List&lt;String&gt;&gt;&gt;&gt; handleCommand(
+            TxCtx transactionContext,
+            Optional&lt;Account&gt; previousState,
+            BankCommand command) {
+        return switch (command) {
+            case Withdraw withdraw -&gt; this.handleWithdraw(previousState, withdraw);
+            case Deposit deposit -&gt; this.handleDeposit(previousState, deposit);
+            case OpenAccount openAccount -&gt; this.handleOpening(openAccount);
+            case CloseAccount close -&gt; this.handleClosing(previousState, close);
+        };
+    }
+}
+</code></pre>
+<h3><a href="#blocking-api" name="blocking-api" class="anchor"><span class="anchor-link"></span></a>Blocking API</h3>
+<p>If you don&rsquo;t to handle the non-blocking aspect, you can implement blocking interface, ie the blocking <code>CommandHandler</code>.</p>
+<p>The component to use</p>
+<ul>
+  <li><code>fr.maif.eventsourcing.blocking.CommandHandler</code> : with standard API (vavr)</li>
+  <li><code>fr.maif.eventsourcing.vanilla.blocking.CommandHandler</code> : with vanilla API</li>
+</ul>
+<p>With the blocking API, you&rsquo;ll have to implement something like :</p>
+<pre class="prettyprint"><code class="language-java">public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, List&lt;String&gt;, TxCtx&gt; {
+
+    @Override
+    public Result&lt;String, Events&lt;BankEvent, List&lt;String&gt;&gt;&gt; handleCommand(
+            TxCtx transactionContext,
+            Optional&lt;Account&gt; previousState,
+            BankCommand command) {
+        return switch (command) {
+            case Withdraw withdraw -&gt; this.handleWithdraw(previousState, withdraw);
+            case Deposit deposit -&gt; this.handleDeposit(previousState, deposit);
+            case OpenAccount openAccount -&gt; this.handleOpening(openAccount);
+            case CloseAccount close -&gt; this.handleClosing(previousState, close);
+        };
+    }
+}
+</code></pre>
+<h3><a href="#reactive-api-using-reactor" name="reactive-api-using-reactor" class="anchor"><span class="anchor-link"></span></a>Reactive API using reactor</h3>
+<p>There is a reactor API to use <code>Mono</code> instead of <code>CompletionStage</code>. The classes are prefixed with <code>Reactor</code> :</p>
+<ul>
+  <li><code>ReactorAggregateStore</code></li>
+  <li><code>ReactorCommandHandler</code></li>
+  <li><code>ReactorEventProcessor</code></li>
+  <li><code>ReactorEventStore</code></li>
+  <li><code>ReactorPostgresKafkaEventProcessorBuilder</code></li>
+  <li><code>ReactorProjection</code></li>
+  <li><code>ReactorTransactionManager</code></li>
+</ul>
+<p>At the moment, the reactor API use vavr, there is no vanilla API.</p>
+<p>With the reactive API, you&rsquo;ll have to implement something like :</p>
+<pre class="prettyprint"><code class="language-java">public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, List&lt;String&gt;, TxCtx&gt; {
+
+    @Override
+    public Mono&lt;Either&lt;String, Events&lt;BankEvent, List&lt;String&gt;&gt;&gt;&gt; handleCommand(
+            TxCtx transactionContext,
+            Option&lt;Account&gt; previousState,
+            BankCommand command) {
+        return switch (command) {
+            case Withdraw withdraw -&gt; this.handleWithdraw(previousState, withdraw);
+            case Deposit deposit -&gt; this.handleDeposit(previousState, deposit);
+            case OpenAccount openAccount -&gt; this.handleOpening(openAccount);
+            case CloseAccount close -&gt; this.handleClosing(previousState, close);
+        };
+    }
+}
+</code></pre>
+<h2><a href="#cheat-sheet" name="cheat-sheet" class="anchor"><span class="anchor-link"></span></a>Cheat sheet</h2>
+<h3><a href="#concepts-and-vocabulary" name="concepts-and-vocabulary" class="anchor"><span class="anchor-link"></span></a>Concepts and vocabulary</h3>
+<ul>
+  <li>a command : an action coming from the user that the system has to handle</li>
+  <li>an event : something that append in the system</li>
+  <li>a journal : a place where the events are stored</li>
+  <li>a state or aggregate : the current state, the results of the previous events</li>
+  <li>a projection : an alternative view of the events, this is a read model</li>
+</ul>
+<h3><a href="#overview-of-interface-to-implement" name="overview-of-interface-to-implement" class="anchor"><span class="anchor-link"></span></a>Overview of interface to implement</h3>
+<p>Here the list of interface you need or, you could implement (and the reason why).</p>
+<table>
+  <thead>
+    <tr>
+      <th>Interface </th>
+      <th>Required </th>
+      <th>Role </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>State</code> </td>
+      <td>yes </td>
+      <td>The current state built from events </td>
+    </tr>
+    <tr>
+      <td><code>Command</code> </td>
+      <td>yes </td>
+      <td>The command represents the data that comes in </td>
+    </tr>
+    <tr>
+      <td><code>CommandHandler</code> </td>
+      <td>yes </td>
+      <td>The component that handle commands and produce events </td>
+    </tr>
+    <tr>
+      <td><code>EventHandler</code> </td>
+      <td>yes </td>
+      <td>The component that handle events and produce a state </td>
+    </tr>
+    <tr>
+      <td><code>Projection</code> </td>
+      <td>if you need read models </td>
+      <td>The component that handle events and produce read model </td>
+    </tr>
+    <tr>
+      <td><code>AbstractDefaultAggregateStore</code> </td>
+      <td>if you need snapshots </td>
+      <td>The component that load state from events in the journal </td>
+    </tr>
+    <tr>
+      <td><code>EventFormat</code> </td>
+      <td>no </td>
+      <td>The component that serialize / deserialize events </td>
+    </tr>
+    <tr>
+      <td><code>JacksonEventFormat</code> </td>
+      <td>yes (prefered) </td>
+      <td>The component that serialize / deserialize events to json </td>
+    </tr>
+    <tr>
+      <td><code>SimpleFormat</code> </td>
+      <td>yes </td>
+      <td>The component that serialize / deserialize events ignoring errors </td>
+    </tr>
+    <tr>
+      <td><code>JacksonSimpleFormat</code> </td>
+      <td>yes </td>
+      <td>The component that serialize / deserialize events to json ignoring errors </td>
+    </tr>
+    <tr>
+      <td><code>EventPublisher</code> </td>
+      <td>no (only if don&rsquo;t use Kafka) </td>
+      <td>The component that publish events </td>
+    </tr>
+    <tr>
+      <td><code>EventStore</code> </td>
+      <td>no (only if don&rsquo;t use PG) </td>
+      <td>The component that store and query events </td>
+    </tr>
+    <tr>
+      <td><code>EventProcessor</code> </td>
+      <td>no </td>
+      <td>The component orchestrate all the magic </td>
+    </tr>
+  </tbody>
+</table>
+<div class="nav-next">
+<p><strong>Next:</strong> <a href="technical-considerations.html">Technical considerations</a></p>
+</div>
+</div>
+<div class="large-3 show-for-large column" data-sticky-container>
+<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
+<div class="page-nav">
+<div class="nav-title">On this page:</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="api.html#words-on-api" class="header">Words on API</a>
+  <ul>
+    <li><a href="api.html#fifty-shades-of-apis" class="header">Fifty shades of APIs</a></li>
+    <li><a href="api.html#cheat-sheet" class="header">Cheat sheet</a></li>
+  </ul></li>
+</ul>
+</div>
+</div>
+</nav>
+</div>
+</div>
+
+</section>
+</div>
+
+</div>
+
+<footer class="site-footer">
+
+<section class="site-footer-nav">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 medium-4 large-3 text-center column">
+<div class="nav-links">
+<ul>
+<!-- <li><a href="https://www.example.com/products/">Products</a> -->
+</ul>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</section>
+
+<section class="site-footer-base">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 text-center large-9 column">
+
+<!--
+<div class="copyright">
+<span class="text">&copy; 2025</span>
+<a href="https://www.example.com" class="logo">logo</a>
+</div>
+-->
+</div>
+
+</div>
+</div>
+</div>
+</section>
+</footer>
+
+</div>
+</div>
+</div>
+</body>
+
+<script type="text/javascript" src="lib/foundation/dist/foundation.min.js"></script>
+<script type="text/javascript">jQuery(document).foundation();</script>
+<script type="text/javascript" src="js/magellan.js"></script>
+
+<style type="text/css">@import "lib/prettify/prettify.css";</style>
+<script type="text/javascript" src="lib/prettify/prettify.js"></script>
+<script type="text/javascript" src="lib/prettify/lang-scala.js"></script>
+<script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-112498312-1"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+
+gtag('config', 'UA-112498312-1');
+</script>
+</html>
+
+
+
+

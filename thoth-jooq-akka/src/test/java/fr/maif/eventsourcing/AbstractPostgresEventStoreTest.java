@@ -13,7 +13,6 @@ import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
 import io.vavr.API;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
@@ -22,17 +21,23 @@ import org.jooq.Record;
 import org.jooq.SQLDialect;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Date;
+import java.util.Objects;
+import java.util.StringJoiner;
+import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
@@ -45,11 +50,48 @@ import static org.mockito.Mockito.mock;
 
 public abstract class AbstractPostgresEventStoreTest {
 
-    protected Integer port = 5557;
-    protected String host = "localhost";
-    protected String database = "eventsourcing";
-    protected String user = "eventsourcing";
-    protected String password = "eventsourcing";
+    private static final PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(DockerImageName.parse("postgres:15"))
+            .withUsername("eventsourcing")
+            .withPassword("eventsourcing")
+            .withDatabaseName("eventsourcing");
+
+    static {
+        if(!isCi()) {
+            postgreSQLContainer.start();
+        }
+    }
+
+    @AfterAll
+    public static void stopDb() {
+        if(!isCi()) {
+            postgreSQLContainer.stop();
+        }
+    }
+
+    protected static boolean isCi() {
+        return "true".equals(System.getenv("CI"));
+    }
+
+    protected static Integer port() {
+        if (isCi()) {
+            return 5557;
+        } else {
+            return postgreSQLContainer.getFirstMappedPort();
+        }
+    }
+
+    protected static String host() {
+        return "localhost";
+    }
+    protected static String database() {
+        return "eventsourcing";
+    }
+    protected static String user() {
+        return "eventsourcing";
+    }
+    protected static String password() {
+        return "eventsourcing";
+    }
 
     private ActorSystem system;
     private ReactivePostgresEventStore<VikingEvent, Void, Void> postgresEventStore;
@@ -290,9 +332,9 @@ public abstract class AbstractPostgresEventStoreTest {
         this.pgAsyncPool = init();
 
         PGSimpleDataSource pgSimpleDataSource = new PGSimpleDataSource();
-        pgSimpleDataSource.setUrl("jdbc:postgresql://"+host+":"+port+"/"+database);
-        pgSimpleDataSource.setUser(user);
-        pgSimpleDataSource.setPassword(password);
+        pgSimpleDataSource.setUrl("jdbc:postgresql://"+host()+":"+port()+"/"+database());
+        pgSimpleDataSource.setUser(user());
+        pgSimpleDataSource.setPassword(password());
         this.dslContext = DSL.using(pgSimpleDataSource, SQLDialect.POSTGRES);
         Try.of(() -> {
             this.dslContext.deleteFrom(vikings_journal).execute();

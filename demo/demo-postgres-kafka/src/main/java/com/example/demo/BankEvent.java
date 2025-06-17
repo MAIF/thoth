@@ -1,11 +1,7 @@
 package com.example.demo;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.Type;
-import io.vavr.API;
-import io.vavr.API.Match.Pattern0;
 
 import java.math.BigDecimal;
 

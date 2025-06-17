@@ -6,7 +6,7 @@ dependencies {
     implementation("io.projectreactor:reactor-core:$reactorVersion")
     implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
     implementation("io.vavr:vavr:$vavrVersion")
-    implementation("io.vavr:vavr-jackson:$vavrVersion")
+    implementation("io.vavr:vavr-jackson:$vavrJacksonVersion")
     implementation('org.slf4j:slf4j-api:2.0.7')
     implementation("com.fasterxml.uuid:java-uuid-generator:3.1.5")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion")

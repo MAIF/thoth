@@ -22,23 +22,24 @@ subprojects {
         withSourcesJar()
         withJavadocJar()
         toolchain {
-            languageVersion = JavaLanguageVersion.of(17)
+            languageVersion = JavaLanguageVersion.of(21)
         }
     }
 
     ext {
         scalaVersion          = "2.13"
         alpakkaKafkaVersion   = "2.0.7"
-        jacksonVersion        = "2.10.5"
+        jacksonVersion        = "2.18.4"
         akkaVersion           = "2.6.14"
-        vavrVersion           = "0.10.3"
-        jooqVersion           = "3.17.4"
-        jooqAsyncVersion      = "2.0.0"
-        functionalJsonVersion = "1.0.3"
+        vavrVersion           = "0.10.6"
+        vavrJacksonVersion    = "0.10.3"
+        jooqVersion           = "3.20.4"
+        jooqAsyncVersion      = "2.4.0-rc1"
+        functionalJsonVersion = "1.0.5-rc1"
         kafkaVersion          = "3.0.1"
-        reactorKafkaVersion   = "1.3.22"
-        reactorVersion        = "3.5.7"
-        vertxSqlVersion       = "4.3.3"
+        reactorKafkaVersion   = "1.3.23"
+        reactorVersion        = "3.7.7"
+        vertxSqlVersion       = "5.0.0"
         testContainerVersion  = "1.21.1"
     }
 

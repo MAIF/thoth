@@ -1,31 +1,18 @@
 package fr.maif.thoth.sample;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.math.BigDecimal;
-import java.sql.SQLException;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.DeleteTopicsResult;
-import org.apache.kafka.clients.admin.KafkaAdminClient;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import fr.maif.eventsourcing.EventEnvelope;
+import fr.maif.eventsourcing.format.JacksonSimpleFormat;
+import fr.maif.json.EventEnvelopeJson;
+import fr.maif.thoth.sample.api.AccountDTO;
+import fr.maif.thoth.sample.api.BalanceDTO;
+import fr.maif.thoth.sample.api.TransferDTO;
+import fr.maif.thoth.sample.api.TransferResultDTO;
+import fr.maif.thoth.sample.events.BankEvent;
+import fr.maif.thoth.sample.events.BankEventFormat;
+import io.vavr.Tuple0;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -33,11 +20,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -51,30 +34,26 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.format.JacksonSimpleFormat;
-import fr.maif.json.EventEnvelopeJson;
-import fr.maif.thoth.sample.api.AccountDTO;
-import fr.maif.thoth.sample.api.BalanceDTO;
-import fr.maif.thoth.sample.api.TransferDTO;
-import fr.maif.thoth.sample.api.TransferResultDTO;
-import fr.maif.thoth.sample.events.BankEvent;
-import fr.maif.thoth.sample.events.BankEventFormat;
-import io.vavr.Tuple;
-import io.vavr.Tuple0;
-import io.vavr.Tuple2;
 import org.testcontainers.utility.DockerImageName;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
-class ThothSampleApplicationTests {
+public class ThothSampleApplicationTests {
+
 	private static final String groupId = "test-groupid";
 	@Autowired
 	private TestRestTemplate restTemplate;
@@ -93,7 +72,6 @@ class ThothSampleApplicationTests {
 		postgres.start();
 		kafka.start();
 	}
-
 
 	@DynamicPropertySource
 	static void databaseProperties(DynamicPropertyRegistry registry) {
@@ -132,7 +110,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void postAccountShouldCreateAccount() {
+	public void postAccountShouldCreateAccount() {
 		final String id = "test";
 		AccountDTO payload = new AccountDTO(new BigDecimal("100"), id);
 
@@ -144,7 +122,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void deleteAccountShouldDeleteAccount() {
+	public void deleteAccountShouldDeleteAccount() {
 		final String id = "test";
 		AccountDTO payload = new AccountDTO(new BigDecimal("100"), id);
 
@@ -156,7 +134,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void withdraw() {
+	public void withdraw() {
 		String id = "test";
 		AccountDTO payload = new AccountDTO(new BigDecimal("100"), id);
 
@@ -170,7 +148,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void deposit() {
+	public void deposit() {
 		String id = "test";
 		AccountDTO payload = new AccountDTO(new BigDecimal("100"), id);
 
@@ -184,7 +162,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void withdrawShouldFailOnInsufficientBalance() {
+	public void withdrawShouldFailOnInsufficientBalance() {
 		String id = "test";
 
 		AccountDTO payload = new AccountDTO(new BigDecimal("100"), id);
@@ -197,7 +175,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void withdrawShouldFailOnNonExistantAccount() {
+	public void withdrawShouldFailOnNonExistantAccount() {
 		String id = "test";
 
 		AccountDTO expected = AccountDTO.error("Account does not exist");
@@ -208,7 +186,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void depositShouldFailOnNonExistantAccount() {
+	public void depositShouldFailOnNonExistantAccount() {
 		String id = "test";
 
 		AccountDTO expected = AccountDTO.error("Account does not exist");
@@ -219,7 +197,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void creationShouldFailOnNegativeAmount() {
+	public void creationShouldFailOnNegativeAmount() {
 		final String id = "test";
 		AccountDTO payload = new AccountDTO(new BigDecimal("-100"), id);
 
@@ -231,7 +209,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void creationShouldFailOnExistantAccount() {
+	public void creationShouldFailOnExistantAccount() {
 		final String id = "test";
 		AccountDTO payload = new AccountDTO(new BigDecimal("100"), id);
 		createAccount(payload);
@@ -241,7 +219,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void deleteAccountShouldFailOnNonExistantAccount() {
+	public void deleteAccountShouldFailOnNonExistantAccount() {
 		final String id = "test";
 		final Optional<String> maybeError = closeAccount(id);
 		assertThat(maybeError.get()).isEqualTo("Account does not exist");
@@ -251,7 +229,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void globalBalanceShouldBeAccurate() {
+	public void globalBalanceShouldBeAccurate() {
 		createAccount(new AccountDTO(new BigDecimal("100"), "test"));
 		createAccount(new AccountDTO(new BigDecimal("200"), "test2"));
 		deposit("test", new BigDecimal("50"));
@@ -261,7 +239,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void meanWithdrawByMonthShouldBeAccurate() throws InterruptedException {
+	public void meanWithdrawByMonthShouldBeAccurate() throws InterruptedException {
 		final String id = "test";
 		createAccount(new AccountDTO(new BigDecimal("1000"), id));
 		withdraw(id, new BigDecimal("100"));
@@ -276,7 +254,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void meanWithdrawShouldBeAccurate() throws InterruptedException {
+	public void meanWithdrawShouldBeAccurate() throws InterruptedException {
 		final String id = "test";
 		createAccount(new AccountDTO(new BigDecimal("1000"), id));
 		withdraw(id, new BigDecimal("100"));
@@ -292,7 +270,7 @@ class ThothSampleApplicationTests {
 
 
 	@Test
-	void transferShouldWork() {
+	public void transferShouldWork() {
 		final String sourceId = "from";
 		final String targetId = "to";
 
@@ -305,7 +283,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void transferShouldFailIfBalanceIsTooLow() {
+	public void transferShouldFailIfBalanceIsTooLow() {
 		final String sourceId = "from";
 		final String targetId = "to";
 
@@ -317,7 +295,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void transferShouldFailIfSourceAccountDoesNotExist() {
+	public void transferShouldFailIfSourceAccountDoesNotExist() {
 		final String targetId = "to";
 
 		createAccount(new AccountDTO(new BigDecimal("10"), targetId));
@@ -327,7 +305,7 @@ class ThothSampleApplicationTests {
 	}
 
 	@Test
-	void transferShouldFailIfTargetAccountDoesNotExist() {
+	public void transferShouldFailIfTargetAccountDoesNotExist() {
 		final String sourceId = "from";
 
 		createAccount(new AccountDTO(new BigDecimal("1000"), sourceId));

@@ -17,8 +17,9 @@ import io.vavr.Tuple0;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import io.vertx.core.Vertx;
+import io.vertx.pgclient.PgBuilder;
 import io.vertx.pgclient.PgConnectOptions;
-import io.vertx.pgclient.PgPool;
+import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DefaultConfiguration;
@@ -65,7 +66,7 @@ public class Bank implements Closeable {
             """;
     private final PgAsyncPool pgAsyncPool;
     private final Vertx vertx;
-    private PgPool pgPool;
+    private Pool pgPool;
     private final ReactorEventProcessor<String, Account, BankCommand, BankEvent, PgAsyncTransaction, Tuple0, Tuple0, Tuple0> eventProcessor;
     private final WithdrawByMonthProjection withdrawByMonthProjection;
 
@@ -121,7 +122,11 @@ public class Bank implements Closeable {
                 .setUser("eventsourcing")
                 .setPassword("eventsourcing");
         PoolOptions poolOptions = new PoolOptions().setMaxSize(50);
-        pgPool = PgPool.pool(vertx, options, poolOptions);
+        pgPool = PgBuilder.pool()
+                .using(vertx)
+                .connectingTo(options)
+                .with(poolOptions)
+                .build();
 
         return PgAsyncPool.create(pgPool, jooqConfig);
     }

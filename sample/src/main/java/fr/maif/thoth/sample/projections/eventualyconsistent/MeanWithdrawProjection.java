@@ -7,10 +7,10 @@ import java.sql.SQLException;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
 import io.vavr.Tuple;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

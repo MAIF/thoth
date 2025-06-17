@@ -1,22 +1,23 @@
 package com.example.demo;
 
 import fr.maif.eventsourcing.Events;
-import fr.maif.eventsourcing.blocking.CommandHandler;
-import io.vavr.collection.List;
-import io.vavr.control.Either;
-import io.vavr.control.Option;
+import fr.maif.eventsourcing.Result;
+import fr.maif.eventsourcing.vanilla.blocking.CommandHandler;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 import static com.example.demo.BankCommand.*;
-import static io.vavr.API.*;
 
 public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, List<String>, Connection> {
+    
     @Override
-    public Either<String, Events<BankEvent, List<String>>> handleCommand(
+    public Result<String, Events<BankEvent, List<String>>> handleCommand(
             Connection transactionContext,
-            Option<Account> previousState,
+            Optional<Account> previousState,
             BankCommand command) {
         return switch (command) {
             case Withdraw withdraw -> this.handleWithdraw(previousState, withdraw);
@@ -26,46 +27,47 @@ public class BankCommandHandler implements CommandHandler<String, Account, BankC
         };
     }
 
-    private Either<String, Events<BankEvent, List<String>>> handleOpening(
+    private Result<String, Events<BankEvent, List<String>>> handleOpening(
             BankCommand.OpenAccount opening) {
         if(opening.initialBalance().compareTo(BigDecimal.ZERO) < 0) {
-            return Left("Initial balance can't be negative");
+            return Result.error("Initial balance can't be negative");
         }
 
         String newId = opening.id().get();
-        List<BankEvent> events = List(new BankEvent.AccountOpened(newId));
+        List<BankEvent> events = new ArrayList<>();
+        events.add(new BankEvent.AccountOpened(newId));
         if(opening.initialBalance().compareTo(BigDecimal.ZERO) > 0) {
-            events = events.append(new BankEvent.MoneyDeposited(newId, opening.initialBalance()));
+            events.add(new BankEvent.MoneyDeposited(newId, opening.initialBalance()));
         }
 
-        return Right(Events.events(List.empty(), events));
+        return events(List.<String>of(), events);
     }
 
-    private Either<String, Events<BankEvent, List<String>>> handleClosing(
-            Option<Account> previousState,
+    private Result<String, Events<BankEvent, List<String>>> handleClosing(
+            Optional<Account> previousState,
             BankCommand.CloseAccount close) {
-        return previousState.toEither("No account opened for this id : " + close.id())
-                .map(state ->  Events.events(List.empty(), new BankEvent.AccountClosed(close.id())));
+        return Result.fromOptional(previousState, () -> "No account opened for this id : " + close.id())
+                .map(state ->  Events.events(List.of(), new BankEvent.AccountClosed(close.id())));
     }
 
-    private Either<String, Events<BankEvent, List<String>>> handleDeposit(
-            Option<Account> previousState,
+    private Result<String, Events<BankEvent, List<String>>> handleDeposit(
+            Optional<Account> previousState,
             BankCommand.Deposit deposit) {
-        return previousState.toEither("Account does not exist")
-                .map(account -> Events.events(List.empty(), new BankEvent.MoneyDeposited(deposit.account(), deposit.amount())));
+        return Result.fromOptional(previousState, () -> "Account does not exist")
+                .map(account -> Events.events(List.of(), new BankEvent.MoneyDeposited(deposit.account(), deposit.amount())));
     }
 
-    private Either<String, Events<BankEvent, List<String>>> handleWithdraw(
-            Option<Account> previousState,
+    private Result<String, Events<BankEvent, List<String>>> handleWithdraw(
+            Optional<Account> previousState,
             BankCommand.Withdraw withdraw) {
-        return previousState.toEither("Account does not exist")
+        return Result.fromOptional(previousState, () -> "Account does not exist")
                 .flatMap(previous -> {
                     BigDecimal newBalance = previous.balance.subtract(withdraw.amount());
-                    List<String> messages = List();
+                    List<String> messages = new ArrayList<>();
                     if(newBalance.compareTo(BigDecimal.ZERO) < 0) {
-                        messages = messages.push("Overdrawn account");
+                        messages.add("Overdrawn account");
                     }
-                    return Right(Events.events(messages, new BankEvent.MoneyWithdrawn(withdraw.account(), withdraw.amount())));
+                    return Result.success(Events.events(messages, new BankEvent.MoneyWithdrawn(withdraw.account(), withdraw.amount())));
                 });
     }
 }

@@ -37,6 +37,7 @@
 <div class="nav-toc">
 <ul>
   <li><a href="getting-started.html" class="page">Getting started</a></li>
+  <li><a href="api.html" class="page">Words on API</a></li>
   <li><a href="technical-considerations.html" class="page">Technical considerations</a></li>
   <li><a href="banking.html" class="active page">In memory example</a></li>
   <li><a href="standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
@@ -101,6 +102,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="nav-toc">
 <ul>
   <li><a href="getting-started.html" class="page">Getting started</a></li>
+  <li><a href="api.html" class="page">Words on API</a></li>
   <li><a href="technical-considerations.html" class="page">Technical considerations</a></li>
   <li><a href="banking.html" class="active page">In memory example</a></li>
   <li><a href="standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
@@ -388,6 +390,11 @@ bank.createAccount(BigDecimal.valueOf(100))
           }
         });
 </code></pre>
+<h2><a href="#java-vanilla" name="java-vanilla" class="anchor"><span class="anchor-link"></span></a>Java vanilla</h2>
+<p>If you don&rsquo;t want to use Vavr on your codebase, you can use the vanilla java wrapper : </p>
+<pre class="prettyprint"><code class="language-java">fr.maif.eventsourcing.vanilla.EventProcessor&lt;String, Account, BankCommand, BankEvent, Tuple0, Tuple0, Tuple0, Tuple0&gt; eventProcessorVanilla = new EventProcessorVanilla&lt;&gt;(this.eventProcessor);
+</code></pre>
+<p>The mapping is the following : * <code>io.vavr.control.Either</code> -&gt; <code>fr.maif.eventsourcing.Result</code> (custom type) * <code>io.vavr.collection.List</code> -&gt; <code>java.util.List</code> * <code>io.vavr.control.Option</code> -&gt; <code>java.util.Optional</code> * <code>io.vavr.Tuple0</code> -&gt; <code>java.lang.Void</code></p>
 <h2><a href="#complete-example" name="complete-example" class="anchor"><span class="anchor-link"></span></a>Complete example</h2>
 <p>See <a href="https://github.com/MAIF/thoth/tree/master/demo/demo-in-memory">complete example</a> of some other commands (withdraw, deposit, close, &hellip;).</p>
 <div class="nav-next">
@@ -409,6 +416,7 @@ bank.createAccount(BigDecimal.valueOf(100))
     <li><a href="banking.html#state-update" class="header">State update</a></li>
     <li><a href="banking.html#wiring-all-the-things" class="header">Wiring all the things</a></li>
     <li><a href="banking.html#usage" class="header">Usage</a></li>
+    <li><a href="banking.html#java-vanilla" class="header">Java vanilla</a></li>
     <li><a href="banking.html#complete-example" class="header">Complete example</a></li>
   </ul></li>
 </ul>

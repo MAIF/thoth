@@ -16,6 +16,7 @@ import io.vavr.control.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -240,7 +241,7 @@ public class EventProcessorImpl<Error, S extends State<S>, C extends Command<Met
 
         EventEnvelope.Builder<E, Meta, Context> builder = EventEnvelope.<E, Meta, Context>builder()
                 .withId(id)
-                .withEmissionDate(LocalDateTime.now())
+                .withEmissionDate(LocalDateTime.now(Clock.systemUTC()))
                 .withEntityId(event.entityId())
                 .withSequenceNum(nextSequence)
                 .withEventType(event.type().name())

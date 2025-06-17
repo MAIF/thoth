@@ -1,10 +1,7 @@
 package com.example.demo;
 
-import fr.maif.eventsourcing.SimpleCommand;
-import fr.maif.eventsourcing.Type;
-import io.vavr.API;
-import io.vavr.API.Match.Pattern0;
-import io.vavr.Lazy;
+import fr.maif.eventsourcing.Lazy;
+import fr.maif.eventsourcing.vanilla.SimpleCommand;
 
 import java.math.BigDecimal;
 
@@ -12,14 +9,14 @@ public sealed interface BankCommand extends SimpleCommand {
 
     record Withdraw(String account, BigDecimal amount) implements BankCommand {
         @Override
-        public Lazy<String> entityId() {
+        public Lazy<String> getEntityId() {
             return Lazy.of(() -> account);
         }
     }
 
     record OpenAccount(Lazy<String> id, BigDecimal initialBalance) implements BankCommand {
         @Override
-        public Lazy<String> entityId() {
+        public Lazy<String> getEntityId() {
             return id;
         }
 
@@ -31,14 +28,14 @@ public sealed interface BankCommand extends SimpleCommand {
 
     record Deposit(String account, BigDecimal amount) implements BankCommand {
         @Override
-        public Lazy<String> entityId() {
+        public Lazy<String> getEntityId() {
             return Lazy.of(() -> account);
         }
     }
 
     record CloseAccount(String id) implements BankCommand {
         @Override
-        public Lazy<String> entityId() {
+        public Lazy<String> getEntityId() {
             return Lazy.of(() -> id);
         }
     }

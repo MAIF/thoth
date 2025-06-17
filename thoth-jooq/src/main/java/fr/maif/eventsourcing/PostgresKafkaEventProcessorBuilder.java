@@ -3,13 +3,17 @@ package fr.maif.eventsourcing;
 import fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
-import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
 import fr.maif.eventsourcing.impl.JdbcTransactionManager;
 import fr.maif.eventsourcing.impl.PostgresEventStore;
-import fr.maif.reactor.eventsourcing.ReactorKafkaEventPublisher;
 import fr.maif.eventsourcing.impl.TableNames;
+import fr.maif.eventsourcing.vanilla.EventProcessor;
+import fr.maif.eventsourcing.vanilla.EventProcessorImpl;
+import fr.maif.eventsourcing.vanilla.EventStoreVanilla;
+import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
+import fr.maif.reactor.eventsourcing.ReactorKafkaEventPublisher;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
+import io.vavr.control.Either;
 import io.vavr.control.Option;
 import reactor.kafka.sender.SenderOptions;
 
@@ -46,7 +50,7 @@ public class PostgresKafkaEventProcessorBuilder {
             this.tableNames = tableNames;
         }
 
-        public BuilderWithTx withTransactionManager(TransactionManager<Connection> transactionManager, ExecutorService executor) {
+        public BuilderWithTx withTransactionManager(TransactionManager<Connection> transactionManager, Executor executor) {
             return new BuilderWithTx(dataSource, tableNames, transactionManager, executor);
         }
 
@@ -60,10 +64,10 @@ public class PostgresKafkaEventProcessorBuilder {
         public final DataSource dataSource;
         public final TableNames tableNames;
         public final TransactionManager<Connection> transactionManager;
-        public final ExecutorService executor;
+        public final Executor executor;
 
         public BuilderWithTx(DataSource dataSource, TableNames tableNames,
-                TransactionManager<Connection> transactionManager, ExecutorService executor) {
+                TransactionManager<Connection> transactionManager, Executor executor) {
             
             this.dataSource = dataSource;
             this.tableNames = tableNames;
@@ -82,10 +86,10 @@ public class PostgresKafkaEventProcessorBuilder {
         public final TableNames tableNames;
         public final TransactionManager<Connection> transactionManager;
         public final JacksonEventFormat<?, E> eventFormat;
-        public final ExecutorService executor;
+        public final Executor executor;
 
         public BuilderWithEventFormat(DataSource dataSource, TableNames tableNames,
-                TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat, ExecutorService executor) {
+                TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat, Executor executor) {
             
             this.dataSource = dataSource;
             this.tableNames = tableNames;
@@ -110,11 +114,11 @@ public class PostgresKafkaEventProcessorBuilder {
         public final TransactionManager<Connection> transactionManager;
         public final JacksonEventFormat<?, E> eventFormat;
         public final JacksonSimpleFormat<Meta> metaFormat;
-        public final ExecutorService executor;
+        public final Executor executor;
 
         public BuilderWithMetaFormat(DataSource dataSource, TableNames tableNames,
                 TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat,
-                JacksonSimpleFormat<Meta> metaFormat, ExecutorService executor) {
+                JacksonSimpleFormat<Meta> metaFormat, Executor executor) {
             
             this.dataSource = dataSource;
             this.tableNames = tableNames;
@@ -141,11 +145,11 @@ public class PostgresKafkaEventProcessorBuilder {
         public final JacksonEventFormat<?, E> eventFormat;
         public final JacksonSimpleFormat<Meta> metaFormat;
         public final JacksonSimpleFormat<Context> contextFormat;
-        public final ExecutorService executor;
+        public final Executor executor;
 
         public BuilderWithContextFormat(DataSource dataSource, TableNames tableNames,
                 TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat,
-                JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, ExecutorService executor) {
+                JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, Executor executor) {
             
             this.dataSource = dataSource;
             this.tableNames = tableNames;
@@ -186,9 +190,9 @@ public class PostgresKafkaEventProcessorBuilder {
         public final ConcurrentReplayStrategy concurrentReplayStrategy;
         public final EventPublisher<E, Meta, Context> eventPublisher;
         public final PostgresEventStore<E, Meta, Context> eventStore;
-        public final ExecutorService executor;
+        public final Executor executor;
 
-        BuilderWithKafkaSettings(DataSource dataSource, TableNames tableNames, TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, ConcurrentReplayStrategy concurrentReplayStrategy, EventPublisher<E, Meta, Context> eventPublisher, PostgresEventStore<E, Meta, Context> eventStore, ExecutorService executor) {
+        BuilderWithKafkaSettings(DataSource dataSource, TableNames tableNames, TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, ConcurrentReplayStrategy concurrentReplayStrategy, EventPublisher<E, Meta, Context> eventPublisher, PostgresEventStore<E, Meta, Context> eventStore, Executor executor) {
             
             this.dataSource = dataSource;
             this.tableNames = tableNames;
@@ -202,7 +206,7 @@ public class PostgresKafkaEventProcessorBuilder {
             this.executor = executor;
         }
 
-        BuilderWithKafkaSettings(DataSource dataSource, TableNames tableNames, TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, String topic, SenderOptions<String, EventEnvelope<E, Meta, Context>> producerSettings, Integer bufferSize, ExecutorService executor, ConcurrentReplayStrategy concurrentReplayStrategy) {
+        BuilderWithKafkaSettings(DataSource dataSource, TableNames tableNames, TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat, JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat, String topic, SenderOptions<String, EventEnvelope<E, Meta, Context>> producerSettings, Integer bufferSize, Executor executor, ConcurrentReplayStrategy concurrentReplayStrategy) {
             
             this.dataSource = dataSource;
             this.tableNames = tableNames;
@@ -305,7 +309,105 @@ public class PostgresKafkaEventProcessorBuilder {
                     eventHandler
             );
         }
+        public <S extends State<S>> BuilderWithVanillaEventHandler<S, E, Meta, Context> withEventHandler(fr.maif.eventsourcing.vanilla.EventHandler<S, E> eventHandler) {
+            return new BuilderWithVanillaEventHandler<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    eventStore,
+                    eventHandler
+            );
+        }
     }
+
+
+    public static class BuilderWithVanillaEventHandler<S extends State<S>, E extends Event, Meta, Context> {
+
+        public final DataSource dataSource;
+        public final TableNames tableNames;
+        public final TransactionManager<Connection> transactionManager;
+        public final JacksonEventFormat<?, E> eventFormat;
+        public final JacksonSimpleFormat<Meta> metaFormat;
+        public final JacksonSimpleFormat<Context> contextFormat;
+        public final EventPublisher<E, Meta, Context> eventPublisher;
+        public final ConcurrentReplayStrategy concurrentReplayStrategy;
+        public final EventStore<Connection, E, Meta, Context> _eventStore;
+        public final fr.maif.eventsourcing.vanilla.EventStore<Connection, E, Meta, Context> eventStore;
+        public final fr.maif.eventsourcing.vanilla.EventHandler<S, E> eventHandler;
+
+        public BuilderWithVanillaEventHandler(DataSource dataSource, TableNames tableNames,
+                                       TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat,
+                                       JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat,
+                                       EventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
+                                       PostgresEventStore<E, Meta, Context> eventStore, fr.maif.eventsourcing.vanilla.EventHandler<S, E> eventHandler) {
+
+            this.dataSource = dataSource;
+            this.tableNames = tableNames;
+            this.transactionManager = transactionManager;
+            this.eventFormat = eventFormat;
+            this.metaFormat = metaFormat;
+            this.contextFormat = contextFormat;
+            this.eventPublisher = eventPublisher;
+            this.concurrentReplayStrategy = concurrentReplayStrategy;
+            this._eventStore = eventStore;
+            this.eventStore = new EventStoreVanilla<>(eventStore);
+            this.eventHandler = eventHandler;
+        }
+
+        public BuilderWithAggregateStore<S, E, Meta, Context> withAggregateStore(Function<BuilderWithVanillaEventHandler<S, E, Meta, Context>, ? extends fr.maif.eventsourcing.vanilla.AggregateStore<S, String, Connection>> builder) {
+            return new BuilderWithAggregateStore<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    _eventStore,
+                    eventHandler.toEventHandler(),
+                    builder.apply(this).toAggregateStore());
+        }
+
+        public BuilderWithAggregateStore<S, E, Meta, Context> withAggregateStore(fr.maif.eventsourcing.vanilla.AggregateStore<S, String, Connection> aggregateStore) {
+            return new BuilderWithAggregateStore<>(
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    _eventStore,
+                    eventHandler.toEventHandler(),
+                    aggregateStore.toAggregateStore());
+        }
+
+        public BuilderWithAggregateStore<S, E, Meta, Context> withDefaultAggregateStore() {
+            return new BuilderWithAggregateStore<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    _eventStore,
+                    eventHandler.toEventHandler(),
+                    new DefaultAggregateStore<>(_eventStore, eventHandler.toEventHandler(), transactionManager));
+        }
+    }
+
 
     public static class BuilderWithEventHandler<S extends State<S>, E extends Event, Meta, Context> {
         
@@ -397,7 +499,7 @@ public class PostgresKafkaEventProcessorBuilder {
         public final JacksonSimpleFormat<Context> contextFormat;
         public final EventPublisher<E, Meta, Context> eventPublisher;
         public final ConcurrentReplayStrategy concurrentReplayStrategy;
-        public final PostgresEventStore<E, Meta, Context> eventStore;
+        public final EventStore<Connection, E, Meta, Context> eventStore;
         public final EventHandler<S, E> eventHandler;
         public final AggregateStore<S, String, Connection> aggregateStore;
 
@@ -405,7 +507,7 @@ public class PostgresKafkaEventProcessorBuilder {
                 TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat,
                 JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat,
                 EventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
-                PostgresEventStore<E, Meta, Context> eventStore, EventHandler<S, E> eventHandler,
+                EventStore<Connection, E, Meta, Context> eventStore, EventHandler<S, E> eventHandler,
                 AggregateStore<S, String, Connection> aggregateStore) {
             
             this.dataSource = dataSource;
@@ -439,7 +541,9 @@ public class PostgresKafkaEventProcessorBuilder {
             );
         }
 
-        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(Function<BuilderWithAggregateStore<S, E, Meta, Context>, CommandHandler<Error, S, C, E, Message, Connection>> commandHandler) {
+        public interface CommandHandlerFunction<Error, C extends Command<Meta, Context>, S extends State<S>, E extends Event, Message, Meta, Context> extends Function<BuilderWithAggregateStore<S, E, Meta, Context>, CommandHandler<Error, S, C, E, Message, Connection>> { }
+
+        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(CommandHandlerFunction<Error, C, S, E, Message, Meta, Context> commandHandler) {
             return new BuilderWithCommandHandler<>(
                     
                     dataSource,
@@ -456,6 +560,42 @@ public class PostgresKafkaEventProcessorBuilder {
                     commandHandler.apply(this)
             );
         }
+        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(fr.maif.eventsourcing.vanilla.CommandHandler<Error, S, C, E, Message, Connection> commandHandler) {
+            return new BuilderWithCommandHandler<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    eventStore,
+                    aggregateStore,
+                    eventHandler,
+                    commandHandler.toCommandHandler()
+            );
+        }
+
+        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(Function<BuilderWithAggregateStore<S, E, Meta, Context>, fr.maif.eventsourcing.vanilla.CommandHandler<Error, S, C, E, Message, Connection>> commandHandler) {
+            return new BuilderWithCommandHandler<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    eventStore,
+                    aggregateStore,
+                    eventHandler,
+                    commandHandler.apply(this).toCommandHandler()
+            );
+        }
+
         public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(fr.maif.eventsourcing.blocking.CommandHandler<Error, S, C, E, Message, Connection> commandHandler, Executor executor) {
             return new BuilderWithCommandHandler<>(
 
@@ -474,7 +614,27 @@ public class PostgresKafkaEventProcessorBuilder {
             );
         }
 
-        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(Function<BuilderWithAggregateStore<S, E, Meta, Context>, fr.maif.eventsourcing.blocking.CommandHandler<Error, S, C, E, Message, Connection>> commandHandler, Executor executor) {
+        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(fr.maif.eventsourcing.vanilla.blocking.CommandHandler<Error, S, C, E, Message, Connection> commandHandler, Executor executor) {
+            return new BuilderWithCommandHandler<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    eventStore,
+                    aggregateStore,
+                    eventHandler,
+                    commandHandler.toCommandHandler(executor).toCommandHandler()
+            );
+        }
+
+        public interface BlockingCommandHandlerFunction<Error, C extends Command<Meta, Context>, S extends State<S>, E extends Event, Message, Meta, Context> extends Function<BuilderWithAggregateStore<S, E, Meta, Context>, fr.maif.eventsourcing.blocking.CommandHandler<Error, S, C, E, Message, Connection>> { }
+
+        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(BlockingCommandHandlerFunction<Error, C, S, E, Message, Meta, Context> commandHandler, Executor executor) {
             return new BuilderWithCommandHandler<>(
 
                     dataSource,
@@ -491,6 +651,24 @@ public class PostgresKafkaEventProcessorBuilder {
                     commandHandler.apply(this).toCommandHandler(executor)
             );
         }
+
+        public <Error, C extends Command<Meta, Context>, Message> BuilderWithCommandHandler<Error, S, C, E, Message, Meta, Context> withCommandHandler(Function<BuilderWithAggregateStore<S, E, Meta, Context>, fr.maif.eventsourcing.vanilla.blocking.CommandHandler<Error, S, C, E, Message, Connection>> commandHandler, Executor executor) {
+            return new BuilderWithCommandHandler<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    eventStore,
+                    aggregateStore,
+                    eventHandler,
+                    commandHandler.apply(this).toCommandHandler(executor).toCommandHandler()
+            );
+        }
     }
 
 
@@ -504,7 +682,7 @@ public class PostgresKafkaEventProcessorBuilder {
         public final JacksonSimpleFormat<Context> contextFormat;
         public final EventPublisher<E, Meta, Context> eventPublisher;
         public final ConcurrentReplayStrategy concurrentReplayStrategy;
-        public final PostgresEventStore<E, Meta, Context> eventStore;
+        public final EventStore<Connection, E, Meta, Context> eventStore;
         public final AggregateStore<S, String, Connection> aggregateStore;
         public final EventHandler<S, E> eventHandler;
         public final CommandHandler<Error, S, C, E, Message, Connection> commandHandler;
@@ -513,7 +691,7 @@ public class PostgresKafkaEventProcessorBuilder {
                 TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat,
                 JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat,
                 EventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
-                PostgresEventStore<E, Meta, Context> eventStore,
+                EventStore<Connection, E, Meta, Context> eventStore,
                 AggregateStore<S, String, Connection> aggregateStore, EventHandler<S, E> eventHandler,
                 CommandHandler<Error, S, C, E, Message, Connection> commandHandler) {
             
@@ -573,6 +751,10 @@ public class PostgresKafkaEventProcessorBuilder {
             return withProjections(List.of(projections));
         }
 
+        public BuilderWithProjections<Error, S, C, E, Message, Meta, Context> withProjections(fr.maif.eventsourcing.vanilla.Projection<Connection, E, Meta, Context>... projections) {
+            return withProjections(List.of(projections).map(p -> p.projection()));
+        }
+
         public BuilderWithProjections<Error, S, C, E, Message, Meta, Context> withNoProjections() {
             return withProjections(List.empty());
         }
@@ -589,7 +771,7 @@ public class PostgresKafkaEventProcessorBuilder {
         public final JacksonSimpleFormat<Context> contextFormat;
         public final EventPublisher<E, Meta, Context> eventPublisher;
         public final ConcurrentReplayStrategy concurrentReplayStrategy;
-        public final PostgresEventStore<E, Meta, Context> eventStore;
+        public final EventStore<Connection, E, Meta, Context> eventStore;
         public final AggregateStore<S, String, Connection> aggregateStore;
         public final EventHandler<S, E> eventHandler;
         public final CommandHandler<Error, S, C, E, Message, Connection> commandHandler;
@@ -599,7 +781,7 @@ public class PostgresKafkaEventProcessorBuilder {
                 TransactionManager<Connection> transactionManager, JacksonEventFormat<?, E> eventFormat,
                 JacksonSimpleFormat<Meta> metaFormat, JacksonSimpleFormat<Context> contextFormat,
                 EventPublisher<E, Meta, Context> eventPublisher, ConcurrentReplayStrategy concurrentReplayStrategy,
-                PostgresEventStore<E, Meta, Context> eventStore,
+                EventStore<Connection, E, Meta, Context> eventStore,
                 AggregateStore<S, String, Connection> aggregateStore, EventHandler<S, E> eventHandler,
                 CommandHandler<Error, S, C, E, Message, Connection> commandHandler,
                 List<Projection<Connection, E, Meta, Context>> projections) {
@@ -617,6 +799,18 @@ public class PostgresKafkaEventProcessorBuilder {
             this.eventHandler = eventHandler;
             this.commandHandler = commandHandler;
             this.projections = projections;
+        }
+
+        private static <E, A> Result<E, A> fromEither(Either<E, A> either) {
+            return either.fold(
+                    err -> new Result.Error<>(err),
+                    success -> new Result.Success<>(success)
+            );
+        }
+
+        public EventProcessor<Error, S, C, E, Connection, Message, Meta, Context> buildVanilla() {
+            fr.maif.eventsourcing.EventProcessor<Error, S, C, E, Connection, Message, Meta, Context> build = build();
+            return new EventProcessorImpl<Error, S, C, E, Connection, Message, Meta, Context>(build);
         }
 
         public PostgresKafkaEventProcessor<Error, S, C, E, Message, Meta, Context> build() {

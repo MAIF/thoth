@@ -312,6 +312,22 @@ bank.createAccount(BigDecimal.valueOf(100))
         });
 ```
 
+## Java vanilla 
+
+If you don't want to use Vavr on your codebase, you can use the vanilla java wrapper : 
+
+```java
+fr.maif.eventsourcing.vanilla.EventProcessor<String, Account, BankCommand, BankEvent, Tuple0, Tuple0, Tuple0, Tuple0> eventProcessorVanilla = new EventProcessorVanilla<>(this.eventProcessor);
+``` 
+
+The mapping is the following :
+* `io.vavr.control.Either` -> `fr.maif.eventsourcing.Result` (custom type)
+* `io.vavr.collection.List` -> `java.util.List`
+* `io.vavr.control.Option` -> `java.util.Optional`
+* `io.vavr.Tuple0` -> `java.lang.Void`
+
+
 ## Complete example
 
 See [complete example](https://github.com/MAIF/thoth/tree/master/demo/demo-in-memory) of some other commands (withdraw, deposit, close, ...).
+

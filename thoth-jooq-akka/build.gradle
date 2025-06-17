@@ -11,14 +11,20 @@ dependencies {
     implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
     implementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")
     implementation("io.vertx:vertx-pg-client:$vertxSqlVersion")
+    implementation("io.vavr:vavr-jackson:$vavrJacksonVersion")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
 
     testImplementation("fr.maif:jooq-async-jdbc:$jooqAsyncVersion")
     testImplementation("fr.maif:jooq-async-reactive:$jooqAsyncVersion")
     testImplementation("org.assertj:assertj-core:3.10.0")
-    testImplementation("org.postgresql:postgresql:42.2.5")
+    testImplementation('org.postgresql:postgresql:42.7.7')
     testImplementation("net.aichler:jupiter-interface:0.9.1")
     testImplementation("org.mockito:mockito-all:1.10.19")
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.3")
+    testImplementation "org.testcontainers:junit-jupiter:$testContainerVersion"
+    testImplementation "org.testcontainers:testcontainers:$testContainerVersion"
+    testImplementation "org.testcontainers:postgresql:$testContainerVersion"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

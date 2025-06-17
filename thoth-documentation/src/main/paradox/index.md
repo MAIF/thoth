@@ -4,6 +4,7 @@
 @@@ index
 
 * [Getting started and modules](getting-started.md)
+* [Words on API](api.md)
 * [Technical considerations](technical-considerations.md)
 * [In memory example](banking.md)
 * [Standard implementation](standard/index.md)
@@ -59,6 +60,8 @@ This documentation focuses on implementing event-sourcing on a simple use case :
     group6="fr.maif" artifact6="thoth-kafka-consumer-akka" version6="ThothVersion"
     group7="fr.maif" artifact7="thoth-kafka-consumer-reactor" version7="ThothVersion"
 }
+
+More détails @ref:[on this page](getting-started.md) 
 
 
 @@toc { depth=2 }

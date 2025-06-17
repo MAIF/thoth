@@ -4,7 +4,7 @@ dependencies {
     implementation project(':thoth-core')
     implementation project(':thoth-kafka-consumer-akka')
     implementation("io.vavr:vavr:$vavrVersion")
-    implementation("io.vavr:vavr-jackson:$vavrVersion")
+    implementation("io.vavr:vavr-jackson:$vavrJacksonVersion")
     implementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
     implementation("com.typesafe.akka:akka-stream-kafka_$scalaVersion:$alpakkaKafkaVersion")
     implementation 'org.scala-lang:scala-library:2.13.8'

@@ -3,3 +3,4 @@ ALTER SYSTEM RESET shared_buffers;
 CREATE DATABASE eventsourcing;
 CREATE USER eventsourcing WITH PASSWORD 'eventsourcing';
 GRANT ALL PRIVILEGES ON DATABASE "eventsourcing" to eventsourcing;
+ALTER DATABASE "eventsourcing" OWNER TO eventsourcing;
