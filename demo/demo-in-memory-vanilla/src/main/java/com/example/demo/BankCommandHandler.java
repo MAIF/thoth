@@ -4,9 +4,9 @@ import com.example.demo.BankCommand.CloseAccount;
 import com.example.demo.BankCommand.Deposit;
 import com.example.demo.BankCommand.OpenAccount;
 import com.example.demo.BankCommand.Withdraw;
-import fr.maif.eventsourcing.Events;
 import fr.maif.eventsourcing.Result;
 import fr.maif.eventsourcing.Unit;
+import fr.maif.eventsourcing.vanilla.Events;
 import fr.maif.eventsourcing.vanilla.blocking.CommandHandler;
 import fr.maif.reactor.eventsourcing.vanilla.InMemoryEventStore.Transaction;
 
