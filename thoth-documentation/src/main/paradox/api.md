@@ -1,6 +1,6 @@
 # Words on API
 
-Thoth is non-blocking by default and rely on vavr but, you can choose if you use it or not.
+Thoth is non-blocking by default and rely on vavr but, you can choose if you want to use it or not.
 
 ## Fifty shades of APIs
 
@@ -84,14 +84,14 @@ public class BankCommandHandler implements CommandHandler<String, Account, BankC
 
 ### Blocking API
 
-If you don't to handle the non-blocking aspect, you can implement blocking interface, ie the blocking `CommandHandler`.
+If you don't want to handle the non-blocking aspect, you can implement blocking interface, ie the blocking `CommandHandler`.
 
 The component to use
 
 * `fr.maif.eventsourcing.blocking.CommandHandler` : with standard API (vavr)
 * `fr.maif.eventsourcing.vanilla.blocking.CommandHandler` : with vanilla API
 
-With the blocking API, you'll have to implement something like :
+With the blocking vanilla API, you'll have to implement something like :
 
 ```java
 public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, List<String>, TxCtx> {
@@ -149,7 +149,7 @@ public class BankCommandHandler implements CommandHandler<String, Account, BankC
 
 ### Concepts and vocabulary
 
-* a command : an action coming from the user that the system has to handle
+* a command : an action from the user that the system must handle
 * an event : something that append in the system
 * a journal : a place where the events are stored
 * a state or aggregate : the current state, the results of the previous events
@@ -157,20 +157,20 @@ public class BankCommandHandler implements CommandHandler<String, Account, BankC
 
 ### Overview of interface to implement
 
-Here the list of interface you need or, you could implement (and the reason why).
+Here is the list of interface you need or, you could implement (and the reason why).
 
-| Interface                       | Required                     | Role                                                                      |
-|---------------------------------|------------------------------|---------------------------------------------------------------------------|
-| `State`                         | yes                          | The current state built from events                                       |
-| `Command`                       | yes                          | The command represents the data that comes in                             |
-| `CommandHandler`                | yes                          | The component that handle commands and produce events                     |
-| `EventHandler`                  | yes                          | The component that handle events and produce a state                      |
-| `Projection`                    | if you need read models      | The component that handle events and produce read model                   |
-| `AbstractDefaultAggregateStore` | if you need snapshots        | The component that load state from events in the journal                  |
-| `EventFormat`                   | no                           | The component that serialize / deserialize events                         |
-| `JacksonEventFormat`            | yes (prefered)               | The component that serialize / deserialize events to json                 |
-| `SimpleFormat`                  | yes                          | The component that serialize / deserialize events ignoring errors         |
-| `JacksonSimpleFormat`           | yes                          | The component that serialize / deserialize events to json ignoring errors |
-| `EventPublisher`                | no (only if don't use Kafka) | The component that publish events                                         |
-| `EventStore`                    | no (only if don't use PG)    | The component that store and query events                                 |
-| `EventProcessor`                | no                           | The component orchestrate all the magic                                   |
+| Interface                       | Required                     | Role                                                                        |
+|---------------------------------|------------------------------|-----------------------------------------------------------------------------|
+| `State`                         | yes                          | The current state built from events                                         |
+| `Command`                       | yes                          | The command represents the data that comes in                               |
+| `CommandHandler`                | yes                          | The component that handles commands and produces events                     |
+| `EventHandler`                  | yes                          | The component that handles events and produces a state                      |
+| `Projection`                    | if you need read models      | The component that handles events and produces read model                   |
+| `AbstractDefaultAggregateStore` | if you need snapshots        | The component that loads state from events in the journal                   |
+| `EventFormat`                   | no                           | The component that serializes / deserializes events                         |
+| `JacksonEventFormat`            | yes (prefered)               | The component that serializes / deserializes events to json                 |
+| `SimpleFormat`                  | yes                          | The component that serializes / deserializes events ignoring errors         |
+| `JacksonSimpleFormat`           | yes                          | The component that serializes / deserializes events to json ignoring errors |
+| `EventPublisher`                | no (only if don't use Kafka) | The component that publishes events                                         |
+| `EventStore`                    | no (only if don't use PG)    | The component that stores and query events                                  |
+| `EventProcessor`                | no                           | The component orchestrates all the magic                                    |

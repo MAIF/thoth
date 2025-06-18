@@ -150,7 +150,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#words-on-api" name="words-on-api" class="anchor"><span class="anchor-link"></span></a>Words on API</h1>
-<p>Thoth is non-blocking by default and rely on vavr but, you can choose if you use it or not.</p>
+<p>Thoth is non-blocking by default and rely on vavr but, you can choose if you want to use it or not.</p>
 <h2><a href="#fifty-shades-of-apis" name="fifty-shades-of-apis" class="anchor"><span class="anchor-link"></span></a>Fifty shades of APIs</h2>
 <h3><a href="#basic-api" name="basic-api" class="anchor"><span class="anchor-link"></span></a>Basic API</h3>
 <p>The basic API use vavr for several reasons :</p>
@@ -221,13 +221,13 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 }
 </code></pre>
 <h3><a href="#blocking-api" name="blocking-api" class="anchor"><span class="anchor-link"></span></a>Blocking API</h3>
-<p>If you don&rsquo;t to handle the non-blocking aspect, you can implement blocking interface, ie the blocking <code>CommandHandler</code>.</p>
+<p>If you don&rsquo;t want to handle the non-blocking aspect, you can implement blocking interface, ie the blocking <code>CommandHandler</code>.</p>
 <p>The component to use</p>
 <ul>
   <li><code>fr.maif.eventsourcing.blocking.CommandHandler</code> : with standard API (vavr)</li>
   <li><code>fr.maif.eventsourcing.vanilla.blocking.CommandHandler</code> : with vanilla API</li>
 </ul>
-<p>With the blocking API, you&rsquo;ll have to implement something like :</p>
+<p>With the blocking vanilla API, you&rsquo;ll have to implement something like :</p>
 <pre class="prettyprint"><code class="language-java">public class BankCommandHandler implements CommandHandler&lt;String, Account, BankCommand, BankEvent, List&lt;String&gt;, TxCtx&gt; {
 
     @Override
@@ -276,14 +276,14 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <h2><a href="#cheat-sheet" name="cheat-sheet" class="anchor"><span class="anchor-link"></span></a>Cheat sheet</h2>
 <h3><a href="#concepts-and-vocabulary" name="concepts-and-vocabulary" class="anchor"><span class="anchor-link"></span></a>Concepts and vocabulary</h3>
 <ul>
-  <li>a command : an action coming from the user that the system has to handle</li>
+  <li>a command : an action from the user that the system must handle</li>
   <li>an event : something that append in the system</li>
   <li>a journal : a place where the events are stored</li>
   <li>a state or aggregate : the current state, the results of the previous events</li>
   <li>a projection : an alternative view of the events, this is a read model</li>
 </ul>
 <h3><a href="#overview-of-interface-to-implement" name="overview-of-interface-to-implement" class="anchor"><span class="anchor-link"></span></a>Overview of interface to implement</h3>
-<p>Here the list of interface you need or, you could implement (and the reason why).</p>
+<p>Here is the list of interface you need or, you could implement (and the reason why).</p>
 <table>
   <thead>
     <tr>
@@ -306,57 +306,57 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <tr>
       <td><code>CommandHandler</code> </td>
       <td>yes </td>
-      <td>The component that handle commands and produce events </td>
+      <td>The component that handles commands and produces events </td>
     </tr>
     <tr>
       <td><code>EventHandler</code> </td>
       <td>yes </td>
-      <td>The component that handle events and produce a state </td>
+      <td>The component that handles events and produces a state </td>
     </tr>
     <tr>
       <td><code>Projection</code> </td>
       <td>if you need read models </td>
-      <td>The component that handle events and produce read model </td>
+      <td>The component that handles events and produces read model </td>
     </tr>
     <tr>
       <td><code>AbstractDefaultAggregateStore</code> </td>
       <td>if you need snapshots </td>
-      <td>The component that load state from events in the journal </td>
+      <td>The component that loads state from events in the journal </td>
     </tr>
     <tr>
       <td><code>EventFormat</code> </td>
       <td>no </td>
-      <td>The component that serialize / deserialize events </td>
+      <td>The component that serializes / deserializes events </td>
     </tr>
     <tr>
       <td><code>JacksonEventFormat</code> </td>
       <td>yes (prefered) </td>
-      <td>The component that serialize / deserialize events to json </td>
+      <td>The component that serializes / deserializes events to json </td>
     </tr>
     <tr>
       <td><code>SimpleFormat</code> </td>
       <td>yes </td>
-      <td>The component that serialize / deserialize events ignoring errors </td>
+      <td>The component that serializes / deserializes events ignoring errors </td>
     </tr>
     <tr>
       <td><code>JacksonSimpleFormat</code> </td>
       <td>yes </td>
-      <td>The component that serialize / deserialize events to json ignoring errors </td>
+      <td>The component that serializes / deserializes events to json ignoring errors </td>
     </tr>
     <tr>
       <td><code>EventPublisher</code> </td>
       <td>no (only if don&rsquo;t use Kafka) </td>
-      <td>The component that publish events </td>
+      <td>The component that publishes events </td>
     </tr>
     <tr>
       <td><code>EventStore</code> </td>
       <td>no (only if don&rsquo;t use PG) </td>
-      <td>The component that store and query events </td>
+      <td>The component that stores and query events </td>
     </tr>
     <tr>
       <td><code>EventProcessor</code> </td>
       <td>no </td>
-      <td>The component orchestrate all the magic </td>
+      <td>The component orchestrates all the magic </td>
     </tr>
   </tbody>
 </table>
