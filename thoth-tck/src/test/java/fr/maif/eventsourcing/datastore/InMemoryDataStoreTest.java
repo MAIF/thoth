@@ -7,15 +7,12 @@ import java.util.function.Function;
 
 import akka.stream.javadsl.Source;
 import fr.maif.akka.eventsourcing.DefaultAggregateStore;
+import fr.maif.eventsourcing.*;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 
 import akka.actor.ActorSystem;
 import akka.stream.javadsl.Sink;
-import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventProcessorImpl;
-import fr.maif.eventsourcing.EventStore;
-import fr.maif.eventsourcing.TransactionManager;
 import fr.maif.akka.eventsourcing.InMemoryEventStore;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
@@ -33,7 +30,7 @@ public class InMemoryDataStoreTest extends DataStoreVerification<Tuple0> {
         this.eventProcessor = new EventProcessorImpl<>(
                 eventStore,
                 transactionManager,
-                new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager),
+                new DefaultAggregateStore<>(eventStore, eventHandler, actorSystem, transactionManager, ReadConcurrencyStrategy.NO_STRATEGY),
                 new TestCommandHandler<>(),
                 eventHandler,
                 io.vavr.collection.List.empty()

@@ -404,7 +404,23 @@ public class PostgresKafkaEventProcessorBuilder {
                     concurrentReplayStrategy,
                     _eventStore,
                     eventHandler.toEventHandler(),
-                    new DefaultAggregateStore<>(_eventStore, eventHandler.toEventHandler(), transactionManager));
+                    new DefaultAggregateStore<>(_eventStore, eventHandler.toEventHandler(), transactionManager, ReadConcurrencyStrategy.NO_STRATEGY));
+        }
+
+        public BuilderWithAggregateStore<S, E, Meta, Context> withDefaultAggregateStore(ReadConcurrencyStrategy readConcurrencyStrategy) {
+            return new BuilderWithAggregateStore<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    _eventStore,
+                    eventHandler.toEventHandler(),
+                    new DefaultAggregateStore<>(_eventStore, eventHandler.toEventHandler(), transactionManager, readConcurrencyStrategy));
         }
     }
 
@@ -472,7 +488,7 @@ public class PostgresKafkaEventProcessorBuilder {
                     aggregateStore);
         }
 
-        public BuilderWithAggregateStore<S, E, Meta, Context> withDefaultAggregateStore() {
+        public BuilderWithAggregateStore<S, E, Meta, Context> withDefaultAggregateStore(ReadConcurrencyStrategy readConcurrencyStrategy) {
             return new BuilderWithAggregateStore<>(
                     
                     dataSource,
@@ -485,7 +501,23 @@ public class PostgresKafkaEventProcessorBuilder {
                     concurrentReplayStrategy,
                     eventStore,
                     eventHandler,
-                    new DefaultAggregateStore<>(eventStore, eventHandler, transactionManager));
+                    new DefaultAggregateStore<>(eventStore, eventHandler, transactionManager, readConcurrencyStrategy));
+        }
+
+        public BuilderWithAggregateStore<S, E, Meta, Context> withDefaultAggregateStore() {
+            return new BuilderWithAggregateStore<>(
+
+                    dataSource,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    eventStore,
+                    eventHandler,
+                    new DefaultAggregateStore<>(eventStore, eventHandler, transactionManager, ReadConcurrencyStrategy.NO_STRATEGY));
         }
     }
 

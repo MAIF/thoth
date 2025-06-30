@@ -378,7 +378,23 @@ public class ReactivePostgresKafkaEventProcessorBuilder {
                     concurrentReplayStrategy,
                     eventStore,
                     eventHandler,
-                    new DefaultAggregateStore<>(eventStore, eventHandler, system, transactionManager));
+                    new DefaultAggregateStore<>(eventStore, eventHandler, system, transactionManager, ReadConcurrencyStrategy.NO_STRATEGY));
+        }
+
+        public BuilderWithAggregateStore<S, E, Meta, Context> withDefaultAggregateStore(ReadConcurrencyStrategy readConcurrencyStrategy) {
+            return new BuilderWithAggregateStore<>(
+                    system,
+                    pgAsyncPool,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    eventStore,
+                    eventHandler,
+                    new DefaultAggregateStore<>(eventStore, eventHandler, system, transactionManager, readConcurrencyStrategy));
         }
     }
 

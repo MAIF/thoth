@@ -270,7 +270,7 @@ public class EventProcessorTest {
         return new EventProcessorImpl<>(
                 inMemoryEventStore,
                 fakeTransactionManager,
-                new DefaultAggregateStore<>(inMemoryEventStore, vikingEventHandler, fakeTransactionManager),
+                new DefaultAggregateStore<>(inMemoryEventStore, vikingEventHandler, fakeTransactionManager, ReadConcurrencyStrategy.NO_STRATEGY),
                 new VikingCommandHandler(),
                 vikingEventHandler,
                 projections
