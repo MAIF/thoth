@@ -7,10 +7,12 @@ import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
 import io.vavr.API;
+import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
+import io.vertx.pgclient.PgException;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.SQLDialect;
@@ -56,14 +58,14 @@ public abstract class AbstractPostgresEventStoreTest {
             .withDatabaseName("eventsourcing");
 
     static {
-        if(!isCi()) {
+        if (!isCi()) {
             postgreSQLContainer.start();
         }
     }
 
     @AfterAll
     public static void stopDb() {
-        if(!isCi()) {
+        if (!isCi()) {
             postgreSQLContainer.stop();
         }
     }
@@ -83,16 +85,18 @@ public abstract class AbstractPostgresEventStoreTest {
     protected static String host() {
         return "localhost";
     }
+
     protected static String database() {
         return "eventsourcing";
     }
+
     protected static String user() {
         return "eventsourcing";
     }
+
     protected static String password() {
         return "eventsourcing";
     }
-
 
 
     private ReactivePostgresEventStore<PgAsyncTransaction, VikingEvent, Void, Void> postgresEventStore;
@@ -151,10 +155,10 @@ public abstract class AbstractPostgresEventStoreTest {
         Try.of(() ->
                 reactiveTransactionManager.withTransaction(connection ->
                         postgresEventStore.persist(connection, events)
-                            .thenApply(__ -> {
-                                println("Throwing exception");
-                                throw new RuntimeException();
-                            })
+                                .thenApply(__ -> {
+                                    println("Throwing exception");
+                                    throw new RuntimeException();
+                                })
                 ).toCompletableFuture().join()
         ).onFailure(e -> {
             e.printStackTrace();
@@ -179,7 +183,7 @@ public abstract class AbstractPostgresEventStoreTest {
         assertThat(seq).hasSize(5);
     }
 
-    protected  <T> CompletionStage<T> inTransaction(Function<PgAsyncTransaction, CompletionStage<T>> action) {
+    protected <T> CompletionStage<T> inTransaction(Function<PgAsyncTransaction, CompletionStage<T>> action) {
         return pgAsyncPool.inTransaction(action);
     }
 
@@ -200,31 +204,40 @@ public abstract class AbstractPostgresEventStoreTest {
     }
 
     @Test
-    public void queryingByEntityIdLockFail() {
+    public void queryingByEntityIdLockFail() throws InterruptedException {
         initDatas();
 
         CountDownLatch latch = new CountDownLatch(1);
-        transactionSource().flatMap(t ->
-                Flux.from(postgresEventStore.loadEventsByQuery(t, EventStore.Query.builder().withEntityId("bjorn@gmail.com").withReadConcurrencyStrategy(ReadConcurrencyStrategy.FAIL_ON_LOCK).build()))
-                        .collectList()
-                        .delayElement(Duration.ofSeconds(5))
-                        .flatMap(any -> Mono.fromCompletionStage(t.commit()))
-        )
-        .subscribe(
-                next -> latch.countDown(),
-                e -> latch.countDown(),
-                () -> {}
-        );
+        EventStore.Query query = EventStore.Query.builder()
+                .withEntityId("bjorn@gmail.com")
+                .withReadConcurrencyStrategy(ReadConcurrencyStrategy.FAIL_ON_LOCK)
+                .build();
 
+        transactionSource().flatMap(t ->
+                        Flux.from(postgresEventStore.loadEventsByQuery(t, query))
+                                .collectList()
+                                .delayElement(Duration.ofSeconds(5))
+                                .flatMap(any -> Mono.fromCompletionStage(t.commit()).thenReturn(any))
+                                .onErrorResume(e -> Mono.fromCompletionStage(t.rollback()).thenReturn(java.util.List.of()))
+                                .doOnNext(evt -> System.out.println(evt))
+                )
+                .subscribe(
+                        next -> latch.countDown(),
+                        e -> latch.countDown(),
+                        () -> {
+                        }
+                );
+        Thread.sleep(10);
         assertThatThrownBy(() -> {
             transactionSource().flatMap(t ->
-                    Flux.from(postgresEventStore.loadEventsByQuery(t, EventStore.Query.builder().withEntityId("bjorn@gmail.com").withReadConcurrencyStrategy(ReadConcurrencyStrategy.FAIL_ON_LOCK).build()))
-                            .collectList()
-                            .flatMap(any -> Mono.fromCompletionStage(t.commit()))
-                            .onErrorResume(e -> Mono.fromCompletionStage(t.rollback()))
-            )
-            .block();
-        }).hasCauseInstanceOf(Throwable.class);
+                            Flux.from(postgresEventStore.loadEventsByQuery(t, query))
+                                    .collectList()
+                                    .flatMap(any -> Mono.fromCompletionStage(t.commit()).thenReturn(any))
+                                    .onErrorResume(e -> Mono.fromCompletionStage(t.rollback()).then(Mono.error(e)))
+                    )
+                    .block();
+        }).hasMessageContaining("could not obtain lock on row in relation");
+        latch.await();
     }
 
     @Test
@@ -287,7 +300,7 @@ public abstract class AbstractPostgresEventStoreTest {
         initDatas();
         List<EventEnvelope<VikingEvent, Void, Void>> events = List.ofAll(transactionSource()
                 .flatMapMany(t -> Flux.from(postgresEventStore
-                        .loadEventsUnpublished(t, EventStore.ConcurrentReplayStrategy.NO_STRATEGY))
+                                .loadEventsUnpublished(t, EventStore.ConcurrentReplayStrategy.NO_STRATEGY))
                         .doOnComplete(() -> postgresEventStore.commitOrRollback(Option.none(), t))
                         .doOnError(e -> postgresEventStore.commitOrRollback(Option.of(e), t))
                 )
@@ -312,7 +325,7 @@ public abstract class AbstractPostgresEventStoreTest {
                 .flatMapMany(t -> Flux.from(postgresEventStore.loadEventsUnpublished(t, SKIP))
                         .doOnComplete(() -> postgresEventStore.commitOrRollback(Option.none(), t))
                         .doOnError(e -> postgresEventStore.commitOrRollback(Option.of(e), t))
-        ).collectList().toFuture();
+                ).collectList().toFuture();
 
         List<EventEnvelope<VikingEvent, Void, Void>> events2 = List.ofAll(second.toCompletableFuture().join());
         long took = System.currentTimeMillis() - start;
@@ -393,7 +406,7 @@ public abstract class AbstractPostgresEventStoreTest {
         this.pgAsyncPool = init();
 
         PGSimpleDataSource pgSimpleDataSource = new PGSimpleDataSource();
-        pgSimpleDataSource.setUrl("jdbc:postgresql://"+host()+":"+port()+"/"+database());
+        pgSimpleDataSource.setUrl("jdbc:postgresql://" + host() + ":" + port() + "/" + database());
         pgSimpleDataSource.setUser(user());
         pgSimpleDataSource.setPassword(password());
         this.dslContext = DSL.using(pgSimpleDataSource, SQLDialect.POSTGRES);
@@ -409,7 +422,7 @@ public abstract class AbstractPostgresEventStoreTest {
         this.postgresEventStore = ReactivePostgresEventStore.create(
                 eventPublisher,
                 this.pgAsyncPool,
-                new TableNames(tableName(), tableName()+"_sequence_num"),
+                new TableNames(tableName(), tableName() + "_sequence_num"),
                 jacksonEventFormat,
                 JacksonSimpleFormat.empty(),
                 JacksonSimpleFormat.empty()
@@ -428,6 +441,7 @@ public abstract class AbstractPostgresEventStoreTest {
 
     private static final JacksonEventFormat<String, VikingEvent> jacksonEventFormat = new JacksonEventFormat<String, VikingEvent>() {
         ObjectMapper mapper = new ObjectMapper();
+
         @Override
         public Either<String, VikingEvent> read(String type, Long version, JsonNode json) {
             return Match(Tuple(type, version)).of(
@@ -436,6 +450,7 @@ public abstract class AbstractPostgresEventStoreTest {
                     Case(VikingEvent.VikingDeletedV1.pattern2(), (t, v) -> Either.right(mapper.convertValue(json, VikingEvent.VikingDeleted.class)))
             );
         }
+
         @Override
         public JsonNode write(VikingEvent json) {
             return mapper.valueToTree(json);
@@ -462,6 +477,7 @@ public abstract class AbstractPostgresEventStoreTest {
             public String entityId() {
                 return name;
             }
+
             @Override
             public Type type() {
                 return VikingCreatedV1;
@@ -487,7 +503,8 @@ public abstract class AbstractPostgresEventStoreTest {
                 return Objects.hash(name);
             }
         }
-        class VikingUpdated implements VikingEvent  {
+
+        class VikingUpdated implements VikingEvent {
             public String name;
 
             public VikingUpdated() {
@@ -501,6 +518,7 @@ public abstract class AbstractPostgresEventStoreTest {
             public String entityId() {
                 return name;
             }
+
             @Override
             public Type type() {
                 return VikingUpdatedV1;
@@ -526,7 +544,8 @@ public abstract class AbstractPostgresEventStoreTest {
                 return Objects.hash(name);
             }
         }
-        class VikingDeleted implements VikingEvent  {
+
+        class VikingDeleted implements VikingEvent {
             public String name;
 
             public VikingDeleted() {
@@ -540,6 +559,7 @@ public abstract class AbstractPostgresEventStoreTest {
             public String entityId() {
                 return name;
             }
+
             @Override
             public Type type() {
                 return VikingDeletedV1;
@@ -596,7 +616,7 @@ public abstract class AbstractPostgresEventStoreTest {
 //        InputStream file = ReactivePostgresEventStoreTest.class.getClassLoader().getResourceAsStream("base.sql");
 //        scanner = new Scanner(file).useDelimiter(delimiter);
 
-        String script = "CREATE TABLE IF NOT EXISTS "+tableName()+" ( \n" +
+        String script = "CREATE TABLE IF NOT EXISTS " + tableName() + " ( \n" +
                 "  id UUID primary key,\n" +
                 "  entity_id varchar(100) not null,\n" +
                 "  sequence_num bigint not null,\n" +
@@ -614,37 +634,37 @@ public abstract class AbstractPostgresEventStoreTest {
                 "  published boolean default false,\n" +
                 "  UNIQUE (entity_id, sequence_num)\n" +
                 ");\n" +
-                "CREATE INDEX IF NOT EXISTS "+tableName()+"_sequence_num_idx    ON "+tableName()+" (sequence_num);\n" +
-                "CREATE INDEX IF NOT EXISTS "+tableName()+"_entity_id_idx       ON "+tableName()+" (entity_id);\n" +
-                "CREATE INDEX IF NOT EXISTS "+tableName()+"_user_id_idx         ON "+tableName()+" (user_id);\n" +
-                "CREATE INDEX IF NOT EXISTS "+tableName()+"_system_id_idx       ON "+tableName()+" (system_id);\n" +
-                "CREATE INDEX IF NOT EXISTS "+tableName()+"_emission_date_idx   ON "+tableName()+" (emission_date);\n" +
-                "CREATE SEQUENCE if not exists "+tableName()+"_id;\n" +
-                "CREATE SEQUENCE if not exists "+tableName()+"_sequence_num;\n" +
-                "CREATE SEQUENCE if not exists "+tableName()+"_sequence_id;\n";
+                "CREATE INDEX IF NOT EXISTS " + tableName() + "_sequence_num_idx    ON " + tableName() + " (sequence_num);\n" +
+                "CREATE INDEX IF NOT EXISTS " + tableName() + "_entity_id_idx       ON " + tableName() + " (entity_id);\n" +
+                "CREATE INDEX IF NOT EXISTS " + tableName() + "_user_id_idx         ON " + tableName() + " (user_id);\n" +
+                "CREATE INDEX IF NOT EXISTS " + tableName() + "_system_id_idx       ON " + tableName() + " (system_id);\n" +
+                "CREATE INDEX IF NOT EXISTS " + tableName() + "_emission_date_idx   ON " + tableName() + " (emission_date);\n" +
+                "CREATE SEQUENCE if not exists " + tableName() + "_id;\n" +
+                "CREATE SEQUENCE if not exists " + tableName() + "_sequence_num;\n" +
+                "CREATE SEQUENCE if not exists " + tableName() + "_sequence_id;\n";
 
         // Loop through the SQL file statements
         Statement currentStatement = null;
 //        while(scanner.hasNext()) {
 //            // Get statement
 //            String rawStatement = scanner.next() + delimiter;
-            try {
-                // Execute statement
-                currentStatement = conn.createStatement();
-                currentStatement.execute(script);
-            } catch (SQLException e) {
-                e.printStackTrace();
-            } finally {
-                // Release resources
-                if (currentStatement != null) {
-                    try {
-                        currentStatement.close();
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                    }
+        try {
+            // Execute statement
+            currentStatement = conn.createStatement();
+            currentStatement.execute(script);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            // Release resources
+            if (currentStatement != null) {
+                try {
+                    currentStatement.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
                 }
-                currentStatement = null;
             }
+            currentStatement = null;
+        }
 //        }
 //        scanner.close();
     }
