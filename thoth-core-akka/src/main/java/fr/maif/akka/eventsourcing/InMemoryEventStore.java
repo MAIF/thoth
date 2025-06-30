@@ -15,6 +15,7 @@ import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.Tuple2;
 import io.vavr.collection.List;
+import io.vavr.collection.Traversable;
 import io.vavr.control.Option;
 import org.reactivestreams.Publisher;
 
@@ -138,7 +139,8 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
                                 Option.of(query.sequenceFrom).map(v -> e.sequenceNum >= v).getOrElse(true) &&
                                 Option.of(query.sequenceTo).map(v -> e.sequenceNum <= v).getOrElse(true) &&
                                 Option.of(query.published).map(v -> e.published.equals(v)).getOrElse(true) &&
-                                Option.of(query.idsAndSequences).map(v -> v.exists(t -> t._1.equals(e.entityId) && e.sequenceNum >= t._2)).getOrElse(true)
+                                Option.of(query.idsAndSequences).filter(Traversable::nonEmpty)
+                                        .map(v -> v.exists(t -> t._1.equals(e.entityId) && e.sequenceNum >= t._2)).getOrElse(true)
                 );
         return Option.of(query.size).fold(() -> tmpSource, tmpSource::limit)
                 .runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), system);
