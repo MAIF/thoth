@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -127,19 +128,19 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
 
     @Override
     public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(Query query) {
-        return Source.from(eventStore)
+        Source<EventEnvelope<E, Meta, Context>, NotUsed> tmpSource = Source.from(eventStore)
                 .filter(e ->
                         Option.of(query.entityId).map(id -> id.equals(e.entityId)).getOrElse(true) &&
-                        Option.of(query.dateFrom).map(v -> e.emissionDate.isAfter(v)).getOrElse(true) &&
-                        Option.of(query.dateTo).map(v -> e.emissionDate.isBefore(v)).getOrElse(true) &&
-                        Option.of(query.userId).map(v -> v.equals(e.userId)).getOrElse(true) &&
-                        Option.of(query.systemId).map(v -> v.equals(e.systemId)).getOrElse(true) &&
-                        Option.of(query.sequenceFrom).map(v -> e.sequenceNum >= v).getOrElse(true) &&
-                        Option.of(query.sequenceTo).map(v -> e.sequenceNum <= v).getOrElse(true) &&
-                        Option.of(query.published).map(v -> e.published.equals(v)).getOrElse(true) &&
-                        Option.of(query.idsAndSequences).map(v -> v.exists(t -> t._1.equals(e.entityId) && e.sequenceNum >= t._2)).getOrElse(true)
-                )
-                .limit(query.size)
+                                Option.of(query.dateFrom).map(v -> e.emissionDate.isAfter(v)).getOrElse(true) &&
+                                Option.of(query.dateTo).map(v -> e.emissionDate.isBefore(v)).getOrElse(true) &&
+                                Option.of(query.userId).map(v -> v.equals(e.userId)).getOrElse(true) &&
+                                Option.of(query.systemId).map(v -> v.equals(e.systemId)).getOrElse(true) &&
+                                Option.of(query.sequenceFrom).map(v -> e.sequenceNum >= v).getOrElse(true) &&
+                                Option.of(query.sequenceTo).map(v -> e.sequenceNum <= v).getOrElse(true) &&
+                                Option.of(query.published).map(v -> e.published.equals(v)).getOrElse(true) &&
+                                Option.of(query.idsAndSequences).map(v -> v.exists(t -> t._1.equals(e.entityId) && e.sequenceNum >= t._2)).getOrElse(true)
+                );
+        return Option.of(query.size).fold(() -> tmpSource, tmpSource::limit)
                 .runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), system);
     }
 
