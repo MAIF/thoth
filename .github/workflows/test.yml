@@ -14,11 +14,11 @@ jobs:
         run: docker compose -f docker-compose.test.yml up -d
       - name: Run test
         id: test
-        run: JAVA_OPTS="--enable-preview" ./gradlew test
+        run: ./gradlew test
       - name: Stop docker
         run: docker compose -f docker-compose.test.yml down
       - name: Run sample application test
-        run: JAVA_OPTS="--enable-preview" ./gradlew :sample:test
+        run: ./gradlew :sample:test
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
