@@ -13,11 +13,13 @@ import fr.maif.eventsourcing.EventPublisher;
 import fr.maif.eventsourcing.EventStore;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
+import io.vavr.Tuple2;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
 import org.reactivestreams.Publisher;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
@@ -126,9 +128,18 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
     @Override
     public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(Query query) {
         return Source.from(eventStore)
-                .filter(e -> {
-                    return Option.of(query.entityId).map(id -> id.equals(e.entityId)).getOrElse(true);
-                })
+                .filter(e ->
+                        Option.of(query.entityId).map(id -> id.equals(e.entityId)).getOrElse(true) &&
+                        Option.of(query.dateFrom).map(v -> e.emissionDate.isAfter(v)).getOrElse(true) &&
+                        Option.of(query.dateTo).map(v -> e.emissionDate.isBefore(v)).getOrElse(true) &&
+                        Option.of(query.userId).map(v -> v.equals(e.userId)).getOrElse(true) &&
+                        Option.of(query.systemId).map(v -> v.equals(e.systemId)).getOrElse(true) &&
+                        Option.of(query.sequenceFrom).map(v -> e.sequenceNum >= v).getOrElse(true) &&
+                        Option.of(query.sequenceTo).map(v -> e.sequenceNum <= v).getOrElse(true) &&
+                        Option.of(query.published).map(v -> e.published.equals(v)).getOrElse(true) &&
+                        Option.of(query.idsAndSequences).map(v -> v.exists(t -> t._1.equals(e.entityId) && e.sequenceNum >= t._2)).getOrElse(true)
+                )
+                .limit(query.size)
                 .runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), system);
     }
 

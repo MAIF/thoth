@@ -36,12 +36,14 @@ import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.WAIT;
 import static io.vavr.API.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.jooq.impl.DSL.table;
 import static org.mockito.Mockito.mock;
 
@@ -195,6 +197,34 @@ public abstract class AbstractPostgresEventStoreTest {
         initDatas();
         List<EventEnvelope<VikingEvent, Void, Void>> events = getFromQuery(EventStore.Query.builder().withEntityId("bjorn@gmail.com").build());
         assertThat(events).containsExactlyInAnyOrder(event1, event2, event3);
+    }
+
+    @Test
+    public void queryingByEntityIdLockFail() {
+        initDatas();
+
+        CountDownLatch latch = new CountDownLatch(1);
+        transactionSource().flatMap(t ->
+                Flux.from(postgresEventStore.loadEventsByQuery(t, EventStore.Query.builder().withEntityId("bjorn@gmail.com").withReadConcurrencyStrategy(ReadConcurrencyStrategy.FAIL_ON_LOCK).build()))
+                        .collectList()
+                        .delayElement(Duration.ofSeconds(5))
+                        .flatMap(any -> Mono.fromCompletionStage(t.commit()))
+        )
+        .subscribe(
+                next -> latch.countDown(),
+                e -> latch.countDown(),
+                () -> {}
+        );
+
+        assertThatThrownBy(() -> {
+            transactionSource().flatMap(t ->
+                    Flux.from(postgresEventStore.loadEventsByQuery(t, EventStore.Query.builder().withEntityId("bjorn@gmail.com").withReadConcurrencyStrategy(ReadConcurrencyStrategy.FAIL_ON_LOCK).build()))
+                            .collectList()
+                            .flatMap(any -> Mono.fromCompletionStage(t.commit()))
+                            .onErrorResume(e -> Mono.fromCompletionStage(t.rollback()))
+            )
+            .block();
+        }).hasCauseInstanceOf(Throwable.class);
     }
 
     @Test

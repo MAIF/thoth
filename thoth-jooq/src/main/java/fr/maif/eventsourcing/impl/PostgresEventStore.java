@@ -357,8 +357,12 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                 .from(this.tableNames.tableName)
                 .where(clauses.toJavaList())
                 .orderBy(field("sequence_num").asc());
-        var jooqQuery = Objects.nonNull(query.size) ? tmpJooqQuery.limit(query.size) : tmpJooqQuery;
-
+        var jooqQueryWithLimit = Objects.nonNull(query.size) ? tmpJooqQuery.limit(query.size) : tmpJooqQuery;
+        var jooqQuery = switch (query.readConcurrencyStrategy) {
+            case NO_STRATEGY -> jooqQueryWithLimit;
+            case WAIT_ON_LOCK -> jooqQueryWithLimit.forUpdate();
+            case FAIL_ON_LOCK -> jooqQueryWithLimit.forUpdate().noWait();
+        };
         LOGGER.debug("{}", jooqQuery);
         return Flux.fromStream(() -> jooqQuery.stream().map(r -> rsToEnvelope(r)))
                 .doFinally(any -> {
