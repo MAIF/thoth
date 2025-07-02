@@ -244,11 +244,15 @@ public abstract class AbstractPostgresEventStoreTest {
                 )
                 .runWith(Sink.seq(), Materializer.createMaterializer(system));
 
+        Thread.sleep(100);
+
         assertThatThrownBy(() -> {
             transactionSource().flatMapConcat(t ->
                             Source.fromPublisher(postgresEventStore.loadEventsByQuery(t, query))
                                     .fold(List.empty(), List::append)
-                                    .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
+                                    .watchTermination((nu, d) -> d.whenComplete((__, e) ->
+                                            postgresEventStore.commitOrRollback(Option.of(e), t)
+                                    ))
                     )
                     .runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join();
         }).hasMessageContaining("could not obtain lock on row in relation");
