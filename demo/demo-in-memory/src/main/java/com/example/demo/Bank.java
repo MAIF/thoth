@@ -33,7 +33,7 @@ public class Bank {
         this.eventProcessor = new EventProcessorImpl<>(
                 eventStore,
                 transactionManager,
-                new DefaultAggregateStore<>(eventStore, eventHandler, transactionManager),
+                new DefaultAggregateStore<>(eventStore, eventHandler, transactionManager, ReadConcurrencyStrategy.NO_STRATEGY),
                 commandHandler.toCommandHandler(executor),
                 eventHandler,
                 List.empty()

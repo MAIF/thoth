@@ -1,12 +1,6 @@
 package fr.maif.eventsourcing.impl;
 
-import fr.maif.eventsourcing.AggregateStore;
-import fr.maif.eventsourcing.Event;
-import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventHandler;
-import fr.maif.eventsourcing.EventStore;
-import fr.maif.eventsourcing.State;
-import fr.maif.eventsourcing.TransactionManager;
+import fr.maif.eventsourcing.*;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.collection.HashMap;
@@ -16,6 +10,7 @@ import io.vavr.collection.Traversable;
 import io.vavr.control.Option;
 import org.reactivestreams.Publisher;
 
+import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 
@@ -26,11 +21,13 @@ public abstract class AbstractDefaultAggregateStore<S extends State<S>, E extend
     private final EventStore<TxCtx, E, Meta, Context> eventStore;
     private final EventHandler<S, E> eventEventHandler;
     private final TransactionManager<TxCtx> transactionManager;
+    private final ReadConcurrencyStrategy readConcurrencyStrategy;
 
-    public AbstractDefaultAggregateStore(EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, TransactionManager<TxCtx> transactionManager) {
+    public AbstractDefaultAggregateStore(EventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, TransactionManager<TxCtx> transactionManager, ReadConcurrencyStrategy readConcurrencyStrategy) {
         this.eventStore = eventStore;
         this.eventEventHandler = eventEventHandler;
         this.transactionManager = transactionManager;
+        this.readConcurrencyStrategy = Objects.requireNonNullElse(readConcurrencyStrategy, ReadConcurrencyStrategy.NO_STRATEGY);
     }
 
     @Override
@@ -45,8 +42,7 @@ public abstract class AbstractDefaultAggregateStore<S extends State<S>, E extend
                     Map<String, S> indexed = snapshots.groupBy(State::entityId).mapValues(Traversable::head);
                     List<Tuple2<String, Long>> idsAndSeqNums = entityIds.map(id -> Tuple.of(id, indexed.get(id).map(s -> s.sequenceNum()).getOrElse(0L)));
                     Map<String, Option<S>> empty = HashMap.ofEntries(entityIds.map(id -> Tuple.of(id, indexed.get(id))));
-                    EventStore.Query query = EventStore.Query.builder().withIdsAndSequences(idsAndSeqNums).build();
-                    Publisher<EventEnvelope<E, Meta, Context>> events = this.eventStore.loadEventsByQuery(ctx, query);
+                    Publisher<EventEnvelope<E, Meta, Context>> events = this.eventStore.loadEventsByIdsAndSeqNum(ctx, idsAndSeqNums, readConcurrencyStrategy);
                     return fold(events,
                             empty,
                             (Map<String, Option<S>> states, EventEnvelope<E, Meta, Context> event) -> {

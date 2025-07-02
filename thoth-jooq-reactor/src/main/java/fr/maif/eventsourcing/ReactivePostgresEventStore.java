@@ -288,10 +288,15 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
                     .from(table(this.tableNames.tableName))
                     .where(clauses.toJavaList())
                     .orderBy(SEQUENCE_NUM);
-            if (Objects.nonNull(query.size)) {
-                return queryBuilder.limit(query.size);
-            }
-            return queryBuilder;
+            var queryWithLimit = Objects.nonNull(query.size) ? queryBuilder.limit(query.size) : queryBuilder;
+
+            var jooqQuery = switch (query.readConcurrencyStrategy) {
+                case NO_STRATEGY -> queryWithLimit;
+                case WAIT_ON_LOCK -> queryWithLimit.forUpdate();
+                case FAIL_ON_LOCK -> queryWithLimit.forUpdate().noWait();
+            };
+
+            return jooqQuery;
         })).concatMap(this::rsToEnvelope);
     }
 

@@ -3,7 +3,6 @@ package fr.maif.eventsourcing;
 import fr.maif.concurrent.CompletionStages;
 import io.vavr.Tuple0;
 import io.vavr.Tuple2;
-import io.vavr.Value;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
 import org.reactivestreams.Publisher;
@@ -21,6 +20,10 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
     Publisher<EventEnvelope<E, Meta, Context>> loadEventsUnpublished(TxCtx tx, ConcurrentReplayStrategy concurrentReplayStrategy);
 
     Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(TxCtx tx, Query query);
+
+    default Publisher<EventEnvelope<E, Meta, Context>> loadEventsByIdsAndSeqNum(TxCtx tx, List<Tuple2<String, Long>> idsAndSeqNums, ReadConcurrencyStrategy concurrencyStrategy) {
+        return loadEventsByQuery(EventStore.Query.builder().withIdsAndSequences(idsAndSeqNums).build());
+    }
 
     Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(Query query);
 
@@ -68,7 +71,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
         SKIP, WAIT, NO_STRATEGY
     }
 
-    public class Query {
+    class Query {
 
         public final LocalDateTime dateFrom;
         public final LocalDateTime dateTo;
@@ -80,6 +83,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
         public final Long sequenceTo;
         public final Boolean published;
         public final List<Tuple2<String, Long>> idsAndSequences;
+        public final ReadConcurrencyStrategy readConcurrencyStrategy;
 
         private Query(Query.Builder builder) {
             this.dateFrom = builder.dateFrom;
@@ -92,6 +96,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
             this.sequenceFrom = builder.sequenceFrom;
             this.sequenceTo = builder.sequenceTo;
             this.idsAndSequences = Objects.requireNonNullElse(builder.idsAndSequences, List.empty());
+            this.readConcurrencyStrategy = Objects.requireNonNullElse(builder.readConcurrencyStrategy, ReadConcurrencyStrategy.NO_STRATEGY);
         }
 
         public static Builder builder() {
@@ -166,6 +171,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
             Long sequenceFrom;
             Long sequenceTo;
             List<Tuple2<String, Long>> idsAndSequences;
+            ReadConcurrencyStrategy readConcurrencyStrategy;
 
             public Builder withDateFrom(LocalDateTime dateFrom) {
                 this.dateFrom = dateFrom;
@@ -211,8 +217,14 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
                 this.sequenceTo = sequenceTo;
                 return this;
             }
+
             public Builder withIdsAndSequences(List<Tuple2<String, Long>> idsAndSequences) {
                 this.idsAndSequences = idsAndSequences;
+                return this;
+            }
+
+            public Builder withReadConcurrencyStrategy(ReadConcurrencyStrategy readConcurrencyStrategy) {
+                this.readConcurrencyStrategy = readConcurrencyStrategy;
                 return this;
             }
 

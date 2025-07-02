@@ -173,7 +173,8 @@ public class InMemoryEventStore<E extends Event, Meta, Context> implements Event
     @Override
     public Publisher<EventEnvelope<E, Meta, Context>> loadEventsByQuery(Query query) {
         return Flux.fromIterable(store.values())
-                .filter(e -> Optional.ofNullable(query.entityId).map(id -> id.equals(e.entityId)).orElse(true));
+                .filter(e ->
+                        Optional.ofNullable(query.entityId).map(id -> id.equals(e.entityId)).orElse(true));
     }
 
 

@@ -43,8 +43,7 @@ import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRAT
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.WAIT;
 import static io.vavr.API.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.*;
 import static org.jooq.impl.DSL.table;
 import static org.mockito.Mockito.mock;
 
@@ -200,6 +199,36 @@ public class PostgresEventStoreTest {
         assertThat(events).containsExactlyInAnyOrder(event1Updated);
     }
 
+
+    @Test
+    public void queryingByEntityIdLockFail() throws InterruptedException {
+        initDatas();
+
+        EventStore.Query query = EventStore.Query.builder()
+                .withEntityId("bjorn@gmail.com")
+                .withReadConcurrencyStrategy(ReadConcurrencyStrategy.FAIL_ON_LOCK)
+                .build();
+
+        CompletionStage<java.util.List<List<Object>>> fResult = transactionSource().flatMapConcat(t ->
+                        Source.fromPublisher(postgresEventStore.loadEventsByQuery(t, query))
+                                .fold(List.empty(), List::append)
+                                .flatMapConcat(elt -> Source.tick(Duration.ofSeconds(5), Duration.ofSeconds(5), elt).take(1))
+                                .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
+                )
+                .runWith(Sink.seq(), Materializer.createMaterializer(system));
+
+        assertThatThrownBy(() -> {
+            transactionSource().flatMapConcat(t ->
+                            Source.fromPublisher(postgresEventStore.loadEventsByQuery(t, query))
+                                    .fold(List.empty(), List::append)
+                                    .watchTermination((nu, d) -> d.whenComplete((__, e) -> postgresEventStore.commitOrRollback(Option.of(e), t)))
+                    )
+                    .runWith(Sink.seq(), Materializer.createMaterializer(system)).toCompletableFuture().join();
+        }).hasMessageContaining("could not obtain lock on row in relation");
+        fResult.toCompletableFuture().join();
+    }
+
+
     private Source<Connection, NotUsed> transactionSource() {
         return Source.completionStage(postgresEventStore.openTransaction().toCompletableFuture());
     }
@@ -342,11 +371,6 @@ public class PostgresEventStoreTest {
         props.setProperty("maximumPoolSize", "20");
         HikariConfig config = new HikariConfig(props);
         this.dataSource = new HikariDataSource(config);
-        this.dataSource.setJdbcUrl("jdbc:postgresql://%s:%s/%s".formatted(host(), port(), database()));
-        this.dataSource.setUsername(user());
-        this.dataSource.setPassword(password());
-        this.dataSource.setDataSourceClassName("org.postgresql.ds.PGSimpleDataSource");
-
         this.dslContext = DSL.using(dataSource, SQLDialect.POSTGRES);
         Try.of(() -> {
             this.dslContext.deleteFrom(vikings_journal).execute();
