@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 
 import static java.util.function.Function.identity;
@@ -24,11 +25,13 @@ public class DefaultReactorAggregateStore<S extends State<S>, E extends Event, M
     private final ReactorEventStore<TxCtx, E, Meta, Context> eventStore;
     private final EventHandler<S, E> eventEventHandler;
     private final ReactorTransactionManager<TxCtx> transactionManager;
+    private final ReadConcurrencyStrategy readConcurrencyStrategy;
 
-    public DefaultReactorAggregateStore(ReactorEventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, ReactorTransactionManager<TxCtx> transactionManager) {
+    public DefaultReactorAggregateStore(ReactorEventStore<TxCtx, E, Meta, Context> eventStore, EventHandler<S, E> eventEventHandler, ReactorTransactionManager<TxCtx> transactionManager, ReadConcurrencyStrategy readConcurrencyStrategy) {
         this.eventStore = eventStore;
         this.eventEventHandler = eventEventHandler;
         this.transactionManager = transactionManager;
+        this.readConcurrencyStrategy = Objects.requireNonNullElse(readConcurrencyStrategy, ReadConcurrencyStrategy.NO_STRATEGY);
     }
 
     @Override
@@ -43,7 +46,7 @@ public class DefaultReactorAggregateStore<S extends State<S>, E extends Event, M
                     Map<String, S> indexed = snapshots.groupBy(State::entityId).mapValues(Traversable::head);
                     List<Tuple2<String, Long>> idsAndSeqNums = entityIds.map(id -> Tuple.of(id, indexed.get(id).map(s -> s.sequenceNum()).getOrElse(0L)));
                     Map<String, Option<S>> empty = HashMap.ofEntries(entityIds.map(id -> Tuple.of(id, indexed.get(id))));
-                    EventStore.Query query = EventStore.Query.builder().withIdsAndSequences(idsAndSeqNums).build();
+                    EventStore.Query query = EventStore.Query.builder().withIdsAndSequences(idsAndSeqNums).withReadConcurrencyStrategy(readConcurrencyStrategy).build();
                     Flux<EventEnvelope<E, Meta, Context>> events = this.eventStore.loadEventsByQuery(txCtx, query);
                     return events.reduce(
                             empty,
@@ -68,7 +71,7 @@ public class DefaultReactorAggregateStore<S extends State<S>, E extends Event, M
                             // No snapshot defined, we read all the events
                             () -> EventStore.Query.builder().withEntityId(entityId).build(),
                             // If a snapshot is defined, we read events from seq num of the snapshot :
-                            s -> EventStore.Query.builder().withSequenceFrom(s.sequenceNum()).withEntityId(entityId).build()
+                            s -> EventStore.Query.builder().withSequenceFrom(s.sequenceNum()).withReadConcurrencyStrategy(readConcurrencyStrategy).withEntityId(entityId).build()
                     );
                     return this.eventStore.loadEventsByQuery(txCtx, query)
                             .reduce(

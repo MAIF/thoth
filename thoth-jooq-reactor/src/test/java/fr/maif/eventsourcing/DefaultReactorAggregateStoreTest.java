@@ -75,7 +75,7 @@ class DefaultReactorAggregateStoreTest {
             public <T> Mono<T> withTransaction(Function<Tuple0, Mono<T>> callBack) {
                 return callBack.apply(Tuple.empty());
             }
-        }) {
+        }, ReadConcurrencyStrategy.NO_STRATEGY) {
             @Override
             public Mono<List<CountState>> getSnapshots(Tuple0 transactionContext, List<String> strings) {
                 return Mono.just(strings.flatMap(id -> {

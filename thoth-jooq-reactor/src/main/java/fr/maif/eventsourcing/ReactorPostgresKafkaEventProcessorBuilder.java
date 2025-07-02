@@ -307,7 +307,7 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
                 this.eventHandler = eventHandler;
             }
 
-            public BuilderWithAggregateStore<S, E, Meta, Context> withAggregateStore(Function<BuilderWithEventHandler<S, E, Meta, Context>, ReactorAggregateStore<S, String, PgAsyncTransaction>> builder) {
+        public BuilderWithAggregateStore<S, E, Meta, Context> withAggregateStore(Function<BuilderWithEventHandler<S, E, Meta, Context>, ReactorAggregateStore<S, String, PgAsyncTransaction>> builder) {
             return new BuilderWithAggregateStore<>(
                     pgAsyncPool,
                     tableNames,
@@ -349,7 +349,22 @@ public class ReactorPostgresKafkaEventProcessorBuilder {
                     concurrentReplayStrategy,
                     eventStore,
                     eventHandler,
-                    new DefaultReactorAggregateStore<>(eventStore, eventHandler, transactionManager));
+                    new DefaultReactorAggregateStore<>(eventStore, eventHandler, transactionManager, ReadConcurrencyStrategy.NO_STRATEGY));
+        }
+
+        public BuilderWithAggregateStore<S, E, Meta, Context> withDefaultAggregateStore(ReadConcurrencyStrategy readConcurrencyStrategy) {
+            return new BuilderWithAggregateStore<>(
+                    pgAsyncPool,
+                    tableNames,
+                    transactionManager,
+                    eventFormat,
+                    metaFormat,
+                    contextFormat,
+                    eventPublisher,
+                    concurrentReplayStrategy,
+                    eventStore,
+                    eventHandler,
+                    new DefaultReactorAggregateStore<>(eventStore, eventHandler, transactionManager, readConcurrencyStrategy));
         }
     }
 
