@@ -1,4 +1,7 @@
 
 
-//project.tasks.jreleaserUpload.enabled = false
-tasks.withType(PublishToMavenRepository).configureEach { it.enabled = false }
+//project.tasks.jreleaser.enabled = false
+//tasks.with {it.
+//
+//}
+//tasks.withType(PublishToMavenRepository).configureEach { it.enabled = false }

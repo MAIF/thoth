@@ -1,5 +1,5 @@
 
-tasks.withType(PublishToMavenRepository).configureEach { it.enabled = false }
+//tasks.withType(PublishToMavenRepository).configureEach { it.enabled = false }
 //project.tasks.publishToSonatype.enabled = false
 
 ext {
