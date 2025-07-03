@@ -1,4 +1,4 @@
 
 
-project.tasks.publishToSonatype.enabled = false
+//project.tasks.jreleaserUpload.enabled = false
 tasks.withType(PublishToMavenRepository).configureEach { it.enabled = false }
