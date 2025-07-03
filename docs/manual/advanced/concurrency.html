@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 
 <head>
-<title>Projections · Thoth</title>
+<title>Handling concurrency in Thoth · Thoth</title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content='Thoth doc'/>
@@ -43,7 +43,7 @@
   <li><a href="../standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
   <ul>
     <li><a href="../standard/banking-real-life.html" class="page">Postgres Kafka event sourcing</a></li>
-    <li><a href="../standard/projections.html" class="active page">Projections</a></li>
+    <li><a href="../standard/projections.html" class="page">Projections</a></li>
   </ul></li>
   <li><a href="../database-configuration.html" class="page">Database configuration</a></li>
   <li><a href="../advanced/index.html" class="page">Advanced use cases</a>
@@ -53,7 +53,7 @@
     <li><a href="../advanced/aggregatestore.html" class="page">Aggregate store</a></li>
     <li><a href="../advanced/event-replay.html" class="page">Event replay</a></li>
     <li><a href="../advanced/multi-command.html" class="page">Multiple command handling in the same transaction</a></li>
-    <li><a href="../advanced/concurrency.html" class="page">Handling concurrency in Thoth</a></li>
+    <li><a href="../advanced/concurrency.html" class="active page">Handling concurrency in Thoth</a></li>
   </ul></li>
   <li><a href="../eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="../kafka-consumption.html" class="page">Using published events</a></li>
@@ -109,7 +109,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <li><a href="../standard/index.html" class="page">Standard JOOQ/Kafka implementation</a>
   <ul>
     <li><a href="../standard/banking-real-life.html" class="page">Postgres Kafka event sourcing</a></li>
-    <li><a href="../standard/projections.html" class="active page">Projections</a></li>
+    <li><a href="../standard/projections.html" class="page">Projections</a></li>
   </ul></li>
   <li><a href="../database-configuration.html" class="page">Database configuration</a></li>
   <li><a href="../advanced/index.html" class="page">Advanced use cases</a>
@@ -119,7 +119,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="../advanced/aggregatestore.html" class="page">Aggregate store</a></li>
     <li><a href="../advanced/event-replay.html" class="page">Event replay</a></li>
     <li><a href="../advanced/multi-command.html" class="page">Multiple command handling in the same transaction</a></li>
-    <li><a href="../advanced/concurrency.html" class="page">Handling concurrency in Thoth</a></li>
+    <li><a href="../advanced/concurrency.html" class="active page">Handling concurrency in Thoth</a></li>
   </ul></li>
   <li><a href="../eventually-consistent-projection.html" class="page">Eventually consistent projections</a></li>
   <li><a href="../kafka-consumption.html" class="page">Using published events</a></li>
@@ -143,8 +143,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="nav-breadcrumbs">
 <ul>
   <li><a href="../index.html">Thoth</a></li>
-  <li><a href="../standard/index.html">Standard JOOQ/Kafka implementation</a></li>
-  <li>Projections</li>
+  <li><a href="../advanced/index.html">Advanced use cases</a></li>
+  <li>Handling concurrency in Thoth</li>
 </ul>
 </div>
 </div>
@@ -152,98 +152,35 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
-<h1><a href="#projections" name="projections" class="anchor"><span class="anchor-link"></span></a>Projections</h1>
-<p>Out account management system is limited in consultation : all we can do is read accounts by id, one by one.</p>
-<p>Projections help us to implement different read scenario. They are built / updated by consuming events.</p>
-<h2><a href="#in-transaction-projection" name="in-transaction-projection" class="anchor"><span class="anchor-link"></span></a>In transaction projection</h2>
-<p>thoth offers tools for building &ldquo;in transaction&rdquo; projections. These projections will be updated in the transaction used to register events in the database, therefore they&rsquo;ll be updated in &ldquo;real time&rdquo;.</p>
-<p>Let&rsquo;s say we want a projection that stores mean withdrawal value.</p>
-<pre class="prettyprint"><code class="language-java">public class MeanBalanceProjection implements Projection&lt;Connection, BankEvent, Tuple0, Tuple0&gt; {
-    private BigDecimal withDrawTotal = BigDecimal.ZERO;
-    private long withdrawCount = 0L;
-
-    @Override
-    public CompletionStage&lt;Tuple0&gt; storeProjection(Connection connection, List&lt;EventEnvelope&lt;BankEvent, Tuple0, Tuple0&gt;&gt; envelopes) {
-        return CompletableFuture.supplyAsync(() -&gt; {
-            envelopes.forEach(envelope -&gt; {
-                BankEvent bankEvent = envelope.event;
-                if(envelope.event instanceof BankEvent.MoneyWithdrawn) {
-                    withDrawTotal = withDrawTotal.add(((BankEvent.MoneyWithdrawn)bankEvent).amount);
-                    withdrawCount ++;
-                }
-            });
-            
-            return Tuple.empty();
-        });
-    }
-    
-    public BigDecimal meanWithdraw() {
-        return withDrawTotal.divide(BigDecimal.valueOf(withdrawCount));
-    }
-}
+<h1><a href="#handling-concurrency-in-thoth" name="handling-concurrency-in-thoth" class="anchor"><span class="anchor-link"></span></a>Handling concurrency in Thoth</h1>
+<p>There is two main ways to handle concurrency in Thoth: * using the sequence num : you can send sequence number in your commands and raise an error in the command handler if the sequence number is lower than the current one * using a locking mechanism : You can configure the aggregate with a lock option </p>
+<h2><a href="#the-lock-option-provided-by-thoth" name="the-lock-option-provided-by-thoth" class="anchor"><span class="anchor-link"></span></a>The lock option provided by Thoth</h2>
+<p>The lock option is base on the &ldquo;select for update&rdquo; feature provided by postgresql. </p>
+<p>There is 3 options available:</p>
+<ul>
+  <li>NO_STRATEGY : this is the default option, no lock is used</li>
+  <li>WAIT_ON_LOCK : the concurrent command will wait for the lock to be released before executing</li>
+  <li>FAIL_ON_LOCK : the concurrent command will fail if the lock is already taken</li>
+</ul>
+<p>Exemple : </p>
+<pre class="prettyprint"><code class="language-java">this.eventProcessor = ReactivePostgresKafkaEventProcessor
+        .withPgAsyncPool(pgAsyncPool)
+        .withTables(tableNames())
+        .withTransactionManager()
+        .withEventFormater(BankEventFormat.bankEventFormat.jacksonEventFormat())
+        .withNoMetaFormater()
+        .withNoContextFormater()
+        .withKafkaSettings(&quot;bank&quot;, producerSettings(settings()))
+        .withWaitConcurrentReplayStrategy()
+        .withEventHandler(eventHandler)
+        // Set the concurrency strategy for the aggregate store : 
+        .withDefaultAggregateStore(ReadConcurrencyStrategy.WAIT_ON_LOCK)
+        .withCommandHandler(commandHandler)
+        .withProjections(this.withdrawByMonthProjection)
+        .build();
 </code></pre>
-<p>In the above example, we implemented an in memory projection, however in a real use case we should store values somewhere (e.g. in a database).</p>
-<p>Next step is to declare the projection in our EventProcessor implementation.</p>
-<pre class="prettyprint"><code class="language-java">public class Bank {
-    private final MeanWithdrawProjection meanWithdrawProjection;
-    //...
-    public Bank() {
-        //...
-
-        this.meanWithdrawProjection = new MeanWithdrawProjection();
-
-        ExecutorService executorService = Executors.newFixedThreadPool(5);
-        JdbcTransactionManager transactionManager = new JdbcTransactionManager(dataSource(), executorService);
-
-        this.eventProcessor = PostgresKafkaEventProcessor
-                .withDataSource(dataSource())
-                .withTables(tableNames)
-                .withTransactionManager(transactionManager, executorService)
-                .withEventFormater(eventFormat)
-                .withNoMetaFormater()
-                .withNoContextFormater()
-                .withKafkaSettings(topic, producerSettings)
-                .withEventHandler(eventHandler)
-                .withAggregateStore(builder -&gt; new BankAggregateStore(
-                        builder.eventStore,
-                        builder.eventHandler,
-                        builder.transactionManager
-                ))
-                .withCommandHandler(commandHandler)
-                .withProjections(meanWithdrawProjection)
-                .build();
-    }
-    //...
-    public BigDecimal meanWithdrawValue() {
-        return meanWithdrawProjection.meanWithdraw();
-    }
-}
-</code></pre>
-<h3><a href="#usage" name="usage" class="anchor"><span class="anchor-link"></span></a>Usage</h3>
-<pre class="prettyprint"><code class="language-java">public class DemoApplication {
-
-	public static void main(String[] args) throws SQLException {
-        BankCommandHandler commandHandler = new BankCommandHandler();
-        BankEventHandler eventHandler = new BankEventHandler();
-        Bank bank = new Bank(commandHandler, eventHandler);
-
-        String id = bank.createAccount(BigDecimal.valueOf(100)).toCompletableFuture().join().get().currentState.get().id;
-
-        bank.withdraw(id, BigDecimal.valueOf(50)).toCompletableFuture().join().get().currentState.get();
-        BigDecimal balance = bank.withdraw(id, BigDecimal.valueOf(10)).toCompletableFuture().join().get().currentState.get().balance;
-        System.out.println(balance);
-
-        System.out.println(bank.meanWithdrawValue());
-	}
-}
-</code></pre>
-<h2><a href="#eventually-consistent-projections" name="eventually-consistent-projections" class="anchor"><span class="anchor-link"></span></a>Eventually consistent projections</h2>
-<p>Sometimes projections are too costly to be updated in transaction, sometimes we don&rsquo;t need real time update.</p>
-<p>In these case we could build &ldquo;eventually consistent&rdquo; projections, by connecting to our &ldquo;bank&rdquo; topic in Kafka, and consuming events from there.</p>
-<p><a href="../eventually-consistent-projection.html">Eventually consistent projections</a> show how Thoth can help you to build eventually consistent projections.</p>
-<p>See <a href="../kafka-consumption.html">Kafka consumption section</a> for more information on published events and kafka consumption.</p>
 <div class="nav-next">
-<p><strong>Next:</strong> <a href="../database-configuration.html">Database configuration</a></p>
+<p><strong>Next:</strong> <a href="../eventually-consistent-projection.html">Eventually consistent projections</a></p>
 </div>
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>
@@ -252,10 +189,9 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="nav-title">On this page:</div>
 <div class="nav-toc">
 <ul>
-  <li><a href="../standard/projections.html#projections" class="header">Projections</a>
+  <li><a href="../advanced/concurrency.html#handling-concurrency-in-thoth" class="header">Handling concurrency in Thoth</a>
   <ul>
-    <li><a href="../standard/projections.html#in-transaction-projection" class="header">In transaction projection</a></li>
-    <li><a href="../standard/projections.html#eventually-consistent-projections" class="header">Eventually consistent projections</a></li>
+    <li><a href="../advanced/concurrency.html#the-lock-option-provided-by-thoth" class="header">The lock option provided by Thoth</a></li>
   </ul></li>
 </ul>
 </div>

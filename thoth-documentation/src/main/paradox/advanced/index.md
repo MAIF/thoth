@@ -7,6 +7,7 @@
 * [Read speed optimisation](aggregatestore.md)
 * [Event replay](event-replay.md)
 * [Multiple commands](multi-command.md)
+* [Concurrency](concurrency.md)
 
 @@@
 
