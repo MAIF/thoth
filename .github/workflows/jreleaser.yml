@@ -26,6 +26,7 @@ jobs:
           ./gradlew publish -x test
           ./gradlew jreleaserDeploy
         env:
+          JRELEASER_GITHUB_TOKEN: '${{secrets.PERSONAL_ACCESS_TOKEN}}'
           JRELEASER_GPG_SECRET_KEY: '${{secrets.GPG_SECRET_KEY}}'
           JRELEASER_GPG_PUBLIC_KEY: '${{secrets.GPG_PUBLIC_KEY}}'
           JRELEASER_MAVENCENTRAL_USERNAME: '${{secrets.SONATYPE_USERNAME}}'
