@@ -1,7 +1,7 @@
 
 
 
-//tasks.withType(PublishToMavenRepository).configureEach { it.enabled = false }
+tasks.withType(PublishToMavenRepository).configureEach { it.enabled = false }
 /* Parametre de compilation java */
 compileJava {
     // To enable argument names in reporting and debugging
