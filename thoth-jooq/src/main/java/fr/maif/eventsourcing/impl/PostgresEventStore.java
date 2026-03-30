@@ -336,6 +336,8 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                 )
         ).flatMap(identity());
 
+        var orderClause = SEQUENCE_NUM.sort(query.sortOrder().map(sortOrder -> org.jooq.SortOrder.valueOf(sortOrder.name())).getOrElse(org.jooq.SortOrder.DEFAULT));
+
         var tmpJooqQuery = DSL.using(tx)
                 .select(
                         ID,
@@ -356,7 +358,7 @@ public class PostgresEventStore<E extends Event, Meta, Context> implements Event
                 )
                 .from(this.tableNames.tableName)
                 .where(clauses.toJavaList())
-                .orderBy(field("sequence_num").asc());
+                .orderBy(orderClause);
         var jooqQueryWithLimit = Objects.nonNull(query.size) ? tmpJooqQuery.limit(query.size) : tmpJooqQuery;
         var jooqQuery = switch (query.readConcurrencyStrategy) {
             case NO_STRATEGY -> jooqQueryWithLimit;

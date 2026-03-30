@@ -71,6 +71,10 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
         SKIP, WAIT, NO_STRATEGY
     }
 
+    enum SortOrder {
+        NONE,ASC,DESC
+    }
+
     class Query {
 
         public final LocalDateTime dateFrom;
@@ -84,6 +88,8 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
         public final Boolean published;
         public final List<Tuple2<String, Long>> idsAndSequences;
         public final ReadConcurrencyStrategy readConcurrencyStrategy;
+        public final SortOrder sortOrder;
+
 
         private Query(Query.Builder builder) {
             this.dateFrom = builder.dateFrom;
@@ -97,6 +103,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
             this.sequenceTo = builder.sequenceTo;
             this.idsAndSequences = Objects.requireNonNullElse(builder.idsAndSequences, List.empty());
             this.readConcurrencyStrategy = Objects.requireNonNullElse(builder.readConcurrencyStrategy, ReadConcurrencyStrategy.NO_STRATEGY);
+            this.sortOrder = builder.sortOrder;
         }
 
         public static Builder builder() {
@@ -139,6 +146,11 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
             return idsAndSequences;
         }
 
+        public Option<SortOrder> sortOrder() {
+            return Option.of(sortOrder);
+        }
+
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -172,6 +184,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
             Long sequenceTo;
             List<Tuple2<String, Long>> idsAndSequences;
             ReadConcurrencyStrategy readConcurrencyStrategy;
+            SortOrder sortOrder;
 
             public Builder withDateFrom(LocalDateTime dateFrom) {
                 this.dateFrom = dateFrom;
@@ -225,6 +238,11 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
 
             public Builder withReadConcurrencyStrategy(ReadConcurrencyStrategy readConcurrencyStrategy) {
                 this.readConcurrencyStrategy = readConcurrencyStrategy;
+                return this;
+            }
+
+            public Builder withSortOrder(SortOrder sortOrder) {
+                this.sortOrder = sortOrder;
                 return this;
             }
 
