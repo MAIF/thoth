@@ -22,6 +22,7 @@ import io.vavr.control.Try;
 import org.jooq.*;
 import org.jooq.impl.SQLDataType;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -41,7 +42,7 @@ import static org.jooq.impl.DSL.*;
 public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends Event, Meta, Context> implements EventStore<Tx, E, Meta, Context>, Closeable {
 
 
-    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ReactivePostgresEventStore.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReactivePostgresEventStore.class);
 
     private final static Field<UUID> ID = field("id", UUID.class);
     private final static Field<String> ENTITY_ID = field("entity_id", String.class);
@@ -267,6 +268,8 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
                 )
         ).flatMap(identity());
 
+        var orderClause = SEQUENCE_NUM.sort(query.sortOrder().map(sortOrder -> org.jooq.SortOrder.valueOf(sortOrder.name())).getOrElse(org.jooq.SortOrder.DEFAULT));
+
         return Flux.from(tx.stream(500, dsl -> {
             SelectSeekStep1<Record15<UUID, String, Long, String, Long, String, JsonNode, JsonNode, LocalDateTime, String, String, Integer, Integer, JsonNode, Boolean>, Long> queryBuilder = dsl
                     .select(
@@ -287,7 +290,7 @@ public class ReactivePostgresEventStore<Tx extends PgAsyncTransaction, E extends
                             PUBLISHED)
                     .from(table(this.tableNames.tableName))
                     .where(clauses.toJavaList())
-                    .orderBy(SEQUENCE_NUM);
+                    .orderBy(orderClause);
             var queryWithLimit = Objects.nonNull(query.size) ? queryBuilder.limit(query.size) : queryBuilder;
 
             var jooqQuery = switch (query.readConcurrencyStrategy) {

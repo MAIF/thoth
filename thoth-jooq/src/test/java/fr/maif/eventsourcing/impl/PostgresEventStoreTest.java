@@ -228,6 +228,19 @@ public class PostgresEventStoreTest {
         fResult.toCompletableFuture().join();
     }
 
+    @Test
+    public void queryingWithAscendingSortOrder() {
+        initDatas();
+        List<EventEnvelope<VikingEvent, Void, Void>> events = getFromQuery(EventStore.Query.builder().withSortOrder(EventStore.SortOrder.ASC).build());
+        assertThat(events).containsExactly(event1, event2, event3, event4, event5, event6);
+    }
+
+    @Test
+    public void queryingWithDescendingSortOrder() {
+        initDatas();
+        List<EventEnvelope<VikingEvent, Void, Void>> events = getFromQuery(EventStore.Query.builder().withSortOrder(EventStore.SortOrder.DESC).build());
+        assertThat(events).containsExactly(event6, event5, event4, event3, event2, event1);
+    }
 
     private Source<Connection, NotUsed> transactionSource() {
         return Source.completionStage(postgresEventStore.openTransaction().toCompletableFuture());

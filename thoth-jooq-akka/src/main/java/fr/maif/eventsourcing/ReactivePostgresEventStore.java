@@ -235,6 +235,8 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
                 )
         ).flatMap(identity());
 
+        var orderClause = SEQUENCE_NUM.sort(query.sortOrder().map(sortOrder -> org.jooq.SortOrder.valueOf(sortOrder.name())).getOrElse(org.jooq.SortOrder.DEFAULT));
+
         return Source.fromPublisher(tx.stream(500, dsl -> {
             SelectSeekStep1<Record15<UUID, String, Long, String, Long, String, JsonNode, JsonNode, LocalDateTime, String, String, Integer, Integer, JsonNode, Boolean>, Long> queryBuilder = dsl
                     .select(
@@ -255,7 +257,7 @@ public class ReactivePostgresEventStore<E extends Event, Meta, Context> implemen
                             PUBLISHED)
                     .from(table(this.tableNames.tableName))
                     .where(clauses.toJavaList())
-                    .orderBy(SEQUENCE_NUM);
+                    .orderBy(orderClause);
             var queryWithLimit = Objects.nonNull(query.size) ? queryBuilder.limit(query.size) : queryBuilder;
 
             var jooqQuery = switch (query.readConcurrencyStrategy) {
