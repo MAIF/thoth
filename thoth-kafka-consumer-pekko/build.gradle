@@ -5,6 +5,8 @@ dependencies {
     implementation "org.apache.pekko:pekko-slf4j_$scalaVersion:$pekkoVersion"
     implementation "org.apache.pekko:pekko-connectors-kafka_$scalaVersion:$pekkoKafkaVersion"
 
+    testImplementation("org.testcontainers:kafka:$testContainerVersion")
+    testImplementation("org.testcontainers:junit-jupiter:$testContainerVersion")
     testImplementation("org.apache.pekko:pekko-testkit_$scalaVersion:$pekkoVersion")
     testImplementation("org.apache.pekko:pekko-stream-testkit_$scalaVersion:$pekkoVersion")
     testImplementation "org.apache.pekko:pekko-connectors-kafka-testkit_$scalaVersion:$pekkoKafkaVersion"

@@ -273,8 +273,6 @@ public class JooqKafkaTckImplementation extends DataStoreVerification<Connection
                     future::complete
             );
             return future.get();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } catch (ExecutionException e) {

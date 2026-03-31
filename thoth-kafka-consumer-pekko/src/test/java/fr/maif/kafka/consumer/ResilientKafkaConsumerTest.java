@@ -6,7 +6,6 @@ import org.apache.pekko.kafka.ConsumerMessage.CommittableMessage;
 import org.apache.pekko.kafka.ConsumerMessage.CommittableOffset;
 import org.apache.pekko.kafka.ConsumerSettings;
 import org.apache.pekko.kafka.Subscriptions;
-import org.apache.pekko.kafka.testkit.javadsl.TestcontainersKafkaTest;
 import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.javadsl.Flow;
 import org.apache.pekko.stream.javadsl.FlowWithContext;
@@ -26,12 +25,8 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
+class ResilientKafkaConsumerTest implements KafkaContainerTest {
     private static final ActorSystem system = ActorSystem.create("test");
-
-    public ResilientKafkaConsumerTest() {
-        super(system, Materializer.createMaterializer(system));
-    }
 
 
     @Test
@@ -61,9 +56,9 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
 
         Thread.sleep(3000);
 
-        resultOf(produceString(topic, "event-1"));
-        resultOf(produceString(topic, "event-2"));
-        resultOf(produceString(topic, "event-3"));
+        produceString(topic, "event-1");
+        produceString(topic, "event-2");
+        produceString(topic, "event-3");
 
         Thread.sleep(10000);
 
@@ -101,9 +96,9 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
         );
         Thread.sleep(3000);
 
-        resultOf(produceString(topic, "event-1"));
-        resultOf(produceString(topic, "event-2"));
-        resultOf(produceString(topic, "event-3"));
+        produceString(topic, "event-1");
+        produceString(topic, "event-2");
+        produceString(topic, "event-3");
 
         Thread.sleep(10000);
 
@@ -152,9 +147,9 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
         );
         Thread.sleep(4000);
 
-        resultOf(produceString(topic, "event-1"));
-        resultOf(produceString(topic, "event-2"));
-        resultOf(produceString(topic, "event-3"));
+        produceString(topic, "event-1");
+        produceString(topic, "event-2");
+        produceString(topic, "event-3");
 
         Thread.sleep(60000);
 
@@ -222,9 +217,9 @@ class ResilientKafkaConsumerTest extends TestcontainersKafkaTest {
         assertThat(resilientKafkaConsumer.status()).isIn(Status.Started);
         assertThat(isStarted.get()).isTrue();
 
-        resultOf(produceString(topic, "event-1"));
-        resultOf(produceString(topic, "event-2"));
-        resultOf(produceString(topic, "event-3"));
+        produceString(topic, "event-1");
+        produceString(topic, "event-2");
+        produceString(topic, "event-3");
 
         Thread.sleep(10000);
 
