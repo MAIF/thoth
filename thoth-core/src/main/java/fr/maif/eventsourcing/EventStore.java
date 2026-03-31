@@ -72,7 +72,7 @@ public interface EventStore<TxCtx, E extends Event, Meta, Context> {
     }
 
     enum SortOrder {
-        NONE,ASC,DESC
+        DEFAULT,ASC,DESC
     }
 
     class Query {
