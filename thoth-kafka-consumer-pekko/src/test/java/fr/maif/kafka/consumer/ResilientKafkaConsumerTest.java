@@ -113,7 +113,7 @@ class ResilientKafkaConsumerTest implements KafkaContainerTest {
     @Test
     void crash() throws Exception {
 
-        String topic = createTopic();
+        String topic = createTopic("topic-"+counter.incrementAndGet(), 1, 1);
         String groupId = "test-group-id-3";
 
         AtomicReference<String> names = new AtomicReference<>("");
