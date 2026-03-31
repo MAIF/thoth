@@ -11,7 +11,7 @@ dependencies {
 
     testImplementation project(':thoth-core-pekko')
     testImplementation("org.apache.pekko:pekko-stream_$scalaVersion:$pekkoVersion")
-    testImplementation("org.mockito:mockito-core:3.6.28")
+    testImplementation("org.mockito:mockito-core:$mockitoCoreVersion")
 }
 
 test {

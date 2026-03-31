@@ -43,8 +43,10 @@ subprojects {
         reactorVersion        = "3.8.4"
         vertxSqlVersion       = "5.0.10"
         testContainerVersion  = "1.21.1"
-        jupiterVersion = "5.13.1"
-        assertJVersion = "3.27.7"
+        jupiterVersion        = "6.0.3"
+        assertJVersion        = "3.27.7"
+        mockitoCoreVersion    = "5.18.0"
+        mockitoAllVersion     = "1.10.19"
     }
 
     test {
