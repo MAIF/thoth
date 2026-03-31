@@ -13,9 +13,12 @@ dependencies {
     implementation "org.apache.pekko:pekko-stream_$scalaVersion:$pekkoVersion"
     implementation "org.apache.pekko:pekko-slf4j_$scalaVersion:$pekkoVersion"
     implementation "org.apache.pekko:pekko-connectors-kafka_$scalaVersion:$pekkoKafkaVersion"
-
     implementation("io.vertx:vertx-pg-client:$vertxSqlVersion")
     implementation("io.vavr:vavr-jackson:$vavrJacksonVersion")
+
+    testimplementation "org.apache.pekko:pekko-testkit_$scalaVersion:$pekkoVersion"
+    testimplementation "org.apache.pekko:pekko-stream-testkit_$scalaVersion:$pekkoVersion"
+    testimplementation "org.apache.pekko:pekko-stream-testkit_$scalaVersion:$pekkoVersion"
     testImplementation("fr.maif:jooq-async-jdbc:$jooqAsyncVersion")
     testImplementation("fr.maif:jooq-async-reactive:$jooqAsyncVersion")
     testImplementation('org.assertj:assertj-core:3.27.7')
