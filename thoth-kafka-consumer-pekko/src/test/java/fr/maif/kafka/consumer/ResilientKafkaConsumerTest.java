@@ -71,7 +71,7 @@ class ResilientKafkaConsumerTest implements KafkaContainerTest {
     @Test
     void contexteAkkastreamApi() throws Exception {
 
-        String topic = createTopic();
+        String topic = createTopic("topic-"+counter.incrementAndGet(), 1, 1);
         String groupId = "test-group-id-3";
 
         AtomicReference<String> names = new AtomicReference<>("");
@@ -90,6 +90,7 @@ class ResilientKafkaConsumerTest implements KafkaContainerTest {
                         .grouped(3)
                         .map(messages -> {
                             String collectedMessages = messages.stream().map(m -> m.record().value()).collect(Collectors.joining(" "));
+                            System.out.println(collectedMessages);
                             names.set(collectedMessages);
                             return Done.done();
                         })
