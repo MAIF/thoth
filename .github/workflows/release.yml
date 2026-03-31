@@ -25,17 +25,11 @@ jobs:
           git config --local user.email "thoth-github-actions@users.noreply.github.com"
           git config --local user.name "thoth-github-actions"
           ./gradlew release -Prelease.useAutomaticVersion=true -Prelease.releaseVersion=${{ github.event.inputs.releaseVersion }} -Prelease.newVersion=${{ github.event.inputs.nextVersion }}
-      - name: push tag
-        uses: ad-m/github-push-action@master
-        with:
-          branch: master
-          tags: true
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - name: Create a Release
-        id: create_release
-        uses: actions/create-release@v1.1.4
+      - name: Push tag
+        run: |
+          echo "created=true" >> "$GITHUB_OUTPUT"
+          git push origin v${{ github.event.inputs.releaseVersion }}
+      - name: Create github release
+        run: gh release create "v${{ github.event.inputs.releaseversion }}" --generate-notes
         env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        with:
-          tag_name: v${{ github.event.inputs.releaseversion }}
-          release_name: v${{ github.event.inputs.releaseversion }}
+          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
