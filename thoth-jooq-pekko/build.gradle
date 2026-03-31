@@ -16,8 +16,8 @@ dependencies {
     implementation("io.vertx:vertx-pg-client:$vertxSqlVersion")
     implementation("io.vavr:vavr-jackson:$vavrJacksonVersion")
 
-    testimplementation "org.apache.pekko:pekko-testkit_$scalaVersion:$pekkoVersion"
-    testimplementation "org.apache.pekko:pekko-stream-testkit_$scalaVersion:$pekkoVersion"
+    testImplementation "org.apache.pekko:pekko-testkit_$scalaVersion:$pekkoVersion"
+    testImplementation "org.apache.pekko:pekko-stream-testkit_$scalaVersion:$pekkoVersion"
     testImplementation("fr.maif:jooq-async-jdbc:$jooqAsyncVersion")
     testImplementation("fr.maif:jooq-async-reactive:$jooqAsyncVersion")
     testImplementation('org.assertj:assertj-core:3.27.7')
