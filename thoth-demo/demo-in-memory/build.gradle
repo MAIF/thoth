@@ -1,5 +1,6 @@
 
 
+
 tasks.withType(PublishToMavenRepository).configureEach { it.enabled = false }
 /* Parametre de compilation java */
 compileJava {
@@ -12,27 +13,15 @@ compileTestJava {
     options.compilerArgs += '-parameters'
 }
 
-tasks.withType(Javadoc) {
-    options.addStringOption("source", "21")
-}
-
-
 dependencies {
 
-    implementation project(':commons-events')
+    implementation project(':thoth-commons-events')
     implementation project(':thoth-core')
     implementation project(':thoth-core-reactor')
-    implementation project(':thoth-jooq-reactor')
-    implementation project(':thoth-kafka-consumer-pekko')
+    implementation project(':thoth-kafka-consumer-reactor')
     implementation("io.vavr:vavr:$vavrVersion")
-    implementation("tools.jackson.core:jackson-databind:$jacksonVersion")
     implementation("fr.maif:functional-json:$functionalJsonVersion")
     implementation("com.fasterxml.uuid:java-uuid-generator:4.0.1")
     implementation('org.postgresql:postgresql:42.7.7')
-    implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
-    implementation("fr.maif:jooq-async-api:$jooqAsyncVersion")
-    implementation("fr.maif:jooq-async-reactive:$jooqAsyncVersion")
-    implementation("org.jooq:jooq:$jooqVersion")
-    implementation("io.vertx:vertx-pg-client:$vertxSqlVersion")
 
 }

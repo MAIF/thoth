@@ -1,6 +1,6 @@
 
 dependencies {
-    implementation project(':commons-events')
+    implementation project(':thoth-commons-events')
     implementation project(':thoth-core')
     implementation project(':thoth-kafka-consumer-reactor')
     implementation("io.projectreactor:reactor-core:$reactorVersion")

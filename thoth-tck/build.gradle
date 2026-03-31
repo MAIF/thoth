@@ -1,6 +1,6 @@
 
 dependencies {
-    implementation project(':commons-events')
+    implementation project(':thoth-commons-events')
     implementation project(':thoth-core')
     implementation('org.assertj:assertj-core:3.27.7')
     implementation('org.testng:testng:7.7.0')
