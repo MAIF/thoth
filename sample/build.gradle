@@ -18,6 +18,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter:$springBootVersion")
     implementation("org.springframework.boot:spring-boot-starter-web:$springBootVersion")
     implementation("org.springframework.boot:spring-boot-starter-jooq:$springBootVersion")
+    implementation("org.springframework.boot:spring-boot-starter-restclient:$springBootVersion")
     implementation('org.postgresql:postgresql:42.7.7')
     implementation("io.projectreactor:reactor-core:$reactorVersion")
     implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
@@ -29,7 +30,9 @@ dependencies {
     testImplementation("org.testcontainers:postgresql:$testContainerVersion")
     testImplementation("org.testcontainers:kafka:$testContainerVersion")
     testImplementation("org.testcontainers:junit-jupiter:$testContainerVersion")
-    testImplementation("org.springframework.boot:spring-boot-starter-test:3.4.5")
+    testImplementation("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
+    testImplementation("org.springframework.boot:spring-boot-starter-restclient-test:$springBootVersion")
+    testImplementation("org.springframework.boot:spring-boot-resttestclient:$springBootVersion")
     testImplementation('org.assertj:assertj-core:3.27.7')
 
 }
