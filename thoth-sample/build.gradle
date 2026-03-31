@@ -33,7 +33,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
     testImplementation("org.springframework.boot:spring-boot-starter-restclient-test:$springBootVersion")
     testImplementation("org.springframework.boot:spring-boot-resttestclient:$springBootVersion")
-    testImplementation('org.assertj:assertj-core:3.27.7')
+    testImplementation("org.assertj:assertj-core:$assertJVersion")
 
 }
 

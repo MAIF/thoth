@@ -11,7 +11,7 @@ dependencies {
     implementation("com.fasterxml.uuid:java-uuid-generator:3.1.5")
     implementation("fr.maif:functional-json:$functionalJsonVersion")
 
-    testImplementation("org.assertj:assertj-core:3.10.0")
+    testImplementation("org.assertj:assertj-core:$assertJVersion")
     testImplementation("com.h2database:h2:1.4.197")
     testImplementation("org.mockito:mockito-core:2.22.0")
     testImplementation("org.junit.platform:junit-platform-launcher:1.4.2")

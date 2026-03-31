@@ -20,7 +20,7 @@ dependencies {
     testImplementation "org.apache.pekko:pekko-stream-testkit_$scalaVersion:$pekkoVersion"
     testImplementation("fr.maif:jooq-async-jdbc:$jooqAsyncVersion")
     testImplementation("fr.maif:jooq-async-reactive:$jooqAsyncVersion")
-    testImplementation('org.assertj:assertj-core:3.27.7')
+    testImplementation("org.assertj:assertj-core:$assertJVersion")
     testImplementation('org.postgresql:postgresql:42.7.7')
     testImplementation("org.mockito:mockito-all:1.10.19")
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.3")

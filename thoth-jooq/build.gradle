@@ -16,7 +16,7 @@ dependencies {
     testImplementation("org.apache.pekko:pekko-testkit_$scalaVersion:$pekkoVersion")
     testImplementation("org.apache.pekko:pekko-stream-testkit_$scalaVersion:$pekkoVersion")
     testImplementation("com.zaxxer:HikariCP:4.0.3")
-    testImplementation("org.assertj:assertj-core:3.10.0")
+    testImplementation("org.assertj:assertj-core:$assertJVersion")
     testImplementation('com.h2database:h2:2.2.220')
     testImplementation("org.junit.platform:junit-platform-launcher:1.4.2")
     testImplementation("org.junit.platform:junit-platform-commons:1.4.2")

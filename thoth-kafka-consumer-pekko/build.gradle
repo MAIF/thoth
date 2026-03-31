@@ -10,7 +10,7 @@ dependencies {
     testImplementation("org.apache.pekko:pekko-testkit_$scalaVersion:$pekkoVersion")
     testImplementation("org.apache.pekko:pekko-stream-testkit_$scalaVersion:$pekkoVersion")
     testImplementation "org.apache.pekko:pekko-connectors-kafka-testkit_$scalaVersion:$pekkoKafkaVersion"
-    testImplementation("org.assertj:assertj-core:3.10.0")
+    testImplementation("org.assertj:assertj-core:$assertJVersion")
     testImplementation("org.junit.platform:junit-platform-launcher:1.4.2")
     testImplementation("org.junit.platform:junit-platform-commons:1.4.2")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.4.2")
