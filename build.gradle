@@ -108,5 +108,5 @@ nexusPublishing {
 release {
     tagTemplate = 'v${version}'
 }
-release.git.requireBranch.set('support/version-1x')
+release.git.requireBranch.set('support/version-2x')
 
