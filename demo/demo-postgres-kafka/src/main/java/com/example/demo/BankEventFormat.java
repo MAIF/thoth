@@ -1,6 +1,6 @@
 package com.example.demo;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import fr.maif.eventsourcing.Result;
 import fr.maif.eventsourcing.vanilla.format.JacksonEventFormat;
 import fr.maif.json.Json;

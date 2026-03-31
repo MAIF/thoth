@@ -1,24 +1,20 @@
 package fr.maif;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.*;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.*;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
-import java.io.IOException;
+import static tools.jackson.core.json.JsonWriteFeature.ESCAPE_NON_ASCII;
 
 public class Json {
     private static final ObjectMapper defaultObjectMapper = newDefaultMapper();
     private static volatile ObjectMapper objectMapper = null;
 
     public static ObjectMapper newDefaultMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new Jdk8Module());
-        mapper.registerModule(new JavaTimeModule());
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        return mapper;
+        return JsonMapper.builder()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .build();
     }
 
     /**
@@ -37,18 +33,14 @@ public class Json {
     }
 
     private static String generateJson(Object o, boolean prettyPrint, boolean escapeNonASCII) {
-        try {
-            ObjectWriter writer = mapper().writer();
-            if (prettyPrint) {
-                writer = writer.with(SerializationFeature.INDENT_OUTPUT);
-            }
-            if (escapeNonASCII) {
-                writer = writer.with(JsonGenerator.Feature.ESCAPE_NON_ASCII);
-            }
-            return writer.writeValueAsString(o);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        ObjectWriter writer = mapper().writer();
+        if (prettyPrint) {
+            writer = writer.with(SerializationFeature.INDENT_OUTPUT);
         }
+        if (escapeNonASCII) {
+            writer = writer.with(ESCAPE_NON_ASCII);
+        }
+        return writer.writeValueAsString(o);
     }
 
     /**

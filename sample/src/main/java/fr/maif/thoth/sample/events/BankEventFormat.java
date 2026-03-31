@@ -2,8 +2,8 @@ package fr.maif.thoth.sample.events;
 
 import static io.vavr.API.Case;
 
-import com.fasterxml.jackson.databind.JsonNode;
 
+import tools.jackson.databind.JsonNode;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.json.Json;
 import fr.maif.json.JsonWrite;

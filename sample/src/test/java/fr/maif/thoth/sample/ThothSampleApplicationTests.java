@@ -1,8 +1,5 @@
 package fr.maif.thoth.sample;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.json.EventEnvelopeJson;
@@ -35,9 +32,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -320,11 +317,7 @@ public class ThothSampleApplicationTests {
 		try {
 			return restTemplate.getForEntity("/bank/api/" + id, AccountDTO.class).getBody();
 		} catch(HttpClientErrorException ex) {
-			try {
-				return mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class);
-			} catch (IOException e) {
-				throw ex;
-			}
+			return mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class);
 		}
 	}
 
@@ -332,11 +325,7 @@ public class ThothSampleApplicationTests {
 		try {
 			return restTemplate.postForEntity("/bank/api/", account, AccountDTO.class).getBody();
 		} catch(HttpClientErrorException ex) {
-			try {
-				return mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class);
-			} catch (IOException e) {
-				throw ex;
-			}
+			return mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class);
 		}
 	}
 
@@ -346,18 +335,10 @@ public class ThothSampleApplicationTests {
 			if(Objects.isNull(body)) {
 				return Optional.empty();
 			} else {
-				try {
-					return Optional.ofNullable(mapper.readValue(body, AccountDTO.class).error);
-				} catch (JsonProcessingException e) {
-					return Optional.empty();
-				}
+				return Optional.ofNullable(mapper.readValue(body, AccountDTO.class).error);
 			}
 		} catch(HttpClientErrorException ex) {
-			try {
-				return Optional.ofNullable(mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class).error);
-			} catch (IOException e) {
-				throw ex;
-			}
+			return Optional.ofNullable(mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class).error);
 		}
 	}
 
@@ -367,11 +348,7 @@ public class ThothSampleApplicationTests {
 		try {
 			return restTemplate.postForEntity("/bank/api/" + id + "/_action/withdraw", request, AccountDTO.class).getBody();
 		} catch(HttpClientErrorException ex) {
-			try {
-				return mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class);
-			} catch (IOException e) {
-				throw ex;
-			}
+			return mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class);
 		}
 	}
 
@@ -381,11 +358,7 @@ public class ThothSampleApplicationTests {
 		try {
 			return restTemplate.postForEntity("/bank/api/" + id + "/_action/deposit", request, AccountDTO.class).getBody();
 		} catch(HttpClientErrorException ex) {
-			try {
-				return mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class);
-			} catch (IOException e) {
-				throw ex;
-			}
+			return mapper.readValue(ex.getResponseBodyAsString(), AccountDTO.class);
 		}
 	}
 
@@ -399,11 +372,7 @@ public class ThothSampleApplicationTests {
 		try {
 			return restTemplate.postForEntity("/bank/api/_action/transfer", request, TransferResultDTO.class).getBody();
 		} catch(HttpClientErrorException ex) {
-			try {
-				return mapper.readValue(ex.getResponseBodyAsString(), TransferResultDTO.class);
-			} catch (IOException e) {
-				throw ex;
-			}
+			return mapper.readValue(ex.getResponseBodyAsString(), TransferResultDTO.class);
 		}
 	}
 
@@ -509,8 +478,6 @@ public class ThothSampleApplicationTests {
 					future::complete
 			);
 			return future.get();
-		} catch (IOException e) {
-			throw new UncheckedIOException(e);
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		} catch (ExecutionException e) {

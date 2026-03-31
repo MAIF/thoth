@@ -19,7 +19,7 @@ dependencies {
     implementation project(':thoth-core-reactor')
     implementation project(':thoth-jooq')
     implementation project(':thoth-kafka-consumer-reactor')
-    implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
+    implementation("tools.jackson.core:jackson-databind:$jacksonVersion")
     implementation("io.projectreactor:reactor-core:$reactorVersion")
     implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
     implementation("io.vavr:vavr:$vavrVersion")

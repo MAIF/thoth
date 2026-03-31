@@ -1,6 +1,6 @@
 package fr.maif.reactor.projections;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import fr.maif.Helpers;
 import fr.maif.Helpers.VikingEvent;
 import fr.maif.concurrent.CompletionStages;

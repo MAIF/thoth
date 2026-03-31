@@ -2,7 +2,7 @@ package fr.maif.thoth.sample;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
+import org.springframework.boot.jooq.autoconfigure.JooqAutoConfiguration;
 
 @SpringBootApplication(exclude = JooqAutoConfiguration.class)
 public class ThothSampleApplication {

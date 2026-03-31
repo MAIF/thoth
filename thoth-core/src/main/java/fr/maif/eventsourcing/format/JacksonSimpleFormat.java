@@ -1,6 +1,6 @@
 package fr.maif.eventsourcing.format;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.vavr.control.Option;
 
 import java.util.function.Function;

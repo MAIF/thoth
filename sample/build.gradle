@@ -3,10 +3,7 @@ tasks.withType(PublishToMavenRepository).configureEach { it.enabled = false }
 //project.tasks.publishToSonatype.enabled = false
 
 ext {
-    vavrVersion = "0.10.6"
-    jacksonVersion = "2.18.4"
-    lombokVersion = "1.18.38"
-    jupiterVersion = "5.13.1"
+    springBootVersion = "4.0.5"
 }
 
 dependencies {
@@ -18,8 +15,9 @@ dependencies {
     implementation project(':thoth-kafka-consumer-reactor')
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("fr.maif:functional-json:$functionalJsonVersion")
-    implementation("org.springframework.boot:spring-boot-starter:3.4.5")
-    implementation("org.springframework.boot:spring-boot-starter-web:3.4.5")
+    implementation("org.springframework.boot:spring-boot-starter:$springBootVersion")
+    implementation("org.springframework.boot:spring-boot-starter-web:$springBootVersion")
+    implementation("org.springframework.boot:spring-boot-starter-jooq:$springBootVersion")
     implementation('org.postgresql:postgresql:42.7.7')
     implementation("io.projectreactor:reactor-core:$reactorVersion")
     implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
@@ -32,7 +30,7 @@ dependencies {
     testImplementation("org.testcontainers:kafka:$testContainerVersion")
     testImplementation("org.testcontainers:junit-jupiter:$testContainerVersion")
     testImplementation("org.springframework.boot:spring-boot-starter-test:3.4.5")
-    testImplementation("org.assertj:assertj-core:3.19.0")
+    testImplementation('org.assertj:assertj-core:3.27.7')
 
 }
 

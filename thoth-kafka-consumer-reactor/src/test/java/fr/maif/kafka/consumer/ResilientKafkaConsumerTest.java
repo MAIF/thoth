@@ -1,9 +1,9 @@
 package fr.maif.kafka.consumer;
 
-import akka.actor.ActorSystem;
-import akka.kafka.testkit.javadsl.TestcontainersKafkaTest;
-import akka.stream.Materializer;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.kafka.testkit.javadsl.TestcontainersKafkaTest;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import fr.maif.kafka.reactor.consumer.ResilientKafkaConsumer;
 import fr.maif.kafka.reactor.consumer.Status;
 import org.apache.kafka.clients.consumer.ConsumerConfig;

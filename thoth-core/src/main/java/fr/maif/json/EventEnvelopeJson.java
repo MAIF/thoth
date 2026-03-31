@@ -1,11 +1,10 @@
 package fr.maif.json;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.NullNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.NullNode;
+import tools.jackson.databind.node.ObjectNode;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
@@ -54,10 +53,7 @@ public class EventEnvelopeJson {
             ObjectNode jsonNode = (ObjectNode) mapper.reader().readTree(event);
             return deserialize(jsonNode, format, metaFormat, contextFormat, onError, onSuccess);
         } catch (Exception e) {
-            try {
-                onError.accept(mapper.writer().writeValueAsString(event), e);
-            } catch (JsonProcessingException e1) {
-            }
+            onError.accept(mapper.writer().writeValueAsString(event), e);
             return null;
         }
     }
@@ -82,10 +78,7 @@ public class EventEnvelopeJson {
             });
             Either<?, E> read = format.read(eventEnvelope.eventType, eventEnvelope.version, eventNode);
             read.mapLeft(err -> {
-                try {
-                    onError.accept(mapper.writer().writeValueAsString(event), err);
-                } catch (JsonProcessingException e) {
-                }
+                onError.accept(mapper.writer().writeValueAsString(event), err);
                 return err;
             });
             eventEnvelope.withEvent(read.getOrNull());
@@ -95,10 +88,7 @@ public class EventEnvelopeJson {
             onSuccess.accept(build);
             return build;
         } catch (Exception e) {
-            try {
-                onError.accept(mapper.writer().writeValueAsString(event), e);
-            } catch (JsonProcessingException e1) {
-            }
+            onError.accept(mapper.writer().writeValueAsString(event), e);
             return null;
         }
     }

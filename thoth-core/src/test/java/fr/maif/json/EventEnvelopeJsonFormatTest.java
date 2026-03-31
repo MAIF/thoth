@@ -1,12 +1,12 @@
 package fr.maif.json;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import fr.maif.Helpers;
-import io.vavr.Tuple0;
 import fr.maif.eventsourcing.EventEnvelope;
+import io.vavr.Tuple0;
 import io.vavr.control.Either;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -184,7 +184,7 @@ public class EventEnvelopeJsonFormatTest {
 
     @Test
     public void legacyMethod() {
-        Either<String, Helpers.VikingEvent> read = eventReader.jacksonEventFormat(seq -> seq.map(e -> e.message).mkString(", ")).read(VikingCreatedV1.name(), VikingCreatedV1.version(), eventJson);
+        Either<String, Helpers.VikingEvent> read = eventReader.jacksonEventFormat(seq -> seq.map(JsResult.Error::message).mkString(", ")).read(VikingCreatedV1.name(), VikingCreatedV1.version(), eventJson);
         assertThat(read).isEqualTo(Either.right(event));
     }
 }

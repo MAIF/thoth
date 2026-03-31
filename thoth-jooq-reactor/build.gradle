@@ -14,8 +14,6 @@ dependencies {
     implementation("io.vertx:vertx-pg-client:$vertxSqlVersion")
     implementation("fr.maif:jooq-async-reactive:$jooqAsyncVersion")
     implementation("io.vavr:vavr-jackson:$vavrJacksonVersion")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
     implementation("org.scala-lang:scala-library:2.13.16")
 
     testImplementation("fr.maif:jooq-async-jdbc:$jooqAsyncVersion")
@@ -24,7 +22,7 @@ dependencies {
     testImplementation('org.postgresql:postgresql:42.7.7')
     testImplementation("org.mockito:mockito-all:1.10.19")
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.3")
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.4.2'
     testImplementation "org.testcontainers:junit-jupiter:$testContainerVersion"
     testImplementation "org.testcontainers:testcontainers:$testContainerVersion"
     testImplementation "org.testcontainers:postgresql:$testContainerVersion"

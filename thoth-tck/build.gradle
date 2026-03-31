@@ -2,15 +2,15 @@
 dependencies {
     implementation project(':commons-events')
     implementation project(':thoth-core')
-    implementation("org.assertj:assertj-core:3.10.0")
-    implementation("org.testng:testng:6.3")
+    implementation('org.assertj:assertj-core:3.27.7')
+    implementation('org.testng:testng:7.7.0')
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("fr.maif:functional-json:$functionalJsonVersion")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
+    implementation("tools.jackson.core:jackson-databind:$jacksonVersion")
+    implementation("com.fasterxml.jackson.core:jackson-annotations:2.21")
 
-    testImplementation project(':thoth-core-akka')
-    testImplementation("com.typesafe.akka:akka-stream_$scalaVersion:$akkaVersion")
+    testImplementation project(':thoth-core-pekko')
+    testImplementation("org.apache.pekko:pekko-stream_$scalaVersion:$pekkoVersion")
     testImplementation("org.mockito:mockito-core:3.6.28")
 }
 
@@ -20,4 +20,3 @@ test {
         suites 'src/test/resources/testng.xml' //location of our suite.xml
     }
 }
-

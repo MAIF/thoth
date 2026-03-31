@@ -1,7 +1,7 @@
 package fr.maif.kafka;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.TextNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.StringNode;
 import fr.maif.Helpers;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
@@ -30,8 +30,8 @@ public class JsonSerDeserializerTest {
                 .withVersion(Helpers.VikingEvent.VikingCreatedV1.version())
                 .withTotalMessageInTransaction(1)
                 .withNumMessageInTransaction(1)
-                .withContext(new TextNode("context"))
-                .withMetadata(new TextNode("metadata"))
+                .withContext(new StringNode("context"))
+                .withMetadata(new StringNode("metadata"))
                 .withTransactionId("1")
                 .withEvent(new Helpers.VikingEvent.VikingCreated("1", "ragnar"))
                 .build();

@@ -9,8 +9,6 @@ dependencies {
     implementation("io.vavr:vavr-jackson:$vavrJacksonVersion")
     implementation('org.slf4j:slf4j-api:2.0.7')
     implementation("com.fasterxml.uuid:java-uuid-generator:3.1.5")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
     implementation("fr.maif:functional-json:$functionalJsonVersion")
 
     testImplementation("org.assertj:assertj-core:3.10.0")
@@ -22,8 +20,8 @@ dependencies {
     testImplementation("org.junit.vintage:junit-vintage-engine:5.4.2")
     testImplementation("net.aichler:jupiter-interface:0.9.1")
     testImplementation("org.scalatest:scalatest_$scalaVersion:3.0.8")
-    testImplementation("org.testcontainers:kafka:1.18.0")
-    testImplementation "org.testcontainers:junit-jupiter:1.18.0"
+    testImplementation("org.testcontainers:kafka:$testContainerVersion")
+    testImplementation "org.testcontainers:junit-jupiter:$testContainerVersion"
     testImplementation "ch.qos.logback:logback-classic:1.4.8"
 }
 

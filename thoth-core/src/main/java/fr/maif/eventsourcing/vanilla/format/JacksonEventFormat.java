@@ -1,6 +1,6 @@
 package fr.maif.eventsourcing.vanilla.format;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.vavr.control.Either;
 
 public interface JacksonEventFormat<Err, E> extends EventFormat<Err, E, JsonNode> {
