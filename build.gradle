@@ -38,7 +38,7 @@ subprojects {
         jooqVersion           = "3.21.1"
         jooqAsyncVersion      = "3.0.0-RC1"
         functionalJsonVersion = "2.0.0-RC1"
-        kafkaVersion          = "4.2.0"
+        kafkaVersion          = "3.9.2"
         reactorKafkaVersion   = "1.3.23"
         reactorVersion        = "3.8.4"
         vertxSqlVersion       = "5.0.10"

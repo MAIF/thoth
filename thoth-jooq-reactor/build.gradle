@@ -20,7 +20,7 @@ dependencies {
     testImplementation("fr.maif:jooq-async-reactive:$jooqAsyncVersion")
     testImplementation("org.assertj:assertj-core:$assertJVersion")
     testImplementation('org.postgresql:postgresql:42.7.7')
-    testImplementation("org.mockito:mockito-all:$mockitoAllVersion")
+    testImplementation("org.mockito:mockito-core:$mockitoCoreVersion")
     testImplementation(platform("org.junit:junit-bom:$jupiterVersion"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
