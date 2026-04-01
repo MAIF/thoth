@@ -55,12 +55,6 @@ import static org.mockito.Mockito.*;
 @Testcontainers
 public class KafkaEventPublisherTest implements KafkaContainerTest {
 
-
-    @BeforeAll
-    public static void setUp() {
-        KafkaContainerTest.startContainer();
-    }
-
     @BeforeEach
     @AfterEach
     void cleanUpInit() {

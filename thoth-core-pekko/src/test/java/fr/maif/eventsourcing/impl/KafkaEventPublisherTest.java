@@ -1,5 +1,6 @@
 package fr.maif.eventsourcing.impl;
 
+import fr.maif.projections.KafkaContainerTest;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.kafka.ConsumerSettings;
 import org.apache.pekko.kafka.ProducerSettings;
@@ -69,37 +70,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class KafkaEventPublisherTest extends BaseKafkaTest {
+public class KafkaEventPublisherTest implements KafkaContainerTest {
 
     private static final ActorSystem sys = ActorSystem.create("KafkaEventPublisherTest");
     private static final Materializer mat = Materializer.createMaterializer(sys);
-
-    KafkaEventPublisherTest() {
-        super(sys, mat, "localhost:29097");
-    }
-
-    @BeforeEach
-    void cleanUpInit() throws ExecutionException, InterruptedException, TimeoutException {
-        setUpAdminClient();
-        try {
-            Set<String> topics = adminClient().listTopics().names().get(5, TimeUnit.SECONDS);
-            if (!topics.isEmpty()) {
-                println("Deleting "+ String.join(",", topics));
-                adminClient().deleteTopics(topics).all().get();
-            }
-        } catch (Exception e) {}
-    }
-
-    @AfterEach
-    void cleanUpAfter() {
-        try {
-
-            Set<String> topics = adminClient().listTopics().names().get();
-            println("Deleting "+ String.join(",", topics));
-            adminClient().deleteTopics(topics).all().get();
-        } catch (Exception e) {}
-        cleanUpAdminClient();
-    }
 
     @AfterAll
     static void afterClass() {
@@ -110,7 +84,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
     @SuppressWarnings("unchecked")
     public void eventConsumption() throws IOException, InterruptedException {
 
-        String topic = createTopic(11, 5, 1);
+        String topic = createTopic("test"+11, 5, 1);
 
         KafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
@@ -128,7 +102,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
 
         Thread.sleep(200);
 
-        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = Consumer.plainSource(consumerDefaults().withGroupId("test1"), Subscriptions.topics(topic))
+        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = Consumer.plainSource(consumerDefaults(sys).withGroupId("test1"), Subscriptions.topics(topic))
                 .map(ConsumerRecord::value)
                 .map(KafkaEventPublisherTest::deserialize)
                 .take(3)
@@ -168,7 +142,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
     @Test
     @SuppressWarnings("unchecked")
     public void eventConsumptionWithEventFromDb() throws IOException {
-        String topic = createTopic(12, 5, 1);
+        String topic = createTopic("test"+12, 5, 1);
         KafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
         when(eventStore.openTransaction()).thenReturn(CompletionStages.successful(Tuple.empty()));
@@ -185,7 +159,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
 
         publisher.start(eventStore, NO_STRATEGY);
 
-        CompletionStage<List<String>> results = Consumer.plainSource(consumerDefaults().withGroupId("test2"), Subscriptions.topics(topic))
+        CompletionStage<List<String>> results = Consumer.plainSource(consumerDefaults(sys).withGroupId("test2"), Subscriptions.topics(topic))
                 .map(ConsumerRecord::value)
                 .take(6)
                 .idleTimeout(Duration.of(5, ChronoUnit.SECONDS))
@@ -215,7 +189,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
     @SuppressWarnings("unchecked")
     public void testRestart() throws IOException {
         AtomicBoolean failed = new AtomicBoolean(false);
-        String topic = createTopic(13, 5, 1);
+        String topic = createTopic("test"+13, 5, 1);
         KafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
         EventStore<Tuple0, TestEvent, Void, Void> eventStore = mock(EventStore.class);
         when(eventStore.openTransaction()).thenReturn(CompletionStages.successful(Tuple.empty()));
@@ -238,7 +212,7 @@ public class KafkaEventPublisherTest extends BaseKafkaTest {
 
         publisher.start(eventStore, SKIP);
 
-        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = Consumer.plainSource(consumerDefaults().withGroupId("test3"), Subscriptions.topics(topic))
+        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = Consumer.plainSource(consumerDefaults(sys).withGroupId("test3"), Subscriptions.topics(topic))
                 .map(ConsumerRecord::value)
                 .map(KafkaEventPublisherTest::deserialize)
                 .take(6)

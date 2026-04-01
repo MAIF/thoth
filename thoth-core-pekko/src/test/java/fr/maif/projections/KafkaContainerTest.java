@@ -7,7 +7,10 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.kafka.ConsumerSettings;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -22,6 +25,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.vavr.API.println;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 
 @Testcontainers
 public interface KafkaContainerTest {
@@ -70,6 +74,13 @@ public interface KafkaContainerTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    default ConsumerSettings<String, String> consumerDefaults(ActorSystem actorSystem) {
+        return ConsumerSettings.create(actorSystem, new StringDeserializer(), new StringDeserializer())
+                .withBootstrapServers(kafkaContainer.getBootstrapServers())
+                .withGroupId("test-group-id")
+                .withProperty(AUTO_OFFSET_RESET_CONFIG, "earliest");
     }
 
     default KafkaProducer<String, String> producer() {
