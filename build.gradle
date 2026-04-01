@@ -46,7 +46,6 @@ subprojects {
         jupiterVersion        = "6.0.3"
         assertJVersion        = "3.27.7"
         mockitoCoreVersion    = "5.18.0"
-        mockitoAllVersion     = "1.10.19"
     }
 
     test {
