@@ -2,6 +2,7 @@ package fr.maif.projections;
 
 import fr.maif.Helpers;
 import fr.maif.Helpers.VikingEvent;
+import fr.maif.KafkaContainerTest;
 import fr.maif.akka.projections.EventuallyConsistentProjection;
 import fr.maif.akka.projections.EventuallyConsistentProjection.Config;
 import fr.maif.eventsourcing.EventEnvelope;
@@ -38,7 +39,7 @@ class EventuallyConsistentProjectionTest implements KafkaContainerTest {
     @Test
     void consumer() throws Exception {
 
-        String topic = createTopic();
+        String topic = createTopic("topic-"+counter.incrementAndGet(), 1, 1);
         String groupId = "test-group-id";
 
         AtomicReference<String> names = new AtomicReference<>("");

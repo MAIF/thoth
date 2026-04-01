@@ -13,6 +13,7 @@ dependencies {
 
     implementation 'org.scala-lang:scala-library:2.13.8'
     implementation("com.fasterxml.uuid:java-uuid-generator:3.1.5")
+    implementation("tools.jackson.core:jackson-databind:$jacksonVersion")
     implementation("fr.maif:functional-json:$functionalJsonVersion")
 
     testImplementation("org.testcontainers:kafka:$testContainerVersion")

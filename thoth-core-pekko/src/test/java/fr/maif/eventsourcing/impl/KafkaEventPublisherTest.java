@@ -1,18 +1,6 @@
 package fr.maif.eventsourcing.impl;
 
-import fr.maif.projections.KafkaContainerTest;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.kafka.ConsumerSettings;
-import org.apache.pekko.kafka.ProducerSettings;
-import org.apache.pekko.kafka.Subscriptions;
-import org.apache.pekko.kafka.javadsl.Consumer;
-import org.apache.pekko.kafka.testkit.javadsl.BaseKafkaTest;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.javadsl.AsPublisher;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.testkit.javadsl.TestKit;
-import tools.jackson.databind.JsonNode;
+import fr.maif.KafkaContainerTest;
 import fr.maif.akka.eventsourcing.KafkaEventPublisher;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.Event;
@@ -32,27 +20,32 @@ import io.vavr.control.Either;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.kafka.ConsumerSettings;
+import org.apache.pekko.kafka.ProducerSettings;
+import org.apache.pekko.kafka.Subscriptions;
+import org.apache.pekko.kafka.javadsl.Consumer;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.AsPublisher;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.mockito.Mockito;
 import org.reactivestreams.Publisher;
+import tools.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
-import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -60,14 +53,7 @@ import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRAT
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
 import static io.vavr.API.println;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.atMost;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class KafkaEventPublisherTest implements KafkaContainerTest {
