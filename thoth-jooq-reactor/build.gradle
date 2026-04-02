@@ -1,7 +1,7 @@
 
 dependencies {
 
-    implementation project(':commons-events')
+    implementation project(':thoth-commons-events')
     implementation project(':thoth-core')
     implementation project(':thoth-core-reactor')
     implementation("io.vavr:vavr:$vavrVersion")
@@ -14,21 +14,20 @@ dependencies {
     implementation("io.vertx:vertx-pg-client:$vertxSqlVersion")
     implementation("fr.maif:jooq-async-reactive:$jooqAsyncVersion")
     implementation("io.vavr:vavr-jackson:$vavrJacksonVersion")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
     implementation("org.scala-lang:scala-library:2.13.16")
 
     testImplementation("fr.maif:jooq-async-jdbc:$jooqAsyncVersion")
     testImplementation("fr.maif:jooq-async-reactive:$jooqAsyncVersion")
-    testImplementation("org.assertj:assertj-core:3.10.0")
+    testImplementation("org.assertj:assertj-core:$assertJVersion")
     testImplementation('org.postgresql:postgresql:42.7.7')
-    testImplementation("org.mockito:mockito-all:1.10.19")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.9.3")
+    testImplementation("org.mockito:mockito-core:$mockitoCoreVersion")
+    testImplementation(platform("org.junit:junit-bom:$jupiterVersion"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation "org.testcontainers:junit-jupiter:$testContainerVersion"
     testImplementation "org.testcontainers:testcontainers:$testContainerVersion"
     testImplementation "org.testcontainers:postgresql:$testContainerVersion"
-    testImplementation 'org.mockito:mockito-core:5.18.0'
+    testImplementation "org.mockito:mockito-core:$mockitoCoreVersion"
 }
 
 test {

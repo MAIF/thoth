@@ -1,0 +1,45 @@
+
+tasks.withType(PublishToMavenRepository).configureEach { it.enabled = false }
+//project.tasks.publishToSonatype.enabled = false
+
+ext {
+    springBootVersion = "4.0.5"
+}
+
+dependencies {
+
+    implementation project(':thoth-commons-events')
+    implementation project(':thoth-core')
+    implementation project(':thoth-core-reactor')
+    implementation project(':thoth-jooq')
+    implementation project(':thoth-kafka-consumer-reactor')
+    implementation("io.vavr:vavr:$vavrVersion")
+    implementation("fr.maif:functional-json:$functionalJsonVersion")
+    implementation("org.springframework.boot:spring-boot-starter:$springBootVersion")
+    implementation("org.springframework.boot:spring-boot-starter-web:$springBootVersion")
+    implementation("org.springframework.boot:spring-boot-starter-jooq:$springBootVersion")
+    implementation("org.springframework.boot:spring-boot-starter-restclient:$springBootVersion")
+    implementation('org.postgresql:postgresql:42.7.7')
+    implementation("io.projectreactor:reactor-core:$reactorVersion")
+    implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
+
+    testImplementation(platform("org.junit:junit-bom:$jupiterVersion"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    testImplementation("org.testcontainers:postgresql:$testContainerVersion")
+    testImplementation("org.testcontainers:kafka:$testContainerVersion")
+    testImplementation("org.testcontainers:junit-jupiter:$testContainerVersion")
+    testImplementation("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
+    testImplementation("org.springframework.boot:spring-boot-starter-restclient-test:$springBootVersion")
+    testImplementation("org.springframework.boot:spring-boot-resttestclient:$springBootVersion")
+    testImplementation("org.assertj:assertj-core:$assertJVersion")
+
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+    testLogging {
+        events "passed"
+    }
+}

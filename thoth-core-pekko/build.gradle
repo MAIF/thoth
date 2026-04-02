@@ -1,0 +1,34 @@
+
+dependencies {
+    implementation project(':thoth-commons-events')
+    implementation project(':thoth-core')
+    implementation project(':thoth-kafka-consumer-pekko')
+    implementation("io.vavr:vavr:$vavrVersion")
+    implementation("io.vavr:vavr-jackson:$vavrJacksonVersion")
+
+    implementation "org.apache.pekko:pekko-actor_$scalaVersion:$pekkoVersion"
+    implementation "org.apache.pekko:pekko-stream_$scalaVersion:$pekkoVersion"
+    implementation "org.apache.pekko:pekko-slf4j_$scalaVersion:$pekkoVersion"
+    implementation "org.apache.pekko:pekko-connectors-kafka_$scalaVersion:$pekkoKafkaVersion"
+
+    implementation 'org.scala-lang:scala-library:2.13.8'
+    implementation("com.fasterxml.uuid:java-uuid-generator:3.1.5")
+    implementation("tools.jackson.core:jackson-databind:$jacksonVersion")
+    implementation("fr.maif:functional-json:$functionalJsonVersion")
+
+    testImplementation("org.testcontainers:kafka:$testContainerVersion")
+    testImplementation("org.testcontainers:junit-jupiter:$testContainerVersion")
+    testImplementation "org.apache.pekko:pekko-testkit_$scalaVersion:$pekkoVersion"
+    testImplementation("org.apache.pekko:pekko-stream-testkit_$scalaVersion:$pekkoVersion")
+    testImplementation "org.apache.pekko:pekko-connectors-kafka-testkit_$scalaVersion:$pekkoKafkaVersion"
+    testImplementation("org.assertj:assertj-core:$assertJVersion")
+    testImplementation('com.h2database:h2:2.2.220')
+    testImplementation("org.mockito:mockito-core:$mockitoCoreVersion")
+    testImplementation(platform("org.junit:junit-bom:$jupiterVersion"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+test {
+    useJUnitPlatform()
+}

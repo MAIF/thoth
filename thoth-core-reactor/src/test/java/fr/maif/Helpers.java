@@ -1,6 +1,6 @@
 package fr.maif;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.Command;
 import fr.maif.eventsourcing.CommandHandler;

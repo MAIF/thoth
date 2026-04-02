@@ -1,0 +1,24 @@
+
+dependencies {
+    implementation "org.apache.pekko:pekko-actor_$scalaVersion:$pekkoVersion"
+    implementation "org.apache.pekko:pekko-stream_$scalaVersion:$pekkoVersion"
+    implementation "org.apache.pekko:pekko-slf4j_$scalaVersion:$pekkoVersion"
+    implementation "org.apache.pekko:pekko-connectors-kafka_$scalaVersion:$pekkoKafkaVersion"
+
+    testImplementation("org.testcontainers:kafka:$testContainerVersion")
+    testImplementation("org.testcontainers:junit-jupiter:$testContainerVersion")
+    testImplementation("org.apache.pekko:pekko-testkit_$scalaVersion:$pekkoVersion")
+    testImplementation("org.apache.pekko:pekko-stream-testkit_$scalaVersion:$pekkoVersion")
+    testImplementation "org.apache.pekko:pekko-connectors-kafka-testkit_$scalaVersion:$pekkoKafkaVersion"
+    testImplementation("org.assertj:assertj-core:$assertJVersion")
+    testImplementation(platform("org.junit:junit-bom:$jupiterVersion"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.scalatest:scalatest_$scalaVersion:3.0.8")
+    testImplementation("org.testcontainers:kafka:$testContainerVersion")
+
+}
+
+test {
+    useJUnitPlatform()
+}

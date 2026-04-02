@@ -10,6 +10,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import reactor.core.publisher.Mono;
@@ -32,12 +33,9 @@ public interface KafkaContainerTest {
 
     AtomicInteger counter = new AtomicInteger(0);
 
+    @Container
     KafkaContainer kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
             .withStartupAttempts(2);
-
-    static void startContainer() {
-        kafkaContainer.start();
-    }
 
     default String bootstrapServers() {
         return kafkaContainer.getBootstrapServers();

@@ -1,0 +1,38 @@
+
+dependencies {
+
+    implementation project(':thoth-commons-events')
+    implementation project(':thoth-core')
+    implementation project(':thoth-core-pekko')
+    implementation("io.vavr:vavr:$vavrVersion")
+    implementation("org.jooq:jooq:$jooqVersion")
+    implementation("fr.maif:jooq-async-api:$jooqAsyncVersion")
+    implementation("fr.maif:functional-json:$functionalJsonVersion")
+
+    implementation "org.apache.pekko:pekko-actor_$scalaVersion:$pekkoVersion"
+    implementation "org.apache.pekko:pekko-stream_$scalaVersion:$pekkoVersion"
+    implementation "org.apache.pekko:pekko-slf4j_$scalaVersion:$pekkoVersion"
+    implementation "org.apache.pekko:pekko-connectors-kafka_$scalaVersion:$pekkoKafkaVersion"
+    implementation("io.vertx:vertx-pg-client:$vertxSqlVersion")
+    implementation("io.vavr:vavr-jackson:$vavrJacksonVersion")
+
+    testImplementation "org.apache.pekko:pekko-testkit_$scalaVersion:$pekkoVersion"
+    testImplementation "org.apache.pekko:pekko-stream-testkit_$scalaVersion:$pekkoVersion"
+    testImplementation("fr.maif:jooq-async-jdbc:$jooqAsyncVersion")
+    testImplementation("fr.maif:jooq-async-reactive:$jooqAsyncVersion")
+    testImplementation("org.assertj:assertj-core:$assertJVersion")
+    testImplementation('org.postgresql:postgresql:42.7.7')
+    testImplementation("org.mockito:mockito-core:$mockitoCoreVersion")
+    testImplementation(platform("org.junit:junit-bom:$jupiterVersion"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation "org.testcontainers:junit-jupiter:$testContainerVersion"
+    testImplementation "org.testcontainers:testcontainers:$testContainerVersion"
+    testImplementation "org.testcontainers:postgresql:$testContainerVersion"
+    testImplementation "org.mockito:mockito-core:$mockitoCoreVersion"
+}
+
+test {
+    jvmArgs('--add-opens=java.base/java.lang=ALL-UNNAMED')
+    useJUnitPlatform()
+}

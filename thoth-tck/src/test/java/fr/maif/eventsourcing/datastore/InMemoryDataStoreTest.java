@@ -5,14 +5,14 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
-import akka.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.Source;
 import fr.maif.akka.eventsourcing.DefaultAggregateStore;
 import fr.maif.eventsourcing.*;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 
-import akka.actor.ActorSystem;
-import akka.stream.javadsl.Sink;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.javadsl.Sink;
 import fr.maif.akka.eventsourcing.InMemoryEventStore;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
