@@ -6,6 +6,7 @@ import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.reactor.eventsourcing.ReactorKafkaEventPublisher;
 import fr.maif.jooq.reactor.PgAsyncPool;
 import fr.maif.jooq.reactor.PgAsyncTransaction;
+import fr.maif.reactor.kafka.SenderOptions;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
