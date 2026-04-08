@@ -7,10 +7,10 @@ import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
 import fr.maif.reactor.eventsourcing.ReactorKafkaEventPublisher;
 import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
+import fr.maif.reactor.kafka.SenderOptions;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
-import reactor.kafka.sender.SenderOptions;
 
 import java.util.function.Function;
 

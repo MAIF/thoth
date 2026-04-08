@@ -5,11 +5,16 @@ import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventPublisher;
 import fr.maif.eventsourcing.EventStore;
 import fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy;
+import fr.maif.reactor.kafka.KafkaSender;
+import fr.maif.reactor.kafka.SenderOptions;
+import fr.maif.reactor.kafka.SenderRecord;
+import fr.maif.reactor.kafka.SenderResult;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.collection.Traversable;
 import io.vavr.control.Option;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,10 +22,6 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
-import reactor.kafka.sender.KafkaSender;
-import reactor.kafka.sender.SenderOptions;
-import reactor.kafka.sender.SenderRecord;
-import reactor.kafka.sender.SenderResult;
 import reactor.util.retry.Retry;
 
 import java.io.Closeable;
@@ -65,8 +66,9 @@ public class ReactorKafkaEventPublisher<E extends Event, Meta, Context> implemen
         this.maxRestartInterval = maxRestartInterval == null ? Duration.of(1, ChronoUnit.MINUTES) : maxRestartInterval;
 
         this.queue = Sinks.many().multicast().onBackpressureBuffer(this.queueBufferSize, false);
-        this.senderOptions = senderOptions.stopOnError(true);
-        this.kafkaSender = KafkaSender.create(senderOptions);
+        this.senderOptions = senderOptions;
+        KafkaProducer<String, EventEnvelope<E, Meta, Context>> producer = new KafkaProducer<>(senderOptions.properties(), senderOptions.keySerializer(), senderOptions.valueSerializer());
+        this.kafkaSender = new KafkaSender<>(producer);
     }
 
     record CountAndMaxSeqNum(Long count, Long lastSeqNum) {

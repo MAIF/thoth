@@ -9,7 +9,6 @@ dependencies {
     implementation("fr.maif:jooq-async-api:$jooqAsyncVersion")
     implementation("fr.maif:functional-json:$functionalJsonVersion")
     implementation("io.projectreactor:reactor-core:$reactorVersion")
-    implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
     implementation("org.slf4j:slf4j-api:1.7.26")
     implementation("io.vertx:vertx-pg-client:$vertxSqlVersion")
     implementation("fr.maif:jooq-async-reactive:$jooqAsyncVersion")
