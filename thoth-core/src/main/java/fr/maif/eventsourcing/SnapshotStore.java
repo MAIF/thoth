@@ -1,7 +1,6 @@
 package fr.maif.eventsourcing;
 
 import io.vavr.Tuple0;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Option;
 
 import java.util.concurrent.CompletionStage;

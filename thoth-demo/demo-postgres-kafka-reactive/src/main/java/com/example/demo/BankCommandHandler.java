@@ -15,9 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 
-import static io.vavr.API.Left;
-import static io.vavr.API.List;
-import static io.vavr.API.Right;
+import static io.vavr.API.*;
 
 public class BankCommandHandler implements ReactorCommandHandler<String, Account, BankCommand, BankEvent, Tuple0, PgAsyncTransaction> {
     @Override

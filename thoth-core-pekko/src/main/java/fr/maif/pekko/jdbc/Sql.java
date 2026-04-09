@@ -1,13 +1,13 @@
 package fr.maif.pekko.jdbc;
 
+import fr.maif.pekko.jdbc.function.ResultSetExtractor;
+import fr.maif.pekko.jdbc.query.SelectQueryBuilder;
+import fr.maif.pekko.jdbc.query.SqlContext;
+import fr.maif.pekko.jdbc.query.UpdateQueryBuilder;
 import org.apache.pekko.Done;
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.stream.javadsl.Source;
-import fr.maif.pekko.jdbc.query.SqlContext;
-import fr.maif.pekko.jdbc.function.ResultSetExtractor;
-import fr.maif.pekko.jdbc.query.SelectQueryBuilder;
-import fr.maif.pekko.jdbc.query.UpdateQueryBuilder;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

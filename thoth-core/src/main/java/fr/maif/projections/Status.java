@@ -1,8 +1,6 @@
 package fr.maif.projections;
 
-import static io.vavr.API.$;
-import static io.vavr.API.Case;
-import static io.vavr.API.Match;
+import static io.vavr.API.*;
 
 public interface Status {
 

@@ -1,11 +1,5 @@
 package fr.maif.pekko.eventsourcing;
 
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.japi.Pair;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.OverflowStrategy;
-import org.apache.pekko.stream.javadsl.*;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
@@ -13,17 +7,20 @@ import fr.maif.eventsourcing.EventPublisher;
 import fr.maif.eventsourcing.EventStore;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
-import io.vavr.Tuple2;
 import io.vavr.collection.List;
 import io.vavr.collection.Traversable;
 import io.vavr.control.Option;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.OverflowStrategy;
+import org.apache.pekko.stream.javadsl.*;
 import org.reactivestreams.Publisher;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;

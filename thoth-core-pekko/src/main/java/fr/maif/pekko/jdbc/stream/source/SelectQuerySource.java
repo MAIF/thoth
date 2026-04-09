@@ -1,5 +1,9 @@
 package fr.maif.pekko.jdbc.stream.source;
 
+import fr.maif.pekko.jdbc.function.ResultSetExtractor;
+import fr.maif.pekko.jdbc.query.Query;
+import fr.maif.pekko.jdbc.query.SqlContext;
+import fr.maif.pekko.jdbc.stream.ResourcesHelper;
 import org.apache.pekko.event.Logging;
 import org.apache.pekko.event.LoggingAdapter;
 import org.apache.pekko.stream.Attributes;
@@ -8,10 +12,6 @@ import org.apache.pekko.stream.SourceShape;
 import org.apache.pekko.stream.stage.AbstractOutHandler;
 import org.apache.pekko.stream.stage.GraphStage;
 import org.apache.pekko.stream.stage.GraphStageLogic;
-import fr.maif.pekko.jdbc.function.ResultSetExtractor;
-import fr.maif.pekko.jdbc.query.Query;
-import fr.maif.pekko.jdbc.query.SqlContext;
-import fr.maif.pekko.jdbc.stream.ResourcesHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

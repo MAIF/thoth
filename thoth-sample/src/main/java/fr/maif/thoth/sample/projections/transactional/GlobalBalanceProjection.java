@@ -1,18 +1,17 @@
 package fr.maif.thoth.sample.projections.transactional;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.Projection;
 import fr.maif.thoth.sample.events.BankEvent;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 public class GlobalBalanceProjection implements Projection<Connection, BankEvent, Tuple0, Tuple0> {
 

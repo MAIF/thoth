@@ -1,9 +1,9 @@
 package fr.maif.pekko.jdbc;
 
+import fr.maif.pekko.jdbc.function.ResultSetExtractor;
 import org.apache.pekko.japi.Pair;
 import org.apache.pekko.japi.tuple.Tuple3;
 import org.apache.pekko.japi.tuple.Tuple4;
-import fr.maif.pekko.jdbc.function.ResultSetExtractor;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

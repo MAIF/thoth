@@ -1,10 +1,5 @@
 package fr.maif.json;
 
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.NullNode;
-import tools.jackson.databind.node.ObjectNode;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
@@ -12,6 +7,11 @@ import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.NullNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;

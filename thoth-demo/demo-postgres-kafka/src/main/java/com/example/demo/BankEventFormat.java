@@ -1,10 +1,10 @@
 package com.example.demo;
 
-import tools.jackson.databind.JsonNode;
 import fr.maif.eventsourcing.Result;
 import fr.maif.eventsourcing.vanilla.format.JacksonEventFormat;
 import fr.maif.json.Json;
 import fr.maif.json.JsonWrite;
+import tools.jackson.databind.JsonNode;
 
 import static com.example.demo.BankEvent.*;
 

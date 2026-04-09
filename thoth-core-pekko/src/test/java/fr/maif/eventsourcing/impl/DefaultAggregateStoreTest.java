@@ -1,23 +1,23 @@
 package fr.maif.eventsourcing.impl;
 
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.stream.javadsl.AsPublisher;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
 import fr.maif.Helpers;
 import fr.maif.Helpers.Viking;
 import fr.maif.Helpers.VikingEvent;
-import fr.maif.pekko.eventsourcing.DefaultAggregateStore;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventProcessorTest;
 import fr.maif.eventsourcing.EventStore;
 import fr.maif.eventsourcing.EventStore.Query;
 import fr.maif.eventsourcing.ReadConcurrencyStrategy;
+import fr.maif.pekko.eventsourcing.DefaultAggregateStore;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.javadsl.AsPublisher;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +27,6 @@ import java.util.concurrent.CompletionStage;
 
 import static io.vavr.API.Some;
 import static io.vavr.API.Tuple;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 

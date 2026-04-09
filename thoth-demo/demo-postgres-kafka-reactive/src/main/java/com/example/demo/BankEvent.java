@@ -9,10 +9,7 @@ import fr.maif.json.JsonRead;
 import java.math.BigDecimal;
 
 import static fr.maif.json.Json.$$;
-import static fr.maif.json.JsonRead.__;
-import static fr.maif.json.JsonRead._bigDecimal;
-import static fr.maif.json.JsonRead._string;
-import static fr.maif.json.JsonRead.caseOf;
+import static fr.maif.json.JsonRead.*;
 import static fr.maif.json.JsonWrite.$bigdecimal;
 
 public sealed interface BankEvent extends Event {

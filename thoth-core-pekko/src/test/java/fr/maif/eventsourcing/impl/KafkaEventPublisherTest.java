@@ -1,7 +1,6 @@
 package fr.maif.eventsourcing.impl;
 
 import fr.maif.KafkaContainerTest;
-import fr.maif.pekko.eventsourcing.KafkaEventPublisher;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
@@ -13,6 +12,7 @@ import fr.maif.json.EventEnvelopeJson;
 import fr.maif.json.Json;
 import fr.maif.kafka.JsonDeserializer;
 import fr.maif.kafka.JsonSerializer;
+import fr.maif.pekko.eventsourcing.KafkaEventPublisher;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;

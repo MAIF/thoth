@@ -3,10 +3,10 @@ package fr.maif.reactor.eventsourcing.vanilla;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.State;
 import fr.maif.eventsourcing.TransactionManager;
+import fr.maif.eventsourcing.vanilla.AbstractDefaultAggregateStore;
 import fr.maif.eventsourcing.vanilla.AggregateStore;
 import fr.maif.eventsourcing.vanilla.EventHandler;
 import fr.maif.eventsourcing.vanilla.EventStore;
-import fr.maif.eventsourcing.vanilla.AbstractDefaultAggregateStore;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 

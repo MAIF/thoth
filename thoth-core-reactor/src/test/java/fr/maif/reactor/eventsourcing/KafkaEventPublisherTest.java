@@ -1,15 +1,5 @@
 package fr.maif.reactor.eventsourcing;
 
-import fr.maif.reactor.kafka.SenderOptions;
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.kafka.ConsumerSettings;
-import org.apache.pekko.kafka.Subscriptions;
-import org.apache.pekko.kafka.javadsl.Consumer;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import tools.jackson.databind.JsonNode;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
@@ -21,21 +11,28 @@ import fr.maif.json.Json;
 import fr.maif.kafka.JsonDeserializer;
 import fr.maif.kafka.JsonSerializer;
 import fr.maif.reactor.KafkaContainerTest;
+import fr.maif.reactor.kafka.SenderOptions;
 import io.vavr.API;
 import io.vavr.collection.List;
 import io.vavr.control.Either;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.kafka.ConsumerSettings;
+import org.apache.pekko.kafka.Subscriptions;
+import org.apache.pekko.kafka.javadsl.Consumer;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import reactor.core.publisher.Flux;
+import tools.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -54,7 +51,6 @@ import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRAT
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
 import static io.vavr.API.List;
 import static io.vavr.API.println;
-import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 

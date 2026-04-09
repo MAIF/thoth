@@ -1,12 +1,12 @@
 package fr.maif.pekko.jdbc.query;
 
+import fr.maif.pekko.jdbc.stream.source.UpdateQuerySource;
+import fr.maif.pekko.jdbc.stream.source.UpdateQueryWithResultedIdSource;
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.stream.ActorAttributes;
 import org.apache.pekko.stream.Attributes;
 import org.apache.pekko.stream.javadsl.Flow;
 import org.apache.pekko.stream.javadsl.Source;
-import fr.maif.pekko.jdbc.stream.source.UpdateQuerySource;
-import fr.maif.pekko.jdbc.stream.source.UpdateQueryWithResultedIdSource;
 
 import java.util.Arrays;
 import java.util.List;

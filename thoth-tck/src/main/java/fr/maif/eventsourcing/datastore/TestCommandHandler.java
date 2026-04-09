@@ -3,7 +3,6 @@ package fr.maif.eventsourcing.datastore;
 import fr.maif.eventsourcing.CommandHandler;
 import fr.maif.eventsourcing.Events;
 import io.vavr.Tuple0;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 

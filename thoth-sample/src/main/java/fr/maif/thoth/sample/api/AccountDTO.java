@@ -1,13 +1,13 @@
 package fr.maif.thoth.sample.api;
 
-import java.math.BigDecimal;
-import java.util.Objects;
-
 import fr.maif.eventsourcing.ProcessingSuccess;
 import fr.maif.thoth.sample.events.BankEvent;
 import fr.maif.thoth.sample.state.Account;
 import io.vavr.Tuple0;
 import io.vavr.control.Either;
+
+import java.math.BigDecimal;
+import java.util.Objects;
 
 public class AccountDTO {
     public BigDecimal balance;

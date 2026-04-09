@@ -1,43 +1,23 @@
 package fr.maif;
 
-import tools.jackson.databind.JsonNode;
 import fr.maif.concurrent.CompletionStages;
-import fr.maif.eventsourcing.Command;
-import fr.maif.eventsourcing.CommandHandler;
-import fr.maif.eventsourcing.Event;
-import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventHandler;
-import fr.maif.eventsourcing.Events;
-import fr.maif.eventsourcing.Projection;
-import fr.maif.eventsourcing.SnapshotStore;
-import fr.maif.eventsourcing.State;
-import fr.maif.eventsourcing.Type;
+import fr.maif.eventsourcing.*;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
-import fr.maif.json.EventEnvelopeJsonFormat;
-import fr.maif.json.Json;
-import fr.maif.json.JsonRead;
-import fr.maif.json.JsonSchema;
-import fr.maif.json.JsonWrite;
-import fr.maif.reactor.eventsourcing.InMemoryEventStore;
+import fr.maif.json.*;
 import fr.maif.reactor.eventsourcing.InMemoryEventStore.Transaction;
-import io.vavr.API;
 import io.vavr.Lazy;
-import io.vavr.Tuple;
-import io.vavr.Tuple0;
-import io.vavr.Tuple2;
+import io.vavr.*;
 import io.vavr.collection.List;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
+import tools.jackson.databind.JsonNode;
 
 import java.util.Objects;
 import java.util.StringJoiner;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static fr.maif.Helpers.VikingEvent.VikingCreatedV1;
-import static fr.maif.Helpers.VikingEvent.VikingDeletedV1;
-import static fr.maif.Helpers.VikingEvent.VikingUpdatedV1;
+import static fr.maif.Helpers.VikingEvent.*;
 import static fr.maif.json.JsonRead._fromClass;
 import static fr.maif.json.JsonRead.ofRead;
 import static io.vavr.API.*;

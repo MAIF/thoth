@@ -1,4 +1,4 @@
-import sbt.project
+
 
 lazy val `thoth-documentation` = (project in file("."))
   .enablePlugins(ParadoxSitePlugin)

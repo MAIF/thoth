@@ -1,7 +1,6 @@
 package fr.maif.reactor.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.protocol.types.Field;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.util.List;

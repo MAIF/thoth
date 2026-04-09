@@ -11,9 +11,7 @@ import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 
-import static io.vavr.API.None;
-import static io.vavr.API.Some;
-import static io.vavr.API.Tuple;
+import static io.vavr.API.*;
 import static io.vavr.PartialFunction.unlift;
 import static org.jooq.impl.DSL.val;
 

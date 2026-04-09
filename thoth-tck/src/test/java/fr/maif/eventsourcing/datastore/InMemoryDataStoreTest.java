@@ -1,21 +1,20 @@
 package fr.maif.eventsourcing.datastore;
 
+import fr.maif.eventsourcing.*;
+import fr.maif.pekko.eventsourcing.DefaultAggregateStore;
+import fr.maif.pekko.eventsourcing.InMemoryEventStore;
+import io.vavr.Tuple;
+import io.vavr.Tuple0;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.mockito.Mockito;
+import org.testng.annotations.BeforeMethod;
+
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
-
-import org.apache.pekko.stream.javadsl.Source;
-import fr.maif.pekko.eventsourcing.DefaultAggregateStore;
-import fr.maif.eventsourcing.*;
-import org.mockito.Mockito;
-import org.testng.annotations.BeforeMethod;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.stream.javadsl.Sink;
-import fr.maif.pekko.eventsourcing.InMemoryEventStore;
-import io.vavr.Tuple;
-import io.vavr.Tuple0;
 
 public class InMemoryDataStoreTest extends DataStoreVerification<Tuple0> {
     public ActorSystem actorSystem = ActorSystem.create();

@@ -1,12 +1,5 @@
 package fr.maif.pekko.projections;
 
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.kafka.ConsumerMessage;
-import org.apache.pekko.kafka.ConsumerSettings;
-import org.apache.pekko.kafka.Subscriptions;
-import org.apache.pekko.stream.javadsl.Flow;
-import org.apache.pekko.stream.scaladsl.Source;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
@@ -17,6 +10,13 @@ import io.vavr.Tuple0;
 import io.vavr.concurrent.Future;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.kafka.ConsumerMessage;
+import org.apache.pekko.kafka.ConsumerSettings;
+import org.apache.pekko.kafka.Subscriptions;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.scaladsl.Source;
 
 import java.time.Duration;
 import java.util.function.Function;

@@ -2,7 +2,6 @@ package fr.maif.eventsourcing.impl;
 
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.TransactionManager;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Try;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +12,6 @@ import java.sql.SQLException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
 public class JdbcTransactionManager implements TransactionManager<Connection> {

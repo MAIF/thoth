@@ -1,11 +1,11 @@
 package fr.maif.kafka.reactor.consumer;
 
-import fr.maif.kafka.Helpers;
-import fr.maif.kafka.Helpers.VikingEvent;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.json.Json;
 import fr.maif.json.JsonFormat;
+import fr.maif.kafka.Helpers;
+import fr.maif.kafka.Helpers.VikingEvent;
 import fr.maif.kafka.KafkaContainerTest;
 import fr.maif.reactor.projections.EventuallyConsistentProjection;
 import fr.maif.reactor.projections.EventuallyConsistentProjection.Config;

@@ -3,7 +3,6 @@ package fr.maif.reactor.eventsourcing;
 import fr.maif.eventsourcing.*;
 import fr.maif.reactor.eventsourcing.InMemoryEventStore.Transaction;
 import io.vavr.API;
-import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Either;
@@ -19,10 +18,7 @@ import java.util.function.Function;
 import static fr.maif.Helpers.*;
 import static fr.maif.Helpers.VikingCommand.*;
 import static io.vavr.API.Some;
-import static org.assertj.core.api.Assertions.anyOf;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 
 public class EventProcessorTest {
 

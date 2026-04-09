@@ -1,16 +1,15 @@
 package fr.maif.kafka.consumer;
 
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.pekko.Done;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.kafka.ConsumerMessage.CommittableMessage;
 import org.apache.pekko.kafka.ConsumerMessage.CommittableOffset;
 import org.apache.pekko.kafka.ConsumerSettings;
 import org.apache.pekko.kafka.Subscriptions;
-import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.javadsl.Flow;
 import org.apache.pekko.stream.javadsl.FlowWithContext;
 import org.apache.pekko.testkit.javadsl.TestKit;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;

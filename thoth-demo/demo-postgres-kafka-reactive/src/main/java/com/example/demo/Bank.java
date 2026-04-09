@@ -2,11 +2,7 @@ package com.example.demo;
 
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedGenerator;
-import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.ProcessingSuccess;
-import fr.maif.eventsourcing.ReactiveEventProcessor;
-import fr.maif.eventsourcing.ReactorEventProcessor;
-import fr.maif.eventsourcing.TableNames;
+import fr.maif.eventsourcing.*;
 import fr.maif.jooq.reactor.PgAsyncPool;
 import fr.maif.jooq.reactor.PgAsyncTransaction;
 import fr.maif.kafka.JsonFormatSerDer;

@@ -1,23 +1,20 @@
 package fr.maif.thoth.sample.commands;
 
-import static io.vavr.API.*;
-import static io.vavr.API.Left;
-import static io.vavr.API.Right;
-
-import java.math.BigDecimal;
-import java.sql.Connection;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-
 import fr.maif.eventsourcing.CommandHandler;
 import fr.maif.eventsourcing.Events;
 import fr.maif.thoth.sample.events.BankEvent;
 import fr.maif.thoth.sample.state.Account;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
-import io.vavr.concurrent.Future;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
+
+import java.math.BigDecimal;
+import java.sql.Connection;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
+import static io.vavr.API.*;
 
 public class BankCommandHandler implements CommandHandler<String, Account, BankCommand, BankEvent, Tuple0, Connection> {
     @Override

@@ -1,12 +1,12 @@
 package fr.maif.eventsourcing.datastore;
 
-import tools.jackson.databind.JsonNode;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.json.Json;
 import fr.maif.json.JsonWrite;
 import io.vavr.API;
 import io.vavr.Tuple;
 import io.vavr.control.Either;
+import tools.jackson.databind.JsonNode;
 
 import static io.vavr.API.Case;
 

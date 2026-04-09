@@ -6,7 +6,6 @@ import io.vavr.control.Option;
 import reactor.core.publisher.Mono;
 
 import java.io.Closeable;
-import java.io.IOException;
 
 public interface ReactorEventProcessor<Error, S extends State<S>, C extends Command<Meta, Context>, E extends Event, TxCtx, Message, Meta, Context> extends Closeable {
 

@@ -7,14 +7,12 @@ import io.vavr.collection.List;
 import io.vavr.collection.Map;
 import io.vavr.collection.Traversable;
 import io.vavr.control.Option;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Objects;
-import java.util.concurrent.CompletionStage;
 
 import static java.util.function.Function.identity;
 

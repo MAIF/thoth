@@ -1,10 +1,10 @@
 package fr.maif.thoth.sample.events;
 
-import java.math.BigDecimal;
-
 import fr.maif.eventsourcing.EventHandler;
 import fr.maif.thoth.sample.state.Account;
 import io.vavr.control.Option;
+
+import java.math.BigDecimal;
 
 public class BankEventHandler implements EventHandler<Account, BankEvent> {
     @Override

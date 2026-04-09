@@ -5,10 +5,7 @@ import io.vavr.control.Option;
 
 import java.math.BigDecimal;
 
-import static com.example.demo.BankEvent.AccountClosed;
-import static com.example.demo.BankEvent.AccountOpened;
-import static com.example.demo.BankEvent.MoneyDeposited;
-import static com.example.demo.BankEvent.MoneyWithdrawn;
+import static com.example.demo.BankEvent.*;
 
 public class BankEventHandler implements EventHandler<Account, BankEvent> {
     @Override

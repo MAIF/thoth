@@ -2,7 +2,6 @@ package fr.maif.eventsourcing;
 
 import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
-import io.vavr.concurrent.Future;
 
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;

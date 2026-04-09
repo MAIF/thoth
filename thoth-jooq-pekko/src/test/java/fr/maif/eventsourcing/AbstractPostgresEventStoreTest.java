@@ -1,12 +1,5 @@
 package fr.maif.eventsourcing;
 
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.jooq.PgAsyncPool;
@@ -16,6 +9,11 @@ import io.vavr.collection.List;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.SQLDialect;
@@ -28,6 +26,8 @@ import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -39,7 +39,6 @@ import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;

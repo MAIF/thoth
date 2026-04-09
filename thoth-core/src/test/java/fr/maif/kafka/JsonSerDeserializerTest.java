@@ -1,11 +1,11 @@
 package fr.maif.kafka;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.node.StringNode;
 import fr.maif.Helpers;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.StringNode;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

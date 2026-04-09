@@ -1,17 +1,17 @@
 package fr.maif.eventsourcing;
 
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.kafka.ProducerSettings;
 import fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
-import fr.maif.pekko.eventsourcing.DefaultAggregateStore;
-import fr.maif.pekko.eventsourcing.KafkaEventPublisher;
 import fr.maif.jooq.PgAsyncPool;
 import fr.maif.jooq.PgAsyncTransaction;
+import fr.maif.pekko.eventsourcing.DefaultAggregateStore;
+import fr.maif.pekko.eventsourcing.KafkaEventPublisher;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.kafka.ProducerSettings;
 
 import java.util.function.Function;
 

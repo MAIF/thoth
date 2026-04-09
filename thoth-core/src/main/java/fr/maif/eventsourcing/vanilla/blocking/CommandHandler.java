@@ -2,9 +2,9 @@ package fr.maif.eventsourcing.vanilla.blocking;
 
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.Event;
-import fr.maif.eventsourcing.vanilla.Events;
 import fr.maif.eventsourcing.Result;
 import fr.maif.eventsourcing.Unit;
+import fr.maif.eventsourcing.vanilla.Events;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 

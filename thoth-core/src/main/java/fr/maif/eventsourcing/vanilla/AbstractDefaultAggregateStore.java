@@ -5,7 +5,6 @@ import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.State;
 import fr.maif.eventsourcing.TransactionManager;
 import io.vavr.Tuple;
-import io.vavr.Tuple2;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Traversable;
 import io.vavr.control.Option;

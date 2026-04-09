@@ -1,5 +1,6 @@
 package fr.maif.kafka.consumer;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.pekko.Done;
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorSystem;
@@ -11,12 +12,7 @@ import org.apache.pekko.kafka.ConsumerSettings;
 import org.apache.pekko.kafka.javadsl.Committer;
 import org.apache.pekko.kafka.javadsl.Consumer;
 import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.javadsl.Flow;
-import org.apache.pekko.stream.javadsl.FlowWithContext;
-import org.apache.pekko.stream.javadsl.RestartSource;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.pekko.stream.javadsl.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,8 +29,8 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static org.apache.pekko.Done.done;
 import static java.util.function.Function.identity;
+import static org.apache.pekko.Done.done;
 
 public abstract class ResilientKafkaConsumer<K, V> {
 

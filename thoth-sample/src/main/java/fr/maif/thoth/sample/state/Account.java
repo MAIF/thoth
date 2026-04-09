@@ -1,8 +1,8 @@
 package fr.maif.thoth.sample.state;
 
-import java.math.BigDecimal;
-
 import fr.maif.eventsourcing.AbstractState;
+
+import java.math.BigDecimal;
 
 public class Account extends AbstractState<Account> {
     public String id;

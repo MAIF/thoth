@@ -1,10 +1,10 @@
 package fr.maif.pekko.eventsourcing;
 
+import fr.maif.eventsourcing.*;
+import fr.maif.eventsourcing.impl.AbstractDefaultAggregateStore;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.javadsl.Source;
-import fr.maif.eventsourcing.*;
-import fr.maif.eventsourcing.impl.AbstractDefaultAggregateStore;
 import org.reactivestreams.Publisher;
 
 import java.util.concurrent.CompletionStage;

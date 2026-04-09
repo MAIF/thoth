@@ -1,8 +1,5 @@
 package fr.maif.pekko.kafka;
 
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.kafka.ConsumerSettings;
-import org.apache.pekko.kafka.ProducerSettings;
 import com.typesafe.config.Config;
 import fr.maif.pekko.config.Configs;
 import io.vavr.Tuple;
@@ -16,6 +13,9 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.kafka.ConsumerSettings;
+import org.apache.pekko.kafka.ProducerSettings;
 
 import java.util.HashMap;
 import java.util.Map;

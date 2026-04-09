@@ -1,12 +1,5 @@
 package fr.maif.eventsourcing.impl;
 
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import fr.maif.eventsourcing.*;
@@ -16,6 +9,11 @@ import io.vavr.collection.List;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.SQLDialect;
@@ -27,6 +25,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.InputStream;
 import java.sql.Connection;
@@ -39,9 +39,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRATEGY;
-import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.SKIP;
-import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.WAIT;
+import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.*;
 import static io.vavr.API.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.jooq.impl.DSL.table;

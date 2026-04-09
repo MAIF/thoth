@@ -1,15 +1,13 @@
 package fr.maif.kafka;
 
-import tools.jackson.databind.JsonNode;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.format.EventFormat;
 import fr.maif.eventsourcing.format.JacksonEventFormat;
 import fr.maif.eventsourcing.format.JacksonSimpleFormat;
-import fr.maif.eventsourcing.format.SimpleFormat;
 import fr.maif.json.EventEnvelopeJson;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import tools.jackson.databind.JsonNode;
 
 import java.util.Map;
 

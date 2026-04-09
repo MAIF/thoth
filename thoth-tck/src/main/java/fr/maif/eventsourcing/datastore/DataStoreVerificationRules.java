@@ -1,11 +1,6 @@
 package fr.maif.eventsourcing.datastore;
 
-import fr.maif.eventsourcing.Event;
-import fr.maif.eventsourcing.EventEnvelope;
-import fr.maif.eventsourcing.EventProcessorImpl;
-import fr.maif.eventsourcing.EventStore;
-import fr.maif.eventsourcing.ProcessingSuccess;
-import fr.maif.eventsourcing.State;
+import fr.maif.eventsourcing.*;
 import io.vavr.Tuple0;
 import io.vavr.control.Either;
 import io.vavr.control.Option;

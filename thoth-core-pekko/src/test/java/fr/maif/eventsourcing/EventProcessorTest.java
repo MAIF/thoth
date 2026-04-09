@@ -1,17 +1,17 @@
 package fr.maif.eventsourcing;
 
+import fr.maif.pekko.eventsourcing.DefaultAggregateStore;
+import fr.maif.pekko.eventsourcing.InMemoryEventStore;
+import io.vavr.Tuple;
+import io.vavr.Tuple0;
+import io.vavr.collection.List;
+import io.vavr.control.Either;
+import io.vavr.control.Option;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.testkit.javadsl.TestKit;
-import fr.maif.pekko.eventsourcing.DefaultAggregateStore;
-import io.vavr.Tuple;
-import io.vavr.Tuple0;
-import fr.maif.pekko.eventsourcing.InMemoryEventStore;
-import io.vavr.collection.List;
-import io.vavr.control.Either;
-import io.vavr.control.Option;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

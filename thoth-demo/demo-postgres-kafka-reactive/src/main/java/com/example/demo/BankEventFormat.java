@@ -1,9 +1,6 @@
 package com.example.demo;
 
-import com.example.demo.BankEvent.AccountClosed;
-import com.example.demo.BankEvent.AccountOpened;
-import com.example.demo.BankEvent.MoneyDeposited;
-import com.example.demo.BankEvent.MoneyWithdrawn;
+import com.example.demo.BankEvent.*;
 import fr.maif.eventsourcing.Type;
 import fr.maif.json.EventEnvelopeJsonFormat;
 import fr.maif.json.JsonRead;
@@ -12,10 +9,7 @@ import io.vavr.Tuple0;
 import io.vavr.Tuple2;
 import io.vavr.collection.List;
 
-import static com.example.demo.BankEvent.AccountClosedV1;
-import static com.example.demo.BankEvent.AccountOpenedV1;
-import static com.example.demo.BankEvent.MoneyDepositedV1;
-import static com.example.demo.BankEvent.MoneyWithdrawnV1;
+import static com.example.demo.BankEvent.*;
 import static io.vavr.API.List;
 import static io.vavr.API.Tuple;
 

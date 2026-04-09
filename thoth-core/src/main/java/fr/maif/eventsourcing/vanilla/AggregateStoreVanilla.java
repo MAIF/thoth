@@ -1,7 +1,6 @@
 package fr.maif.eventsourcing.vanilla;
 
 import fr.maif.eventsourcing.Event;
-import fr.maif.eventsourcing.EventHandler;
 import fr.maif.eventsourcing.State;
 import io.vavr.control.Option;
 

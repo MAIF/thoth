@@ -1,13 +1,11 @@
 package fr.maif.thoth.sample.events;
 
-import java.math.BigDecimal;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.Type;
-import io.vavr.API.Match.Pattern0;
+
+import java.math.BigDecimal;
 
 public abstract class BankEvent implements Event {
     public static Type<MoneyWithdrawn> MoneyWithdrawnV1 = Type.create(MoneyWithdrawn.class, 1L);

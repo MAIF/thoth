@@ -5,7 +5,6 @@ import com.fasterxml.uuid.impl.TimeBasedGenerator;
 import fr.maif.eventsourcing.*;
 import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
 import fr.maif.reactor.eventsourcing.InMemoryEventStore;
-import fr.maif.eventsourcing.EventProcessorImpl;
 import fr.maif.reactor.eventsourcing.InMemoryEventStore.Transaction;
 import io.vavr.Lazy;
 import io.vavr.Tuple0;

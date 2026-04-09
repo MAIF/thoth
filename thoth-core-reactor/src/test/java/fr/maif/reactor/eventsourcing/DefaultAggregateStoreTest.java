@@ -9,7 +9,6 @@ import fr.maif.eventsourcing.EventStore;
 import fr.maif.eventsourcing.EventStore.Query;
 import fr.maif.eventsourcing.ReadConcurrencyStrategy;
 import fr.maif.reactor.eventsourcing.InMemoryEventStore.Transaction;
-import io.vavr.Tuple;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
@@ -22,14 +21,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
 import static io.vavr.API.Some;
-import static io.vavr.API.Tuple;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 
 class DefaultAggregateStoreTest {

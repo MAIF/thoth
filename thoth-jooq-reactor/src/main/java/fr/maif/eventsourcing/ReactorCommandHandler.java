@@ -6,8 +6,6 @@ import io.vavr.control.Either;
 import io.vavr.control.Option;
 import reactor.core.publisher.Mono;
 
-import java.util.concurrent.CompletionStage;
-
 /**
  *
  * The command is the interface that need to be implemented in order to handle command.

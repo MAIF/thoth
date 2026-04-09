@@ -1,14 +1,8 @@
 package fr.maif.thoth.sample.projections.eventualyconsistent;
 
-import java.math.BigDecimal;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-
-import javax.sql.DataSource;
-
+import fr.maif.reactor.projections.EventuallyConsistentProjection;
+import fr.maif.thoth.sample.events.BankEvent;
+import fr.maif.thoth.sample.events.BankEventFormat;
 import io.vavr.Tuple;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -16,9 +10,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import fr.maif.reactor.projections.EventuallyConsistentProjection;
-import fr.maif.thoth.sample.events.BankEvent;
-import fr.maif.thoth.sample.events.BankEventFormat;
+import javax.sql.DataSource;
+import java.math.BigDecimal;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Component
 public class MeanWithdrawProjection  {

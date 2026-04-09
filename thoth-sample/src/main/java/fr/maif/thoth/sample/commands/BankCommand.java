@@ -1,9 +1,9 @@
 package fr.maif.thoth.sample.commands;
 
-import java.math.BigDecimal;
-
 import fr.maif.eventsourcing.SimpleCommand;
 import io.vavr.Lazy;
+
+import java.math.BigDecimal;
 
 public interface BankCommand extends SimpleCommand {
 

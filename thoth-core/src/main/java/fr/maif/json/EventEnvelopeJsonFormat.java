@@ -1,7 +1,5 @@
 package fr.maif.json;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.node.NullNode;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.Type;
@@ -12,6 +10,8 @@ import io.vavr.collection.List;
 import io.vavr.collection.Seq;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.NullNode;
 
 import java.util.UUID;
 import java.util.function.Function;

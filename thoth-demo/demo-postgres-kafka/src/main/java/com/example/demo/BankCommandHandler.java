@@ -1,7 +1,7 @@
 package com.example.demo;
 
-import fr.maif.eventsourcing.vanilla.Events;
 import fr.maif.eventsourcing.Result;
+import fr.maif.eventsourcing.vanilla.Events;
 import fr.maif.eventsourcing.vanilla.blocking.CommandHandler;
 
 import java.math.BigDecimal;

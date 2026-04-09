@@ -1,7 +1,7 @@
 package fr.maif.pekko.jdbc;
 
-import org.apache.pekko.actor.ActorSystem;
 import fr.maif.pekko.PekkoExecutionContext;
+import org.apache.pekko.actor.ActorSystem;
 
 public class JdbcExecutionContext extends PekkoExecutionContext {
 

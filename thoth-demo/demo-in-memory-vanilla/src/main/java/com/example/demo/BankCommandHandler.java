@@ -10,7 +10,6 @@ import fr.maif.eventsourcing.vanilla.Events;
 import fr.maif.eventsourcing.vanilla.blocking.CommandHandler;
 import fr.maif.reactor.eventsourcing.vanilla.InMemoryEventStore.Transaction;
 
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
