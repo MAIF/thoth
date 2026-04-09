@@ -1,18 +1,19 @@
-package fr.maif.reactor.projections;
+package fr.maif.kafka.reactor.consumer;
 
-import tools.jackson.databind.JsonNode;
-import fr.maif.Helpers;
-import fr.maif.Helpers.VikingEvent;
+import fr.maif.kafka.Helpers;
+import fr.maif.kafka.Helpers.VikingEvent;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.json.Json;
 import fr.maif.json.JsonFormat;
-import fr.maif.reactor.KafkaContainerTest;
+import fr.maif.kafka.KafkaContainerTest;
+import fr.maif.reactor.projections.EventuallyConsistentProjection;
 import fr.maif.reactor.projections.EventuallyConsistentProjection.Config;
 import io.vavr.API;
 import io.vavr.Tuple0;
 import io.vavr.control.Option;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

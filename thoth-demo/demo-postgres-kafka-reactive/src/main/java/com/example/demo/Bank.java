@@ -11,6 +11,7 @@ import fr.maif.jooq.reactor.PgAsyncPool;
 import fr.maif.jooq.reactor.PgAsyncTransaction;
 import fr.maif.kafka.JsonFormatSerDer;
 import fr.maif.reactor.kafka.KafkaSettings;
+import fr.maif.reactor.kafka.SenderOptions;
 import io.vavr.Lazy;
 import io.vavr.Tuple;
 import io.vavr.Tuple0;
@@ -25,7 +26,6 @@ import org.jooq.SQLDialect;
 import org.jooq.impl.DefaultConfiguration;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.kafka.sender.SenderOptions;
 
 import java.io.Closeable;
 import java.io.IOException;

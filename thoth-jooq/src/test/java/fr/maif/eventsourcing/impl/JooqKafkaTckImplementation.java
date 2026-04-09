@@ -15,6 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
+import fr.maif.reactor.kafka.SenderOptions;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 import fr.maif.eventsourcing.EventStore;
@@ -53,7 +54,6 @@ import fr.maif.json.EventEnvelopeJson;
 import fr.maif.kafka.JsonSerializer;
 import fr.maif.reactor.kafka.KafkaSettings;
 import io.vavr.Tuple0;
-import reactor.kafka.sender.SenderOptions;
 
 public class JooqKafkaTckImplementation extends DataStoreVerification<Connection> {
 

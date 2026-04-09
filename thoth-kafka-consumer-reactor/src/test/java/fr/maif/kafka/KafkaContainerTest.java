@@ -1,15 +1,12 @@
-package fr.maif.reactor;
+package fr.maif.kafka;
 
-import fr.maif.reactor.kafka.KafkaSender;
-import fr.maif.reactor.kafka.SenderOptions;
-import fr.maif.reactor.kafka.SenderRecord;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.pekko.actor.ActorSystem;
@@ -18,10 +15,10 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -38,6 +35,10 @@ public interface KafkaContainerTest {
     @Container
     KafkaContainer kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
             .withStartupAttempts(2);
+
+    static void startContainer() {
+        kafkaContainer.start();
+    }
 
     default String bootstrapServers() {
         return kafkaContainer.getBootstrapServers();
@@ -75,7 +76,6 @@ public interface KafkaContainerTest {
         }
     }
 
-
     default ConsumerSettings<String, String> consumerDefaults(ActorSystem actorSystem) {
         return ConsumerSettings.create(actorSystem, new StringDeserializer(), new StringDeserializer())
                 .withBootstrapServers(kafkaContainer.getBootstrapServers())
@@ -83,29 +83,24 @@ public interface KafkaContainerTest {
                 .withProperty(AUTO_OFFSET_RESET_CONFIG, "earliest");
     }
 
-
-    default <T> ConsumerSettings<String, T> consumerSettings(ActorSystem actorSystem, Deserializer<T> deserializer) {
-        return ConsumerSettings.create(actorSystem, new StringDeserializer(), deserializer)
-                .withBootstrapServers(kafkaContainer.getBootstrapServers())
-                .withGroupId("test-group-id")
-                .withProperty(AUTO_OFFSET_RESET_CONFIG, "earliest");
-    }
-
-
-    default SenderOptions<String, String> senderDefault() {
-        return SenderOptions.<String, String>create(Map.of(
+    default KafkaProducer<String, String> producer() {
+        return new KafkaProducer<>(Map.of(
                         ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers()
-                ))
-                .withKeySerializer(new StringSerializer())
-                .withValueSerializer(new StringSerializer());
+                ), new StringSerializer(), new StringSerializer());
     }
 
     default void produceString(String topic, String event) {
-        KafkaSender.create(senderDefault()).send(Mono.just(
-                SenderRecord.create(new ProducerRecord<>(
-                        topic, event
-                ), null)
-        )).collectList().block();
+        CompletableFuture<String> completableFuture = new CompletableFuture<>();
+        producer().send(new ProducerRecord<>(
+                topic, event
+        ), (recordMetadata, e) -> {
+            if (e != null) {
+                completableFuture.completeExceptionally(e);
+            } else {
+                completableFuture.complete(recordMetadata.topic());
+            }
+        });
+        completableFuture.join();
     }
 
 }

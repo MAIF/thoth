@@ -1,5 +1,14 @@
 package fr.maif.reactor.eventsourcing;
 
+import fr.maif.reactor.kafka.SenderOptions;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.kafka.ConsumerSettings;
+import org.apache.pekko.kafka.Subscriptions;
+import org.apache.pekko.kafka.javadsl.Consumer;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 import tools.jackson.databind.JsonNode;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.Event;
@@ -27,9 +36,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.core.publisher.Flux;
-import reactor.kafka.receiver.KafkaReceiver;
-import reactor.kafka.receiver.ReceiverOptions;
-import reactor.kafka.sender.SenderOptions;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -55,6 +61,9 @@ import static org.mockito.Mockito.*;
 @Testcontainers
 public class KafkaEventPublisherTest implements KafkaContainerTest {
 
+    private static final ActorSystem sys = ActorSystem.create("KafkaEventPublisherTest");
+    private static final Materializer mat = Materializer.createMaterializer(sys);
+
     @BeforeEach
     @AfterEach
     void cleanUpInit() {
@@ -79,23 +88,17 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
 
         Thread.sleep(200);
 
-        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = KafkaReceiver.create(receiverDefault()
-                        .consumerProperty(ConsumerConfig.GROUP_ID_CONFIG, "eventConsumption")
-                        .consumerProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-                        .subscription(List.of(topic).toJavaList()))
-                .receive()
+        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = Consumer.plainSource(consumerDefaults(sys).withGroupId("test1"), Subscriptions.topics(topic))
                 .map(ConsumerRecord::value)
                 .map(KafkaEventPublisherTest::deserialize)
-                .bufferTimeout(50, Duration.ofSeconds(4))
+                .take(3)
                 .map(e -> {
                     println(e);
                     return e;
                 })
-                .take(1)
-                .timeout(Duration.of(30, ChronoUnit.SECONDS))
-                .collectList()
-                .map(l -> List.ofAll(l).flatMap(identity()))
-                .toFuture();
+                .idleTimeout(Duration.of(30, ChronoUnit.SECONDS))
+                .runWith(Sink.seq(), mat)
+                .thenApply(List::ofAll);
 
         publisher.publish(List.of(
                 envelope1,
@@ -130,19 +133,12 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
 
         Thread.sleep(200);
 
-        CompletionStage<List<String>> results = KafkaReceiver.create(receiverDefault()
-                        .consumerProperty(ConsumerConfig.GROUP_ID_CONFIG, "eventConsumptionWithEventFromDb")
-                        .consumerProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-                        .subscription(List.of(topic).toJavaList())
-                )
-                .receive()
+        CompletionStage<List<String>> results = Consumer.plainSource(consumerDefaults(sys).withGroupId("test2"), Subscriptions.topics(topic))
                 .map(ConsumerRecord::value)
-                .bufferTimeout(50, Duration.ofSeconds(4))
-                .take(1)
-                .timeout(Duration.of(30, ChronoUnit.SECONDS))
-                .collectList()
-                .map(l -> List.ofAll(l).flatMap(identity()))
-                .toFuture();
+                .take(6)
+                .idleTimeout(Duration.of(5, ChronoUnit.SECONDS))
+                .runWith(Sink.seq(), mat)
+                .thenApply(List::ofAll);
 
         publisher.publish(List.of(
                 eventEnvelopeUnpublished("value 4"),
@@ -169,16 +165,17 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
         String topic = createTopic("testRestart", 5, 1);
         ReactorKafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
 
-        Supplier<Flux<EventEnvelope<TestEvent, Void, Void>>> eventsFlux = () -> KafkaReceiver
-                .create(receiverDefault()
-                        .consumerProperty(ConsumerConfig.GROUP_ID_CONFIG, "testRestart")
-                        .consumerProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-                        .consumerProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
-                        .subscription(List.of(topic).toJavaList()))
-                .receive()
-                .doOnNext(e -> e.receiverOffset().acknowledge())
-                .map(ConsumerRecord::value)
-                .map(KafkaEventPublisherTest::deserialize);
+        Supplier<Source<EventEnvelope<TestEvent, Void, Void>, NotUsed>> eventsFlux = () -> Consumer
+                .plainSource(consumerSettings()
+                        .withGroupId("testRestart")
+                                .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+                                .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+                        ,
+                        Subscriptions.topics(topic)
+                )
+                .map(r -> r.value())
+                .mapMaterializedValue(c -> NotUsed.notUsed());
+
 
         EventEnvelope<TestEvent, Void, Void> envelope1 = eventEnvelopeUnpublished("value 1");
         EventEnvelope<TestEvent, Void, Void> envelope2 = eventEnvelopeUnpublished("value 2");
@@ -217,12 +214,11 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
 
 
         CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = eventsFlux.get()
-                .bufferTimeout(50, Duration.ofSeconds(4))
+                .groupedWithin(50, Duration.ofSeconds(4))
                 .take(1)
-                .timeout(Duration.of(30, ChronoUnit.SECONDS))
-                .collectList()
-                .map(l -> List.ofAll(l).flatMap(identity()))
-                .toFuture();
+                .idleTimeout(Duration.of(10, ChronoUnit.SECONDS))
+                .runWith(Sink.head(), mat)
+                .thenApply(List::ofAll);
 
         List<EventEnvelope<TestEvent, Void, Void>> toPublish = List(envelope4, envelope5, envelope6);
         eventStore.publish(toPublish);
@@ -252,12 +248,12 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
         eventStore.publish(toPublishFailInMemory);
         publisher.publish(toPublishFailInMemory);
         List<EventEnvelope<TestEvent, Void, Void>> resultsAfterCrash = eventsFlux.get()
-                .bufferTimeout(50, Duration.ofSeconds(10))
+                .groupedWithin(50, Duration.ofSeconds(10))
+                .map(List::ofAll)
                 .take(1)
-                .timeout(Duration.of(30, ChronoUnit.SECONDS))
-                .collectList()
-                .map(l -> List.ofAll(l).flatMap(identity()))
-                .block();
+                .idleTimeout(Duration.of(30, ChronoUnit.SECONDS))
+                .runWith(Sink.head(), mat)
+                .toCompletableFuture().join();
 
         println(resultsAfterCrash.mkString("\n"));
         assertThat(resultsAfterCrash).contains(envelope7, envelope8, envelope9);
@@ -269,12 +265,12 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
         publisher.publish(toPublishFailAtTheEnd);
 
         List<EventEnvelope<TestEvent, Void, Void>> resultsAfterCrashInMemory = eventsFlux.get()
-                .bufferTimeout(50, Duration.ofSeconds(10))
+                .groupedWithin(50, Duration.ofSeconds(10))
+                .map(List::ofAll)
                 .take(1)
-                .timeout(Duration.of(30, ChronoUnit.SECONDS))
-                .collectList()
-                .map(l -> List.ofAll(l).flatMap(identity()))
-                .block();
+                .idleTimeout(Duration.of(30, ChronoUnit.SECONDS))
+                .runWith(Sink.head(), mat)
+                .toCompletableFuture().join();
 
         println(resultsAfterCrashInMemory.mkString("\n"));
         assertThat(resultsAfterCrashInMemory).containsExactly(envelope10, envelope11, envelope12);
@@ -329,13 +325,8 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
                 ));
     }
 
-    private ReceiverOptions<String, EventEnvelope<TestEvent, Void, Void>> receiverOptions() {
-        return ReceiverOptions.<String, EventEnvelope<TestEvent, Void, Void>>create(Map.of(
-                    ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers()
-                ))
-                .withKeyDeserializer(new StringDeserializer())
-                .withValueDeserializer(
-                        new JsonDeserializer<TestEvent, Void, Void>(
+    private ConsumerSettings<String, EventEnvelope<TestEvent, Void, Void>> consumerSettings() {
+        return consumerSettings(sys, new JsonDeserializer<TestEvent, Void, Void>(
                                 new TestEventSerializer(),
                                 JacksonSimpleFormat.empty(),
                                 JacksonSimpleFormat.empty(),

@@ -8,6 +8,7 @@ import fr.maif.eventsourcing.format.JacksonSimpleFormat;
 import fr.maif.eventsourcing.impl.TableNames;
 import fr.maif.kafka.JsonSerializer;
 import fr.maif.reactor.kafka.KafkaSettings;
+import fr.maif.reactor.kafka.SenderOptions;
 import fr.maif.thoth.sample.commands.BankCommand;
 import fr.maif.thoth.sample.commands.BankCommandHandler;
 import fr.maif.thoth.sample.events.BankEvent;
@@ -20,7 +21,6 @@ import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import reactor.kafka.sender.SenderOptions;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

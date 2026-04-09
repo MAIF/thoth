@@ -13,8 +13,8 @@ import fr.maif.eventsourcing.vanilla.format.JacksonSimpleFormat;
 import fr.maif.kafka.JsonSerializer;
 import fr.maif.reactor.eventsourcing.ReactorKafkaEventPublisher;
 import fr.maif.reactor.kafka.KafkaSettings;
+import fr.maif.reactor.kafka.SenderOptions;
 import org.postgresql.ds.PGSimpleDataSource;
-import reactor.kafka.sender.SenderOptions;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;

@@ -11,8 +11,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import reactor.kafka.receiver.ReceiverOptions;
-import reactor.kafka.sender.SenderOptions;
 
 import java.util.HashMap;
 import java.util.Map;

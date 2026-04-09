@@ -11,11 +11,11 @@ import fr.maif.eventsourcing.vanilla.EventProcessorImpl;
 import fr.maif.eventsourcing.vanilla.EventStoreVanilla;
 import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
 import fr.maif.reactor.eventsourcing.ReactorKafkaEventPublisher;
+import fr.maif.reactor.kafka.SenderOptions;
 import io.vavr.Tuple0;
 import io.vavr.collection.List;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
-import reactor.kafka.sender.SenderOptions;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

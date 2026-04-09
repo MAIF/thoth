@@ -6,9 +6,9 @@ import fr.maif.reactor.eventsourcing.DefaultAggregateStore;
 import fr.maif.eventsourcing.impl.PostgresEventStore;
 import fr.maif.reactor.eventsourcing.ReactorKafkaEventPublisher;
 import fr.maif.eventsourcing.impl.TableNames;
+import fr.maif.reactor.kafka.SenderOptions;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
-import reactor.kafka.sender.SenderOptions;
 
 import javax.sql.DataSource;
 import java.io.Closeable;

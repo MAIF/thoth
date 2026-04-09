@@ -5,7 +5,6 @@ dependencies {
     implementation project(':thoth-core-reactor')
     implementation("io.vavr:vavr:$vavrVersion")
     implementation("io.projectreactor:reactor-core:$reactorVersion")
-    implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
     implementation("org.slf4j:slf4j-api:1.7.36")
     implementation('org.postgresql:postgresql:42.7.7')
     implementation("org.jooq:jooq:$jooqVersion")
@@ -23,6 +22,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.mockito:mockito-core:$mockitoCoreVersion")
     testImplementation('org.testng:testng:7.7.0')
+    testImplementation("org.apache.pekko:pekko-connectors-kafka-testkit_$scalaVersion:$pekkoKafkaVersion")
     testImplementation("org.testcontainers:postgresql:$testContainerVersion")
     testImplementation("org.testcontainers:kafka:$testContainerVersion")
     testImplementation("org.slf4j:slf4j-api:1.7.30")

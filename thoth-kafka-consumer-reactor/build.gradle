@@ -1,5 +1,7 @@
 
 dependencies {
+    implementation project(':thoth-commons-events')
+    implementation project(':thoth-core')
     implementation "io.projectreactor.kafka:reactor-kafka:$reactorKafkaVersion"
     implementation "io.vavr:vavr:$vavrVersion"
     implementation('org.slf4j:slf4j-api:2.0.7')
@@ -8,6 +10,8 @@ dependencies {
     testImplementation("org.apache.pekko:pekko-testkit_$scalaVersion:$pekkoVersion")
     testImplementation("org.apache.pekko:pekko-stream-testkit_$scalaVersion:$pekkoVersion")
     testImplementation "org.apache.pekko:pekko-connectors-kafka-testkit_$scalaVersion:$pekkoKafkaVersion"
+    testImplementation("fr.maif:functional-json:$functionalJsonVersion")
+    testImplementation("tools.jackson.core:jackson-databind:$jacksonVersion")
     testImplementation("org.assertj:assertj-core:$assertJVersion")
     testImplementation(platform("org.junit:junit-bom:$jupiterVersion"))
     testImplementation("org.junit.jupiter:junit-jupiter")
