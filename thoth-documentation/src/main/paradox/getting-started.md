@@ -30,9 +30,9 @@ artifact="thoth-core$"
 version="ThothVersion"
 }
 
-### Thoth core-akka, thoth-jooq-akka and thoth-kafka-consumer-akka
+### Thoth core-pekko, thoth-jooq-pekko and thoth-kafka-consumer-pekko
 
-Those modules are not maintained anymore since the version switch of akka.
+Those modules are not maintained anymore since the version switch of pekko.
 
 ### Thoth core reactor
 

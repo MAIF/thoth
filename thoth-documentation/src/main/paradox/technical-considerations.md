@@ -4,7 +4,7 @@ We made some opinionated choices on Thoth return types/
 
 * The java `CompletionStage` is used for async call but there is wrappers that exposes `Mono` for spring integration.
 
-* The reactive stream `Publisher` is used for stream processing and akka `Source` and spring `Flux` can be used in modules.
+* The reactive stream `Publisher` is used for stream processing and pekko `Source` and spring `Flux` can be used in modules.
 
 * The vavr `Either` is used to handle business errors. The idea is to have three channels:
     * it's ok: `CompletionStage(Right("Result"))`

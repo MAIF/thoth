@@ -7,7 +7,7 @@ import org.apache.pekko.stream.javadsl.Source;
 import fr.maif.Helpers;
 import fr.maif.Helpers.Viking;
 import fr.maif.Helpers.VikingEvent;
-import fr.maif.akka.eventsourcing.DefaultAggregateStore;
+import fr.maif.pekko.eventsourcing.DefaultAggregateStore;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.EventEnvelope;
 import fr.maif.eventsourcing.EventProcessorTest;

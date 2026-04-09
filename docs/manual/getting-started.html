@@ -189,8 +189,8 @@ libraryDependencies += "fr.maif" % "thoth-core$" % ThothVersion</code></pre></dd
 dependencies {
   implementation "fr.maif:thoth-core$:${versions.ThothVersion}"
 }</code></pre></dd></dl>
-<h3><a href="#thoth-core-akka-thoth-jooq-akka-and-thoth-kafka-consumer-akka" name="thoth-core-akka-thoth-jooq-akka-and-thoth-kafka-consumer-akka" class="anchor"><span class="anchor-link"></span></a>Thoth core-akka, thoth-jooq-akka and thoth-kafka-consumer-akka</h3>
-<p>Those modules are not maintained anymore since the version switch of akka.</p>
+<h3><a href="#thoth-core-pekko-thoth-jooq-pekko-and-thoth-kafka-consumer-pekko" name="thoth-core-pekko-thoth-jooq-pekko-and-thoth-kafka-consumer-pekko" class="anchor"><span class="anchor-link"></span></a>Thoth core-pekko, thoth-jooq-pekko and thoth-kafka-consumer-pekko</h3>
+<p>Those modules are not maintained anymore since the version switch of pekko.</p>
 <h3><a href="#thoth-core-reactor" name="thoth-core-reactor" class="anchor"><span class="anchor-link"></span></a>Thoth core reactor</h3>
 <p>Basically, this module is used to garanti the publication of events in kafka (outbox pattern). Unless you bring your own implementation, this module is required. It uses reactor, but the reactor API is not exposed.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
 libraryDependencies += "fr.maif" % "thoth-reactor$" % ThothVersion</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
@@ -337,7 +337,7 @@ dependencies {
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2025</span>
+<span class="text">&copy; 2026</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->

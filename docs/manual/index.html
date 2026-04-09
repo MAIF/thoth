@@ -169,11 +169,11 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <h2><a href="#installation" name="installation" class="anchor"><span class="anchor-link"></span></a>Installation</h2><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
 libraryDependencies ++= Seq(
   "fr.maif" % "commons-events" % ThothVersion,
-  "fr.maif" % "thoth-core-akka" % ThothVersion,
+  "fr.maif" % "thoth-core-pekko" % ThothVersion,
   "fr.maif" % "thoth-core-reactor" % ThothVersion,
   "fr.maif" % "thoth-jooq" % ThothVersion,
-  "fr.maif" % "thoth-jooq-akka" % ThothVersion,
-  "fr.maif" % "thoth-kafka-consumer-akka" % ThothVersion,
+  "fr.maif" % "thoth-jooq-pekko" % ThothVersion,
+  "fr.maif" % "thoth-kafka-consumer-pekko" % ThothVersion,
   "fr.maif" % "thoth-kafka-consumer-reactor" % ThothVersion
 )</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
   &lt;thoth.version&gt;0.1.0*&lt;/thoth.version&gt;
@@ -186,7 +186,7 @@ libraryDependencies ++= Seq(
   &lt;/dependency&gt
   &lt;dependency&gt;
     &lt;groupId&gt;fr.maif&lt;/groupId&gt;
-    &lt;artifactId&gt;thoth-core-akka&lt;/artifactId&gt;
+    &lt;artifactId&gt;thoth-core-pekko&lt;/artifactId&gt;
     &lt;version&gt;${thoth.version}&lt;/version&gt;
   &lt;/dependency&gt
   &lt;dependency&gt;
@@ -201,12 +201,12 @@ libraryDependencies ++= Seq(
   &lt;/dependency&gt
   &lt;dependency&gt;
     &lt;groupId&gt;fr.maif&lt;/groupId&gt;
-    &lt;artifactId&gt;thoth-jooq-akka&lt;/artifactId&gt;
+    &lt;artifactId&gt;thoth-jooq-pekko&lt;/artifactId&gt;
     &lt;version&gt;${thoth.version}&lt;/version&gt;
   &lt;/dependency&gt
   &lt;dependency&gt;
     &lt;groupId&gt;fr.maif&lt;/groupId&gt;
-    &lt;artifactId&gt;thoth-kafka-consumer-akka&lt;/artifactId&gt;
+    &lt;artifactId&gt;thoth-kafka-consumer-pekko&lt;/artifactId&gt;
     &lt;version&gt;${thoth.version}&lt;/version&gt;
   &lt;/dependency&gt
   &lt;dependency&gt;
@@ -219,11 +219,11 @@ libraryDependencies ++= Seq(
 ]
 dependencies {
   implementation "fr.maif:commons-events:${versions.ThothVersion}"
-  implementation "fr.maif:thoth-core-akka:${versions.ThothVersion}"
+  implementation "fr.maif:thoth-core-pekko:${versions.ThothVersion}"
   implementation "fr.maif:thoth-core-reactor:${versions.ThothVersion}"
   implementation "fr.maif:thoth-jooq:${versions.ThothVersion}"
-  implementation "fr.maif:thoth-jooq-akka:${versions.ThothVersion}"
-  implementation "fr.maif:thoth-kafka-consumer-akka:${versions.ThothVersion}"
+  implementation "fr.maif:thoth-jooq-pekko:${versions.ThothVersion}"
+  implementation "fr.maif:thoth-kafka-consumer-pekko:${versions.ThothVersion}"
   implementation "fr.maif:thoth-kafka-consumer-reactor:${versions.ThothVersion}"
 }</code></pre></dd></dl>
 <p>More détails <a href="getting-started.html">on this page</a> </p>
@@ -346,7 +346,7 @@ dependencies {
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2025</span>
+<span class="text">&copy; 2026</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->

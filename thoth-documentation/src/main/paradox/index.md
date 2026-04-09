@@ -53,11 +53,11 @@ This documentation focuses on implementing event-sourcing on a simple use case :
     symbol="ThothVersion"
     value="$project.version.short$"
     group="fr.maif" artifact="commons-events" version="ThothVersion"
-    group2="fr.maif" artifact2="thoth-core-akka" version2="ThothVersion"
+    group2="fr.maif" artifact2="thoth-core-pekko" version2="ThothVersion"
     group3="fr.maif" artifact3="thoth-core-reactor" version3="ThothVersion"
     group4="fr.maif" artifact4="thoth-jooq" version4="ThothVersion"
-    group5="fr.maif" artifact5="thoth-jooq-akka" version5="ThothVersion"
-    group6="fr.maif" artifact6="thoth-kafka-consumer-akka" version6="ThothVersion"
+    group5="fr.maif" artifact5="thoth-jooq-pekko" version5="ThothVersion"
+    group6="fr.maif" artifact6="thoth-kafka-consumer-pekko" version6="ThothVersion"
     group7="fr.maif" artifact7="thoth-kafka-consumer-reactor" version7="ThothVersion"
 }
 

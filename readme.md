@@ -25,7 +25,7 @@ It also allows storing snapshots of the application state, for scenarios that im
 
 These libs are based on : 
  * Vavr for functional stuff (immutable `List`, `Either`, `Future`)
- * Akka stream for reactive streams
+ * Pekko stream for reactive streams
  * jackson for json 
  * jooq to build query 
  * vertx for reactive postgresql database access  

@@ -9,7 +9,7 @@ You can use it adding one of these dependencies depending on your stack.
 @@dependency[sbt,Maven,Gradle] {
     symbol="ThothVersion"
     value="$project.version.short$"
-    group="fr.maif" artifact="thoth-core-akka" version="ThothVersion"
+    group="fr.maif" artifact="thoth-core-pekko" version="ThothVersion"
     group2="fr.maif" artifact2="thoth-core-reactor" version2="ThothVersion"
 }
 

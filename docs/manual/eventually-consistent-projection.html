@@ -156,7 +156,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>It&rsquo;s possible using any Kafka client, however Thoth provides an helper for such use cases.</p>
 <p>You can use it adding one of these dependencies depending on your stack. </p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">val ThothVersion = "0.1.0*"
 libraryDependencies ++= Seq(
-  "fr.maif" % "thoth-core-akka" % ThothVersion,
+  "fr.maif" % "thoth-core-pekko" % ThothVersion,
   "fr.maif" % "thoth-core-reactor" % ThothVersion
 )</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;properties&gt;
   &lt;thoth.version&gt;0.1.0*&lt;/thoth.version&gt;
@@ -164,7 +164,7 @@ libraryDependencies ++= Seq(
 &lt;dependencies&gt
   &lt;dependency&gt;
     &lt;groupId&gt;fr.maif&lt;/groupId&gt;
-    &lt;artifactId&gt;thoth-core-akka&lt;/artifactId&gt;
+    &lt;artifactId&gt;thoth-core-pekko&lt;/artifactId&gt;
     &lt;version&gt;${thoth.version}&lt;/version&gt;
   &lt;/dependency&gt
   &lt;dependency&gt;
@@ -176,7 +176,7 @@ libraryDependencies ++= Seq(
   ThothVersion: "0.1.0*"
 ]
 dependencies {
-  implementation "fr.maif:thoth-core-akka:${versions.ThothVersion}"
+  implementation "fr.maif:thoth-core-pekko:${versions.ThothVersion}"
   implementation "fr.maif:thoth-core-reactor:${versions.ThothVersion}"
 }</code></pre></dd></dl>
 <p>Here is an example using the reactor one : </p>
@@ -248,7 +248,7 @@ dependencies {
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2025</span>
+<span class="text">&copy; 2026</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->

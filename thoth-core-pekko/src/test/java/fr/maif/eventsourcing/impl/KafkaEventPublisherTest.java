@@ -1,7 +1,7 @@
 package fr.maif.eventsourcing.impl;
 
 import fr.maif.KafkaContainerTest;
-import fr.maif.akka.eventsourcing.KafkaEventPublisher;
+import fr.maif.pekko.eventsourcing.KafkaEventPublisher;
 import fr.maif.concurrent.CompletionStages;
 import fr.maif.eventsourcing.Event;
 import fr.maif.eventsourcing.EventEnvelope;

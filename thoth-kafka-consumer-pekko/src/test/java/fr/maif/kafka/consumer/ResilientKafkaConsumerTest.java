@@ -69,7 +69,7 @@ class ResilientKafkaConsumerTest implements KafkaContainerTest {
     }
 
     @Test
-    void contexteAkkastreamApi() throws Exception {
+    void contextePekkostreamApi() throws Exception {
 
         String topic = createTopic("topic-"+counter.incrementAndGet(), 1, 1);
         String groupId = "test-group-id-3";
