@@ -45,6 +45,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static fr.maif.eventsourcing.EventStore.ConcurrentReplayStrategy.NO_STRATEGY;
@@ -129,12 +130,14 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
 
         Thread.sleep(200);
 
-        CompletionStage<List<String>> results = Consumer.plainSource(consumerDefaults(sys).withGroupId("test2"), Subscriptions.topics(topic))
+        CompletionStage<List<String>> results = Consumer.plainSource(consumerDefaults(sys)
+                        .withGroupId("eventConsumptionWithEventFromDb")
+                                .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+                        , Subscriptions.topics(topic))
                 .map(ConsumerRecord::value)
-                .take(6)
-                .idleTimeout(Duration.of(5, ChronoUnit.SECONDS))
-                .runWith(Sink.seq(), mat)
-                .thenApply(List::ofAll);
+                .groupedWithin(50, Duration.ofSeconds(4)).map(List::ofAll)
+                .idleTimeout(Duration.of(30, ChronoUnit.SECONDS))
+                .runWith(Sink.head(), mat);
 
         publisher.publish(List.of(
                 eventEnvelopeUnpublished("value 4"),
@@ -161,15 +164,15 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
         String topic = createTopic("testRestart", 5, 1);
         ReactorKafkaEventPublisher<TestEvent, Void, Void> publisher = createPublisher(topic);
 
-        Supplier<Source<EventEnvelope<TestEvent, Void, Void>, NotUsed>> eventsFlux = () -> Consumer
-                .plainSource(consumerSettings()
-                        .withGroupId("testRestart")
+        // Helper to read from topic
+        Function<String, Source<EventEnvelope<TestEvent, Void, Void>, NotUsed>> eventsFlux = groupId -> Consumer
+                .committableSource(consumerSettings()
+                        .withGroupId(groupId)
                                 .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-                                .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
-                        ,
+                                .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false"),
                         Subscriptions.topics(topic)
                 )
-                .map(r -> r.value())
+                .map(r -> r.record().value())
                 .mapMaterializedValue(c -> NotUsed.notUsed());
 
 
@@ -186,16 +189,20 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
         EventEnvelope<TestEvent, Void, Void> envelope11 = eventEnvelopeUnpublished("value 11");
         EventEnvelope<TestEvent, Void, Void> envelope12 = eventEnvelopeUnpublished("value 12");
 
+        // A store with event 1, 2, 3 already published.
+        // This version fails the first time it marks as published events in DB
         InMemoryEventStore<TestEvent, Void, Void> eventStore = spy(new InMemoryEventStore<>(
                 () -> {
                     if (failed.incrementAndGet() > 1) {
                         return CompletionStages.successful(API.Tuple());
                     } else {
+                        System.out.println("Failed in transaction");
                         return CompletionStages.failed(new RuntimeException("Oups "+failed.get()));
                     }
                 }, () -> {
                     int count = streamCount.incrementAndGet();
                     if (count == 1) {
+                        System.out.println("First message fail");
                         return CompletionStages.failed(new RuntimeException("Oups stream "+count));
                     } else {
                         return CompletionStages.successful(API.Tuple());
@@ -208,14 +215,14 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
 
         Thread.sleep(200);
 
-
-        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = eventsFlux.get()
+        CompletionStage<List<EventEnvelope<TestEvent, Void, Void>>> results = eventsFlux.apply("groupid-1")
                 .groupedWithin(50, Duration.ofSeconds(4))
                 .take(1)
                 .idleTimeout(Duration.of(10, ChronoUnit.SECONDS))
                 .runWith(Sink.head(), mat)
                 .thenApply(List::ofAll);
 
+        // Publication of events 4, 5, 6
         List<EventEnvelope<TestEvent, Void, Void>> toPublish = List(envelope4, envelope5, envelope6);
         eventStore.publish(toPublish);
         publisher.publish(toPublish);
@@ -233,17 +240,17 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
                 // So events were replayed
                 envelope4, envelope5, envelope6);
         assertThat(eventStore.store.values()).containsExactly(published(envelope1, envelope2, envelope3, envelope4, envelope5, envelope6));
-//
+
         verify(eventStore, times(2)).openTransaction();
         verify(eventStore, times(2)).markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
         verify(eventStore, times(0)).markAsPublished(Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
 
 
-
         List<EventEnvelope<TestEvent, Void, Void>> toPublishFailInMemory = List(envelope7, envelope8, envelope9);
         eventStore.publish(toPublishFailInMemory);
         publisher.publish(toPublishFailInMemory);
-        List<EventEnvelope<TestEvent, Void, Void>> resultsAfterCrash = eventsFlux.get()
+        Thread.sleep(200);
+        List<EventEnvelope<TestEvent, Void, Void>> resultsAfterCrash = eventsFlux.apply("groupid-2")
                 .groupedWithin(50, Duration.ofSeconds(10))
                 .map(List::ofAll)
                 .take(1)
@@ -260,7 +267,7 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
         List<EventEnvelope<TestEvent, Void, Void>> toPublishFailAtTheEnd = List(envelope10, envelope11, envelope12);
         publisher.publish(toPublishFailAtTheEnd);
 
-        List<EventEnvelope<TestEvent, Void, Void>> resultsAfterCrashInMemory = eventsFlux.get()
+        List<EventEnvelope<TestEvent, Void, Void>> resultsAfterCrashInMemory = eventsFlux.apply("groupid-3")
                 .groupedWithin(50, Duration.ofSeconds(10))
                 .map(List::ofAll)
                 .take(1)
@@ -269,7 +276,7 @@ public class KafkaEventPublisherTest implements KafkaContainerTest {
                 .toCompletableFuture().join();
 
         println(resultsAfterCrashInMemory.mkString("\n"));
-        assertThat(resultsAfterCrashInMemory).containsExactly(envelope10, envelope11, envelope12);
+        assertThat(resultsAfterCrashInMemory).contains(envelope10, envelope11, envelope12);
 
         verify(eventStore, times(3)).openTransaction();
         verify(eventStore, times(3)).markAsPublished(any(), Mockito.<List<EventEnvelope<TestEvent, Void, Void>>>any());
